@@ -1,0 +1,94 @@
+# Dependencies
+node_modules
+.pnp
+.pnp.js
+__pycache__/
+*.py[cod]
+*$py.class
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Environment variables
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+venv/
+
+# Testing
+coverage/
+.coverage
+htmlcov/
+.pytest_cache/
+nosetests.xml
+*.cover
+
+# Production build
+/build
+/dist
+
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+.DS_Store
+
+# Cache
+.eslintcache
+.cache/
+.parcel-cache/
+
+# Firebase
+firebase-debug.log
+ui-debug.log
+.firebase/
+
+# AWS
+.aws-sam/
+packaged.yaml
+
+# Jupyter Notebooks
+.ipynb_checkpoints
+
+# Database
+*.sqlite3
+*.db
+
+# Model files
+*.h5
+*.pkl
+*.joblib
+
+# Temporary files
+*.tmp
+*.temp
+
+# venv
+.venv/
