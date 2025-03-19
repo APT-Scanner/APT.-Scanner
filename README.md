@@ -25,46 +25,40 @@ APT. Scanner combines advanced AI algorithms with real estate data to deliver pe
 
 The project follows a monorepo architecture with the following main directories:
 
-```
 APT.-Scanner/
 ├── backend/
 │   ├── src/
-│   │   ├── config/
-│   │   ├── models/
-│   │   ├── routes/
-│   │   ├── services/
-│   │   ├── utils/
-│   │   └── main.py
+│   │   ├── config/         # Configuration files (e.g., settings.py)
+│   │   ├── models/         # Database models and schemas
+│   │   ├── routes/         # API endpoint route definitions
+│   │   ├── services/       # Business logic and services
+│   │   ├── utils/          # Utility functions and helpers
+│   │   └── main.py         # Entry point for the backend application
+│   ├── scripts/            # Standalone scripts (e.g., data fetching, seeding)
+│   ├── tests/              # Unit and integration tests for the backend
 ├── frontend/
-│   ├── public/
+│   ├── public/             # Static assets (e.g., images, icons, index.html)
 │   ├── src/
-│   │   ├── components/
-│   │   ├── pages/
-│   │   ├── services/
-│   │   ├── styles/
-│   │   └── App.jsx
-└── .env
-```
-
-### Backend
-- **`backend/src/config/`**: Contains configuration files, such as `settings.py`, which manage environment variables and application settings.
-- **`backend/src/models/`**: Defines the database models and schemas for the application.
-- **`backend/src/routes/`**: Contains route definitions for the API endpoints.
-- **`backend/src/services/`**: Implements the business logic and services used by the application.
-- **`backend/src/utils/`**: Utility functions and helpers used across the backend.
-- **`backend/src/main.py`**: The entry point for the backend application.
-
-### Frontend
-- **`frontend/public/`**: Static assets such as images, icons, and the `index.html` file.
-- **`frontend/src/components/`**: Reusable React components used throughout the application.
-- **`frontend/src/pages/`**: Page-level components representing different views in the application.
-- **`frontend/src/services/`**: Handles API calls and interactions with the backend.
-- **`frontend/src/styles/`**: Contains global and component-specific styles.
-- **`frontend/src/App.jsx`**: The main React component that initializes the application.
-
-### `.env`
-- Stores environment-specific variables such as database connection strings, API keys, and secret keys.
-
+│   │   ├── components/     # Reusable React components
+│   │   ├── pages/          # Page-level components
+│   │   ├── services/       # API calls and backend interactions
+│   │   ├── styles/         # Global and component-specific styles
+│   │   └── App.jsx         # Main React component
+│   ├── tests/              # Unit and integration tests for the frontend
+├── shared/
+│   ├── constants/          # Shared constants used across the project
+│   ├── types/              # Shared type definitions (e.g., TypeScript interfaces)
+│   └── utils/              # Shared utility functions used by both frontend and backend
+├── docs/                   # Documentation files (e.g., API docs, diagrams)
+├── data/                   # Data-related files and scripts
+│   ├── processing/         # Scripts for processing raw data
+│   ├── scrapers/           # Web scraping scripts for data collection
+│   └── sources/            # Raw data files or external data sources
+├── ai/                     # AI/ML-related files
+│   ├── evaluation/         # Scripts and tools for evaluating AI models
+│   ├── models/             # Trained models and model definitions
+│   └── preprocessing/      # Scripts for preprocessing data for AI/ML tasks
+└── .env                    # Environment-specific variables (e.g., API keys)
 
 ## Getting Started
 
