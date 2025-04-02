@@ -1,0 +1,1444 @@
+{
+    "listings": [
+        {
+            "order_id": 55145251,
+            "token": "0qp02yen",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 4200,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 65,
+            "property_condition_id": 3,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1_09880_20250330132547.jpeg",
+            "video_url": "//yad2.cdnwiz.com/p/102/sp/10200/playManifest/entryId/0_3fykal92/format/url/protocol/http",
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "נווה גולן, יפו ג'",
+            "street": "סוקרטס",
+            "house_number": 6,
+            "floor": 3,
+            "longitude": 34.746353,
+            "latitude": 32.032687
+        },
+        {
+            "order_id": 55142561,
+            "token": "noj2xffl",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 6300,
+            "property_type": "דירה",
+            "rooms_count": 2.5,
+            "square_meter": 57,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/17/2_2/o/y2_1pa_010859_20250317205252.jpeg",
+            "video_url": "https://s3.eu-west-1.amazonaws.com/videos.yad2.co.il/Video/202503/17/2_2/o/y2_1_010111_20250317205240.mp4",
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "הצפון הישן - דרום",
+            "street": "דיזנגוף",
+            "house_number": 167,
+            "floor": 3,
+            "longitude": 34.77395,
+            "latitude": 32.084088
+        },
+        {
+            "order_id": 55054891,
+            "token": "l54lr2vt",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 10800,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 82,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010203_20250225150804.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "הצפון החדש - דרום",
+            "street": "אבן גבירול",
+            "house_number": 96,
+            "floor": 2,
+            "longitude": 34.781529,
+            "latitude": 32.083202
+        },
+        {
+            "order_id": 55120141,
+            "token": "muy36yxb",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 7700,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 75,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010871_20250312082808.jpeg",
+            "video_url": "//yad2.cdnwiz.com/p/102/sp/10200/playManifest/entryId/0_vmftas0n/format/url/protocol/http",
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "פלורנטין",
+            "street": "הרצל",
+            "house_number": 108,
+            "floor": 3,
+            "longitude": 34.770666,
+            "latitude": 32.055387
+        },
+        {
+            "order_id": 55081230,
+            "token": "che9lais",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 4500,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 68,
+            "property_condition_id": 3,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010063_20250303180157.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "נווה שרת",
+            "street": "בית אל",
+            "house_number": 4,
+            "floor": 4,
+            "longitude": 34.838702,
+            "latitude": 32.1176
+        },
+        {
+            "order_id": 55196679,
+            "token": "kfjg4c8h",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 11900,
+            "property_type": "דופלקס",
+            "rooms_count": 3.0,
+            "square_meter": 90,
+            "property_condition_id": 6,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010926_20250330113246.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "הצפון הישן - צפון",
+            "street": "בן יהודה",
+            "house_number": 175,
+            "floor": 6,
+            "longitude": 34.773779,
+            "latitude": 32.090009
+        },
+        {
+            "order_id": 54274687,
+            "token": "655lukf5",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 5500,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 65,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010139_20240824225046.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "נווה אליעזר וכפר שלם מזרח",
+            "street": "שדרות ששת הימים",
+            "house_number": 17,
+            "floor": 3,
+            "longitude": 34.809731,
+            "latitude": 32.046941
+        },
+        {
+            "order_id": 55054280,
+            "token": "45eeztim",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 8700,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 75,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010681_20250225132147.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "צפון יפו, המושבה האמריקאית-גרמנית",
+            "street": "בר הופמן",
+            "house_number": 5,
+            "floor": 4,
+            "longitude": 34.763902,
+            "latitude": 32.057134
+        },
+        {
+            "order_id": 55036531,
+            "token": "fghjqkjt",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 3000,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 120,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010576_20250220204247.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "נווה אביבים",
+            "street": "יהודה הנשיא",
+            "house_number": 47,
+            "floor": 3,
+            "longitude": 34.795253,
+            "latitude": 32.121509
+        },
+        {
+            "order_id": 55065177,
+            "token": "m7m2d1jz",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 7950,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 85,
+            "property_condition_id": 3,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202502/27/2_2/o/y2_1pa_010792_20250227182233.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "הצפון הישן - צפון",
+            "street": "שדרות בן גוריון",
+            "house_number": 39,
+            "floor": 3,
+            "longitude": 34.773769,
+            "latitude": 32.084722
+        },
+        {
+            "order_id": 55180051,
+            "token": "g9a24v1u",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 5200,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 52,
+            "property_condition_id": 6,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_1_09110_20250325200900.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "נווה שאנן",
+            "street": "פין",
+            "house_number": 5,
+            "floor": 4,
+            "longitude": 34.779806,
+            "latitude": 32.060217
+        },
+        {
+            "order_id": 55174020,
+            "token": "iworl2wq",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 5200,
+            "property_type": "דירה",
+            "rooms_count": 2.5,
+            "square_meter": 73,
+            "property_condition_id": 3,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010680_20250324172918.jpeg",
+            "video_url": "https://s3.eu-west-1.amazonaws.com/videos.yad2.co.il/Video/202503/24/2_2/o/y2_1_010314_20250324172818.mp4",
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "יד אליהו",
+            "street": "הפלמ\"ח",
+            "house_number": 31,
+            "floor": 3,
+            "longitude": 34.796446,
+            "latitude": 32.063235
+        },
+        {
+            "order_id": 55194999,
+            "token": "9uxwvd46",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 9800,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 70,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010877_20250329221722.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "בבלי",
+            "street": "בבלי",
+            "house_number": 12,
+            "floor": 4,
+            "longitude": 34.798828,
+            "latitude": 32.093784
+        },
+        {
+            "order_id": 55170662,
+            "token": "p4etyt48",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 12000,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 63,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010456_20250324090919.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "לב תל אביב, לב העיר צפון",
+            "street": "החשמונאים",
+            "house_number": 17,
+            "floor": 4,
+            "longitude": 34.775575,
+            "latitude": 32.071472
+        },
+        {
+            "order_id": 55149279,
+            "token": "1jzcrli8",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 7850,
+            "property_type": "גג/ פנטהאוז",
+            "rooms_count": 2.5,
+            "square_meter": 118,
+            "property_condition_id": 3,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010962_20250319080612.jpeg",
+            "video_url": "https://s3.eu-west-1.amazonaws.com/videos.yad2.co.il/Video/202503/19/2_2/o/y2_1_010860_20250319074728.MP4",
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "לב תל אביב, לב העיר צפון",
+            "street": "פיארברג",
+            "house_number": 9,
+            "floor": 4,
+            "longitude": 34.776191,
+            "latitude": 32.067767
+        },
+        {
+            "order_id": 55069653,
+            "token": "gq5lpvuw",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 5700,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 68,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/01/2_2/o/y2_1pa_010738_20250301154029.jpeg",
+            "video_url": "//yad2.cdnwiz.com/p/102/sp/10200/playManifest/entryId/0_bua08b5r/format/url/protocol/http",
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "נווה גולן, יפו ג'",
+            "street": "עירית",
+            "house_number": 5,
+            "floor": 8,
+            "longitude": 34.749974,
+            "latitude": 32.035135
+        },
+        {
+            "order_id": 55095410,
+            "token": "fypmr1bi",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 4100,
+            "property_type": "דירה",
+            "rooms_count": 2.5,
+            "square_meter": 44,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/06/2_2/o/y2_1pa_010052_20250306124602.jpeg",
+            "video_url": null,
+            "priority": 3,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "נווה שאנן",
+            "street": "לבנדה",
+            "house_number": 1,
+            "floor": 3,
+            "longitude": 34.781824,
+            "latitude": 32.053903
+        },
+        {
+            "order_id": 55200792,
+            "token": "6f5z86w0",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 8200,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 67,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/31/2_2/o/y2_1pa_010055_20250331011031.jpeg",
+            "video_url": null,
+            "priority": 2,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "הצפון הישן - דרום",
+            "street": "ז'אן ז'ורס",
+            "house_number": 7,
+            "floor": 3,
+            "longitude": 34.773078,
+            "latitude": 32.083295
+        },
+        {
+            "order_id": 55039499,
+            "token": "4a4ly604",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 3000,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 80,
+            "property_condition_id": 3,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202502/21/2_2/o/y2_1pa_010950_20250221120148.jpeg",
+            "video_url": null,
+            "priority": 2,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "נווה גולן, יפו ג'",
+            "street": "קורט טוכולסקי",
+            "house_number": 6,
+            "floor": 3,
+            "longitude": 34.74644,
+            "latitude": 32.031933
+        },
+        {
+            "order_id": 55194474,
+            "token": "4du5s69g",
+            "subcategory_id": 2,
+            "category_id": 2,
+            "ad_type": "private",
+            "price": 5400,
+            "property_type": "דירה",
+            "rooms_count": 3.0,
+            "square_meter": 60,
+            "property_condition_id": 2,
+            "cover_image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010728_20250329195024.jpeg",
+            "video_url": null,
+            "priority": 2,
+            "city": "תל אביב יפו",
+            "area": "אזור תל אביב יפו",
+            "neighborhood_text": "שפירא",
+            "street": "כוכבי יצחק",
+            "house_number": 3,
+            "floor": 2,
+            "longitude": 34.783087,
+            "latitude": 32.0484
+        }
+    ],
+    "images": [
+        {
+            "listing_order_id": 55145251,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1_09880_20250330132547.jpeg"
+        },
+        {
+            "listing_order_id": 55145251,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_2_08956_20250330132553.jpeg"
+        },
+        {
+            "listing_order_id": 55145251,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_3_03418_20250330132600.jpeg"
+        },
+        {
+            "listing_order_id": 55142561,
+            "image_url": "https://img.yad2.co.il/Pic/202503/17/2_2/o/y2_1pa_010859_20250317205252.jpeg"
+        },
+        {
+            "listing_order_id": 55142561,
+            "image_url": "https://img.yad2.co.il/Pic/202503/17/2_2/o/y2_1pa_010632_20250317205306.jpeg"
+        },
+        {
+            "listing_order_id": 55142561,
+            "image_url": "https://img.yad2.co.il/Pic/202503/17/2_2/o/y2_1pa_010825_20250317205318.jpeg"
+        },
+        {
+            "listing_order_id": 55142561,
+            "image_url": "https://img.yad2.co.il/Pic/202503/17/2_2/o/y2_1pa_010997_20250317205326.jpeg"
+        },
+        {
+            "listing_order_id": 55142561,
+            "image_url": "https://img.yad2.co.il/Pic/202503/17/2_2/o/y2_1pa_010956_20250317205337.jpeg"
+        },
+        {
+            "listing_order_id": 55142561,
+            "image_url": "https://img.yad2.co.il/Pic/202503/17/2_2/o/y2_1pa_010068_20250317205343.jpeg"
+        },
+        {
+            "listing_order_id": 55142561,
+            "image_url": "https://img.yad2.co.il/Pic/202503/17/2_2/o/y2_1pa_010365_20250317205414.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010203_20250225150804.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010236_20250225150805.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010768_20250225150806.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010865_20250225150807.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010269_20250225150808.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010507_20250225150809.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010622_20250225150810.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010846_20250225150811.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/26/2_2/o/y2_9_02949_20250226134451.jpeg"
+        },
+        {
+            "listing_order_id": 55054891,
+            "image_url": "https://img.yad2.co.il/Pic/202502/26/2_2/o/y2_10_04493_20250226134455.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010871_20250312082808.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010215_20250312082905.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010486_20250312082912.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010915_20250312082941.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010042_20250312082956.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010579_20250312083001.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010150_20250312083006.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010282_20250312083013.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010558_20250312083024.jpeg"
+        },
+        {
+            "listing_order_id": 55120141,
+            "image_url": "https://img.yad2.co.il/Pic/202503/12/2_2/o/y2_1pa_010994_20250312083130.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010063_20250303180157.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010550_20250303180158.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010501_20250303180159.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010934_20250303180200.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010072_20250303180202.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010977_20250303180203.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010738_20250303180205.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010830_20250303180206.jpeg"
+        },
+        {
+            "listing_order_id": 55081230,
+            "image_url": "https://img.yad2.co.il/Pic/202503/03/2_2/o/y2_1pa_010219_20250303180251.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010926_20250330113246.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010339_20250330113307.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010267_20250330113308.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010992_20250330113309.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010377_20250330113310.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010952_20250330113311.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010707_20250330113311.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010597_20250330113402.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010302_20250330113436.jpeg"
+        },
+        {
+            "listing_order_id": 55196679,
+            "image_url": "https://img.yad2.co.il/Pic/202503/30/2_2/o/y2_1pa_010849_20250330113501.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010139_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010538_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010479_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010160_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010867_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010622_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010118_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010330_20240824225047.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010681_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 54274687,
+            "image_url": "https://img.yad2.co.il/Pic/202408/24/2_2/o/y2_1pa_010367_20240824225046.jpeg"
+        },
+        {
+            "listing_order_id": 55054280,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010681_20250225132147.jpeg"
+        },
+        {
+            "listing_order_id": 55054280,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010820_20250225132152.jpeg"
+        },
+        {
+            "listing_order_id": 55054280,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010893_20250225132157.jpeg"
+        },
+        {
+            "listing_order_id": 55054280,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010251_20250225132202.jpeg"
+        },
+        {
+            "listing_order_id": 55054280,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010512_20250225132209.jpeg"
+        },
+        {
+            "listing_order_id": 55054280,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010499_20250225132221.jpeg"
+        },
+        {
+            "listing_order_id": 55054280,
+            "image_url": "https://img.yad2.co.il/Pic/202502/25/2_2/o/y2_1pa_010045_20250225132226.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010576_20250220204247.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010528_20250220204248.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010448_20250220204249.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010505_20250220204250.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010511_20250220204251.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010702_20250220204252.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010875_20250220204253.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010627_20250220204254.jpeg"
+        },
+        {
+            "listing_order_id": 55036531,
+            "image_url": "https://img.yad2.co.il/Pic/202502/20/2_2/o/y2_1pa_010126_20250220204254.jpeg"
+        },
+        {
+            "listing_order_id": 55065177,
+            "image_url": "https://img.yad2.co.il/Pic/202502/27/2_2/o/y2_1pa_010792_20250227182233.jpeg"
+        },
+        {
+            "listing_order_id": 55065177,
+            "image_url": "https://img.yad2.co.il/Pic/202502/27/2_2/o/y2_1pa_010571_20250227182234.jpeg"
+        },
+        {
+            "listing_order_id": 55065177,
+            "image_url": "https://img.yad2.co.il/Pic/202502/27/2_2/o/y2_1pa_010488_20250227182234.jpeg"
+        },
+        {
+            "listing_order_id": 55065177,
+            "image_url": "https://img.yad2.co.il/Pic/202502/27/2_2/o/y2_1pa_010589_20250227182235.jpeg"
+        },
+        {
+            "listing_order_id": 55065177,
+            "image_url": "https://img.yad2.co.il/Pic/202502/27/2_2/o/y2_1pa_010491_20250227182235.jpeg"
+        },
+        {
+            "listing_order_id": 55065177,
+            "image_url": "https://img.yad2.co.il/Pic/202503/10/2_2/o/y2_6_08057_20250310140159.jpeg"
+        },
+        {
+            "listing_order_id": 55065177,
+            "image_url": "https://img.yad2.co.il/Pic/202503/10/2_2/o/y2_7_05836_20250310140202.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_1_09110_20250325200900.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_2_06483_20250325200904.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_3_03351_20250325202727.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_4_08798_20250325202730.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_5_02611_20250325202733.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_6_07930_20250325202737.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_7_06348_20250325202740.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_8_06243_20250325202743.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_9_03119_20250325202746.jpeg"
+        },
+        {
+            "listing_order_id": 55180051,
+            "image_url": "https://img.yad2.co.il/Pic/202503/25/2_2/o/y2_10_04787_20250325202750.jpeg"
+        },
+        {
+            "listing_order_id": 55174020,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010680_20250324172918.jpeg"
+        },
+        {
+            "listing_order_id": 55174020,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010087_20250324172926.jpeg"
+        },
+        {
+            "listing_order_id": 55174020,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010906_20250324172919.jpeg"
+        },
+        {
+            "listing_order_id": 55174020,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010944_20250324172920.jpeg"
+        },
+        {
+            "listing_order_id": 55174020,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010399_20250324172921.jpeg"
+        },
+        {
+            "listing_order_id": 55174020,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010059_20250324172922.jpeg"
+        },
+        {
+            "listing_order_id": 55174020,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010531_20250324172923.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010877_20250329221722.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010305_20250329221723.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010588_20250329221724.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010940_20250329221724.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010184_20250329221725.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010187_20250329221725.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010955_20250329221726.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010935_20250329221726.jpeg"
+        },
+        {
+            "listing_order_id": 55194999,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010472_20250329221727.jpeg"
+        },
+        {
+            "listing_order_id": 55170662,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010456_20250324090919.jpeg"
+        },
+        {
+            "listing_order_id": 55170662,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010107_20250324090921.jpeg"
+        },
+        {
+            "listing_order_id": 55170662,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010905_20250324090923.jpeg"
+        },
+        {
+            "listing_order_id": 55170662,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010998_20250324090930.jpeg"
+        },
+        {
+            "listing_order_id": 55170662,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010408_20250324090932.jpeg"
+        },
+        {
+            "listing_order_id": 55170662,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010850_20250324090934.jpeg"
+        },
+        {
+            "listing_order_id": 55170662,
+            "image_url": "https://img.yad2.co.il/Pic/202503/24/2_2/o/y2_1pa_010201_20250324090935.jpeg"
+        },
+        {
+            "listing_order_id": 55149279,
+            "image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010962_20250319080612.jpeg"
+        },
+        {
+            "listing_order_id": 55149279,
+            "image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010960_20250319075237.jpeg"
+        },
+        {
+            "listing_order_id": 55149279,
+            "image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010821_20250319080400.jpeg"
+        },
+        {
+            "listing_order_id": 55149279,
+            "image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010936_20250319080549.jpeg"
+        },
+        {
+            "listing_order_id": 55149279,
+            "image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010107_20250319075214.jpeg"
+        },
+        {
+            "listing_order_id": 55149279,
+            "image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010112_20250319074829.jpeg"
+        },
+        {
+            "listing_order_id": 55149279,
+            "image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010393_20250319080707.jpeg"
+        },
+        {
+            "listing_order_id": 55149279,
+            "image_url": "https://img.yad2.co.il/Pic/202503/19/2_2/o/y2_1pa_010987_20250319080719.jpeg"
+        },
+        {
+            "listing_order_id": 55069653,
+            "image_url": "https://img.yad2.co.il/Pic/202503/01/2_2/o/y2_1pa_010738_20250301154029.jpeg"
+        },
+        {
+            "listing_order_id": 55069653,
+            "image_url": "https://img.yad2.co.il/Pic/202503/01/2_2/o/y2_1pa_010989_20250301154030.jpeg"
+        },
+        {
+            "listing_order_id": 55069653,
+            "image_url": "https://img.yad2.co.il/Pic/202503/01/2_2/o/y2_1pa_010194_20250301154031.jpeg"
+        },
+        {
+            "listing_order_id": 55069653,
+            "image_url": "https://img.yad2.co.il/Pic/202503/01/2_2/o/y2_1pa_010469_20250301154031.jpeg"
+        },
+        {
+            "listing_order_id": 55069653,
+            "image_url": "https://img.yad2.co.il/Pic/202503/01/2_2/o/y2_1pa_010757_20250301154032.jpeg"
+        },
+        {
+            "listing_order_id": 55069653,
+            "image_url": "https://img.yad2.co.il/Pic/202503/01/2_2/o/y2_1pa_010005_20250301154033.jpeg"
+        },
+        {
+            "listing_order_id": 55095410,
+            "image_url": "https://img.yad2.co.il/Pic/202503/06/2_2/o/y2_1pa_010052_20250306124602.jpeg"
+        },
+        {
+            "listing_order_id": 55095410,
+            "image_url": "https://img.yad2.co.il/Pic/202503/06/2_2/o/y2_1pa_010200_20250306124603.jpeg"
+        },
+        {
+            "listing_order_id": 55095410,
+            "image_url": "https://img.yad2.co.il/Pic/202503/06/2_2/o/y2_1pa_010457_20250306124603.jpeg"
+        },
+        {
+            "listing_order_id": 55095410,
+            "image_url": "https://img.yad2.co.il/Pic/202503/06/2_2/o/y2_1pa_010608_20250306124604.jpeg"
+        },
+        {
+            "listing_order_id": 55200792,
+            "image_url": "https://img.yad2.co.il/Pic/202503/31/2_2/o/y2_1pa_010055_20250331011031.jpeg"
+        },
+        {
+            "listing_order_id": 55200792,
+            "image_url": "https://img.yad2.co.il/Pic/202503/31/2_2/o/y2_1pa_010301_20250331011034.jpeg"
+        },
+        {
+            "listing_order_id": 55200792,
+            "image_url": "https://img.yad2.co.il/Pic/202503/31/2_2/o/y2_1pa_010833_20250331011036.jpeg"
+        },
+        {
+            "listing_order_id": 55200792,
+            "image_url": "https://img.yad2.co.il/Pic/202503/31/2_2/o/y2_1pa_010832_20250331011038.jpeg"
+        },
+        {
+            "listing_order_id": 55200792,
+            "image_url": "https://img.yad2.co.il/Pic/202503/31/2_2/o/y2_1pa_010700_20250331011043.jpeg"
+        },
+        {
+            "listing_order_id": 55039499,
+            "image_url": "https://img.yad2.co.il/Pic/202502/21/2_2/o/y2_1pa_010950_20250221120148.jpeg"
+        },
+        {
+            "listing_order_id": 55039499,
+            "image_url": "https://img.yad2.co.il/Pic/202502/21/2_2/o/y2_1pa_010511_20250221120150.jpeg"
+        },
+        {
+            "listing_order_id": 55039499,
+            "image_url": "https://img.yad2.co.il/Pic/202502/21/2_2/o/y2_1pa_010760_20250221120151.jpeg"
+        },
+        {
+            "listing_order_id": 55039499,
+            "image_url": "https://img.yad2.co.il/Pic/202502/21/2_2/o/y2_1pa_010087_20250221120152.jpeg"
+        },
+        {
+            "listing_order_id": 55039499,
+            "image_url": "https://img.yad2.co.il/Pic/202502/21/2_2/o/y2_1pa_010713_20250221120153.jpeg"
+        },
+        {
+            "listing_order_id": 55039499,
+            "image_url": "https://img.yad2.co.il/Pic/202502/21/2_2/o/y2_1pa_010137_20250221120154.jpeg"
+        },
+        {
+            "listing_order_id": 55039499,
+            "image_url": "https://img.yad2.co.il/Pic/202502/21/2_2/o/y2_1pa_010497_20250221120154.jpeg"
+        },
+        {
+            "listing_order_id": 55194474,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010728_20250329195024.jpeg"
+        },
+        {
+            "listing_order_id": 55194474,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010886_20250329195027.jpeg"
+        },
+        {
+            "listing_order_id": 55194474,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010049_20250329195034.jpeg"
+        },
+        {
+            "listing_order_id": 55194474,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010235_20250329195040.jpeg"
+        },
+        {
+            "listing_order_id": 55194474,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010173_20250329195043.jpeg"
+        },
+        {
+            "listing_order_id": 55194474,
+            "image_url": "https://img.yad2.co.il/Pic/202503/29/2_2/o/y2_1pa_010011_20250329195047.jpeg"
+        }
+    ],
+    "tags": [
+        {
+            "tag_id": 1007,
+            "tag_name": "3 כיווני אוויר"
+        },
+        {
+            "tag_id": 1023,
+            "tag_name": "קרוב לפארק"
+        },
+        {
+            "tag_id": 1091,
+            "tag_name": "בהזדמנות"
+        },
+        {
+            "tag_id": 1006,
+            "tag_name": "נוף פתוח לעיר"
+        },
+        {
+            "tag_id": 1002,
+            "tag_name": "נכס עורפי"
+        },
+        {
+            "tag_id": 1019,
+            "tag_name": "משופצת אדריכלית"
+        },
+        {
+            "tag_id": 1018,
+            "tag_name": "בניין משופץ"
+        },
+        {
+            "tag_id": 1020,
+            "tag_name": "מטבח גדול"
+        },
+        {
+            "tag_id": 1092,
+            "tag_name": "חבל לפספס"
+        },
+        {
+            "tag_id": 1009,
+            "tag_name": "ממ\"ד"
+        },
+        {
+            "tag_id": 1004,
+            "tag_name": "נוף פתוח לים"
+        },
+        {
+            "tag_id": 1005,
+            "tag_name": "נוף פתוח לפארק"
+        },
+        {
+            "tag_id": 1017,
+            "tag_name": "קרוב לים"
+        },
+        {
+            "tag_id": 1003,
+            "tag_name": "חניה"
+        },
+        {
+            "tag_id": 1012,
+            "tag_name": "2 מרפסות"
+        },
+        {
+            "tag_id": 1021,
+            "tag_name": "גמיש במחיר"
+        },
+        {
+            "tag_id": 1010,
+            "tag_name": "3 חדרי מקלחת"
+        }
+    ],
+    "listing_tags": [
+        {
+            "listing_order_id": 55145251,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55145251,
+            "tag_id": 1023,
+            "priority": 4
+        },
+        {
+            "listing_order_id": 55145251,
+            "tag_id": 1091,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55142561,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55142561,
+            "tag_id": 1006,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55142561,
+            "tag_id": 1002,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55054891,
+            "tag_id": 1006,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55054891,
+            "tag_id": 1019,
+            "priority": 2
+        },
+        {
+            "listing_order_id": 55054891,
+            "tag_id": 1018,
+            "priority": 3
+        },
+        {
+            "listing_order_id": 55120141,
+            "tag_id": 1006,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55120141,
+            "tag_id": 1020,
+            "priority": 3
+        },
+        {
+            "listing_order_id": 55120141,
+            "tag_id": 1018,
+            "priority": 3
+        },
+        {
+            "listing_order_id": 55081230,
+            "tag_id": 1002,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55081230,
+            "tag_id": 1092,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55081230,
+            "tag_id": 1091,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55196679,
+            "tag_id": 1009,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55196679,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55196679,
+            "tag_id": 1004,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 54274687,
+            "tag_id": 1006,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 54274687,
+            "tag_id": 1018,
+            "priority": 3
+        },
+        {
+            "listing_order_id": 54274687,
+            "tag_id": 1091,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55054280,
+            "tag_id": 1009,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55054280,
+            "tag_id": 1005,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55054280,
+            "tag_id": 1017,
+            "priority": 2
+        },
+        {
+            "listing_order_id": 55036531,
+            "tag_id": 1005,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55036531,
+            "tag_id": 1003,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55036531,
+            "tag_id": 1002,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55065177,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55065177,
+            "tag_id": 1017,
+            "priority": 2
+        },
+        {
+            "listing_order_id": 55065177,
+            "tag_id": 1091,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55180051,
+            "tag_id": 1012,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55180051,
+            "tag_id": 1009,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55180051,
+            "tag_id": 1006,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55174020,
+            "tag_id": 1012,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55174020,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55174020,
+            "tag_id": 1005,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55194999,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55194999,
+            "tag_id": 1003,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55194999,
+            "tag_id": 1020,
+            "priority": 3
+        },
+        {
+            "listing_order_id": 55170662,
+            "tag_id": 1012,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55170662,
+            "tag_id": 1009,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55170662,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55149279,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55149279,
+            "tag_id": 1020,
+            "priority": 3
+        },
+        {
+            "listing_order_id": 55149279,
+            "tag_id": 1021,
+            "priority": 4
+        },
+        {
+            "listing_order_id": 55069653,
+            "tag_id": 1006,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55069653,
+            "tag_id": 1020,
+            "priority": 3
+        },
+        {
+            "listing_order_id": 55069653,
+            "tag_id": 1092,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55095410,
+            "tag_id": 1006,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55095410,
+            "tag_id": 1092,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55095410,
+            "tag_id": 1091,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55200792,
+            "tag_id": 1007,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55200792,
+            "tag_id": 1003,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55039499,
+            "tag_id": 1002,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55039499,
+            "tag_id": 1091,
+            "priority": 10
+        },
+        {
+            "listing_order_id": 55194474,
+            "tag_id": 1010,
+            "priority": 1
+        },
+        {
+            "listing_order_id": 55194474,
+            "tag_id": 1091,
+            "priority": 10
+        }
+    ],
+    "property_conditions": [
+        {
+            "condition_id": 3,
+            "condition_name_he": "מצב טוב",
+            "condition_name_en": "Good Condition"
+        },
+        {
+            "condition_id": 2,
+            "condition_name_he": "משופץ",
+            "condition_name_en": "Renovated"
+        },
+        {
+            "condition_id": 6,
+            "condition_name_he": "חדש מקבלן",
+            "condition_name_en": "New from Contractor"
+        }
+    ]
+}

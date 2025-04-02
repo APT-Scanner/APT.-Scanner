@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 logger.info("Script started")
 
-API_KEY = 'AIzaSyBLnQfEYu5AZBgngdkTDpMd7oRWsK7imFM'
+API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
 endpoint = 'https://places.googleapis.com/v1/places:searchNearby'
 headers = {
     'Content-Type': 'application/json',
@@ -34,22 +34,37 @@ headers = {
 
 logger.info(f"Using Places API endpoint: {endpoint}")
     
-keywords = ["mall", "center", "centre", "קניון", "מרכז"]
-def contains_shopping_keyword(name):
+keywords_mall = ["mall", "center", "centre", "קניון", "מרכז"]
+allowed_languages = ["en", "iw"]
+
+def contains_keyword(name, keywords):
     name_lower = name.lower()
     return any(kw in name_lower for kw in keywords)
 
-allowed_languages = ["en", "iw"]
 def valid_mall(place):
     name = place["displayName"]
     lang_code = name.get("languageCode")
     if lang_code not in allowed_languages:
         return False
-    if not contains_shopping_keyword(name.get("text", "")):
+    if not contains_keyword(name.get("text", ""), keywords_mall):
         return False
     if place.get("rating", 0) < 2.5 or place.get("userRatingCount", 0) < 20:
         return False
     return True
+
+keywords_university = ["university", "college", "academy", "institute", "technion", "הטכניון", "אוניברסיטה", "מכללה", "אקדמיה", "מכון"]
+
+def valid_university(place):
+    name = place["displayName"]
+    lang_code = name.get("languageCode")
+    if lang_code not in allowed_languages:
+        return False
+    if not contains_keyword(name.get("text", ""), keywords_university):
+        return False
+    if place.get("rating", 0) < 3 or place.get("userRatingCount", 0) < 20:
+        return False
+    return True
+
 
 # Function to calculate the Haversine distance between two geographical points
 def haversine_distance(lat1, lon1, lat2, lon2):
@@ -100,8 +115,8 @@ def get_nearby_places_two_circles(lat, lng, place_type, radius=1000):
             logger.exception(f"Exception during API request: {str(e)}")
         
         # API rate limiting
-        logger.debug("Sleeping for 1 second for rate limiting")
-        time.sleep(1)
+        logger.debug("Sleeping for 2 second for rate limiting")
+        time.sleep(2)
 
     unique_places = {p['id']: p for p in places_collected}
     logger.info(f"Total unique {place_type} places after de-duplication: {len(unique_places)}")
@@ -133,93 +148,100 @@ def get_neighborhood_coordinates(neighborhood_name):
     
     return None, None
 
-neighborhoods = ["Florentin", "Neve Tzedek", "Lev HaIr", "Jaffa",
-                  "Ramat Aviv", "Sarona", "Basel", "Yad Eliyahu"]
 
-logger.info(f"Processing {len(neighborhoods)} neighborhoods: {', '.join(neighborhoods)}")
+df = pd.read_csv("/Users/or.hershko/Desktop/APT.-Scanner/data/sources/tlv_data.csv", encoding='utf-8-sig')
 
-all_data = []
-for i, nbh in enumerate(neighborhoods):
-    logger.info(f"===== Processing neighborhood {i+1}/{len(neighborhoods)}: {nbh} =====")
-    
+for i, row in df.iterrows():
+    neighborhood_name = row['English Neighborhood Name']
+
+    logging.info(f"Processing neighborhood: {neighborhood_name}")    
     try:
-        lat, lng = get_neighborhood_coordinates(nbh)
+        lat, lng = get_neighborhood_coordinates(neighborhood_name)
         if not lat:
-            logger.warning(f"Skipping {nbh} due to failed geocoding")
+            logger.warning(f"Skipping {neighborhood_name} due to failed geocoding")
             continue
 
-        logger.info(f"Collecting data for {nbh}...")
+        logger.info(f"Collecting data for {neighborhood_name}...")
         
         bars = get_nearby_places_two_circles(lat, lng, "bar")
-        logger.info(f"{nbh}: Found {len(bars)} bars")
+        logger.info(f"{neighborhood_name}: Found {len(bars)} bars")
         
         restaurants = get_nearby_places_two_circles(lat, lng, "restaurant")
-        logger.info(f"{nbh}: Found {len(restaurants)} restaurants")
+        logger.info(f"{neighborhood_name}: Found {len(restaurants)} restaurants")
         
         clubs = get_nearby_places_two_circles(lat, lng, "night_club")
-        logger.info(f"{nbh}: Found {len(clubs)} night clubs")
-        
-        primary_schools = get_nearby_places_two_circles(lat, lng, "primary_school")
-        logger.info(f"{nbh}: Found {len(primary_schools)} primary schools")
-        
-        elementary_schools = get_nearby_places_two_circles(lat, lng, "elementary_school")
-        logger.info(f"{nbh}: Found {len(elementary_schools)} elementary schools")
-        
-        secondary_schools = get_nearby_places_two_circles(lat, lng, "secondary_school")
-        logger.info(f"{nbh}: Found {len(secondary_schools)} secondary schools")
-        
-        high_schools = get_nearby_places_two_circles(lat, lng, "high_school")
-        logger.info(f"{nbh}: Found {len(high_schools)} high schools")
+        logger.info(f"{neighborhood_name}: Found {len(clubs)} night clubs")
+
+        schools = get_nearby_places_two_circles(lat, lng, "school")
+        logger.info(f"{neighborhood_name}: Found {len(schools)} schools")
+
+        universities = get_nearby_places_two_circles(lat, lng, "university")
+        universities = [u for u in universities if valid_university(u)]
+        logger.info(f"{neighborhood_name}: Found {len(universities)} universities")
+
+        primary_schools = []
+        elementary_schools = []
+        secondary_schools = []
+        high_schools = []
+        logger.info(f"{neighborhood_name}: Filtering schools by type")
+
+        for school in schools:  
+            if "primary_school" in school['types']:
+                primary_schools.append(school)
+            elif "elementary_school" in school['types']:
+                elementary_schools.append(school)
+            elif "secondary_school" in school['types']:
+                secondary_schools.append(school)
+            elif "high_school" in school['types']:
+                high_schools.append(school)
         
         malls = get_nearby_places_two_circles(lat, lng, "shopping_mall")
-        logger.info(f"{nbh}: Found {len(malls)} shopping malls")
+        logger.info(f"{neighborhood_name}: Found {len(malls)} shopping malls")
         
         beaches = get_nearby_places_two_circles(lat, lng, "beach", radius=3000) 
-        logger.info(f"{nbh}: Found {len(beaches)} beaches (with extended radius)")
+        logger.info(f"{neighborhood_name}: Found {len(beaches)} beaches (with extended radius)")
 
         if beaches:
             min_beach_dist = min(
                 haversine_distance(lat, lng, b['location']['latitude'], b['location']['longitude'])
                 for b in beaches
             )
-            logger.info(f"{nbh}: Closest beach is {round(min_beach_dist, 2)}km away")
+            logger.info(f"{neighborhood_name}: Closest beach is {round(min_beach_dist, 2)}km away")
         else:
             min_beach_dist = None
-            logger.warning(f"{nbh}: No beaches found within search radius")
+            logger.warning(f"{neighborhood_name}: No beaches found within search radius")
 
-        filtered_malls = [m for m in malls if valid_mall(m)]
-        logger.info(f"{nbh}: {len(filtered_malls)} malls meet quality criteria (from total {len(malls)})")
+        malls = [m for m in malls if valid_mall(m)]
+        logger.info(f"{neighborhood_name}: {len(malls)} malls meet quality criteria")
         
         entertainment_places = bars + restaurants + clubs
         unique_entertainment_places = {p['id']: p for p in entertainment_places}
-        logger.info(f"{nbh}: {len(unique_entertainment_places)} unique entertainment places")
+        logger.info(f"{neighborhood_name}: {len(unique_entertainment_places)} unique entertainment places")
 
-        data = {
-            "Neighborhood": nbh,
-            "Latitude": lat,
-            "Longitude": lng,
-            "Bars_Count": len(bars),
-            "Restaurants_Count": len(restaurants),
-            "Clubs_Count": len(clubs),
-            "Shopping_Malls_Count": len(filtered_malls),
-            "Unique_Entertainment_Count": len(unique_entertainment_places),
-            "Primary_Schools_Count": len(primary_schools),
-            "Elementary_Schools_Count": len(elementary_schools),
-            "Secondary_Schools_Count": len(secondary_schools),
-            "High_Schools_Count": len(high_schools),
-            "Closest_Beach_Distance_km": round(min_beach_dist, 2) if min_beach_dist else None
-        }
-        all_data.append(data)
-        logger.info(f"Successfully processed {nbh}")
+        df.at[i, "Bars_Count"] = len(bars)
+        df.at[i, "Restaurants_Count"] = len(restaurants)
+        df.at[i, "Clubs_Count"] = len(clubs)
+        df.at[i, "Shopping_Malls_Count"] = len(malls)
+        df.at[i, "Unique_Entertainment_Count"] = len(unique_entertainment_places)
+        df.at[i, "Primary_Schools_Count"] = len(primary_schools)
+        df.at[i, "Elementary_Schools_Count"] = len(elementary_schools)
+        df.at[i, "Secondary_Schools_Count"] = len(secondary_schools)
+        df.at[i, "High_Schools_Count"] = len(high_schools)
+        df.at[i, "Universities_Count"] = len(universities)
+        df.at[i, "Closest_Beach_Distance_km"] = round(min_beach_dist, 2) if min_beach_dist else None
+        df.at[i, "Latitude"] = lat
+        df.at[i, "Longitude"] = lng
+
+        logger.info(f"Successfully processed {neighborhood_name}")
+        logger.info(df.iloc[i])
     except Exception as e:
-        logger.exception(f"Error processing neighborhood {nbh}: {str(e)}")
+        logger.exception(f"Error processing neighborhood {neighborhood_name}: {str(e)}")
 
 try:
-    df = pd.DataFrame(all_data)
-    output_file = "tel_aviv_neighborhoods_extended.csv"
-    df.to_csv(output_file, index=False)
-    logger.info(f"Data successfully saved to {output_file}")
-    logger.info(f"Final data summary:\n{df}")
+    output_file = "/Users/or.hershko/Desktop/APT.-Scanner/data/sources/tlv_data_with_metrics.csv"
+    df.to_csv(output_file, encoding='utf-8-sig', index=False)
+    logger.info(f"Data saved to {output_file}")
+    
 except Exception as e:
     logger.exception(f"Error saving data to CSV: {str(e)}")
 

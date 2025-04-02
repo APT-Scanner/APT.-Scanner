@@ -1,0 +1,898 @@
+[
+  {
+    "docCount": 572,
+    "key": "1520",
+    "center": [
+      34.773903,
+      32.070137
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1520,
+    "neigborhood_name": "לב העיר",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 356,
+    "key": "1483",
+    "center": [
+      34.774926,
+      32.089498
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1483,
+    "neigborhood_name": "הצפון הישן - החלק הצפוני",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 302,
+    "key": "1461",
+    "center": [
+      34.774099,
+      32.078333
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1461,
+    "neigborhood_name": "הצפון הישן - החלק הדרומי",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 242,
+    "key": "205",
+    "center": [
+      34.768945,
+      32.057711
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 205,
+    "neigborhood_name": "פלורנטין",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 237,
+    "key": "1516",
+    "center": [
+      34.788672,
+      32.086923
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1516,
+    "neigborhood_name": "הצפון החדש - סביבת כיכר המדינה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 164,
+    "key": "485",
+    "center": [
+      34.788593,
+      32.070092
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 485,
+    "neigborhood_name": "מונטיפיורי",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 157,
+    "key": "1521",
+    "center": [
+      34.766457,
+      32.070405
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1521,
+    "neigborhood_name": "כרם התימנים",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 154,
+    "key": "307",
+    "center": [
+      34.779163,
+      32.058447
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 307,
+    "neigborhood_name": "נווה שאנן",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 130,
+    "key": "308",
+    "center": [
+      34.792384,
+      32.050643
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 308,
+    "neigborhood_name": "התקווה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 114,
+    "key": "1462",
+    "center": [
+      34.787108,
+      32.072218
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1462,
+    "neigborhood_name": "גני שרונה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 112,
+    "key": "848",
+    "center": [
+      34.763762,
+      32.06326
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 848,
+    "neigborhood_name": "נווה צדק",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 104,
+    "key": "206",
+    "center": [
+      34.792682,
+      32.05899
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 206,
+    "neigborhood_name": "יד אליהו",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 103,
+    "key": "1519",
+    "center": [
+      34.787926,
+      32.080397
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1519,
+    "neigborhood_name": "הצפון החדש - החלק הדרומי",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 100,
+    "key": "195",
+    "center": [
+      34.789558,
+      32.117786
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 195,
+    "neigborhood_name": "נופי ים",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 87,
+    "key": "495",
+    "center": [
+      34.759115,
+      32.053364
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 495,
+    "neigborhood_name": "צפון יפו",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 86,
+    "key": "847",
+    "center": [
+      34.769483,
+      32.050188
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 847,
+    "neigborhood_name": "גבעת הרצל",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 85,
+    "key": "1517",
+    "center": [
+      34.796951,
+      32.084828
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1517,
+    "neigborhood_name": "צמרות איילון",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 77,
+    "key": "212",
+    "center": [
+      34.778704,
+      32.043885
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 212,
+    "neigborhood_name": "קריית שלום",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 75,
+    "key": "204",
+    "center": [
+      34.78906,
+      32.094487
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 204,
+    "neigborhood_name": "הצפון החדש - החלק הצפוני",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 72,
+    "key": "198",
+    "center": [
+      34.78749,
+      32.100995
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 198,
+    "neigborhood_name": "כוכב הצפון",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 68,
+    "key": "196",
+    "center": [
+      34.797324,
+      32.117652
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 196,
+    "neigborhood_name": "נווה אביבים וסביבתה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 66,
+    "key": "493",
+    "center": [
+      34.747635,
+      32.042408
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 493,
+    "neigborhood_name": "עג'מי וגבעת עלייה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 64,
+    "key": "1491",
+    "center": [
+      34.795291,
+      32.140264
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1491,
+    "neigborhood_name": "גלילות",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 62,
+    "key": "215",
+    "center": [
+      34.780562,
+      32.051224
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 215,
+    "neigborhood_name": "שפירא",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 56,
+    "key": "1515",
+    "center": [
+      34.802278,
+      32.126064
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1515,
+    "neigborhood_name": "רמת אביב ג",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 55,
+    "key": "213",
+    "center": [
+      34.765274,
+      32.041731
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 213,
+    "neigborhood_name": "נווה עופר (תל כביר) יפו ב'",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 55,
+    "key": "849",
+    "center": [
+      34.787894,
+      32.107404
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 849,
+    "neigborhood_name": "תוכנית ל",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 50,
+    "key": "207",
+    "center": [
+      34.809541,
+      32.052911
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 207,
+    "neigborhood_name": "נווה חן",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 49,
+    "key": "494",
+    "center": [
+      34.754341,
+      32.043769
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 494,
+    "neigborhood_name": "צהלון ושיכוני חיסכון",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 44,
+    "key": "496",
+    "center": [
+      34.759575,
+      32.043832
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 496,
+    "neigborhood_name": "מכללת יפו תל אביב ודקר",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 42,
+    "key": "314",
+    "center": [
+      34.840652,
+      32.119229
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 314,
+    "neigborhood_name": "נווה שרת",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 40,
+    "key": "321",
+    "center": [
+      34.755388,
+      32.034265
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 321,
+    "neigborhood_name": "יפו ד' (גבעת התמרים)",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 33,
+    "key": "1513",
+    "center": [
+      34.821207,
+      32.109868
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1513,
+    "neigborhood_name": "הדר יוסף",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 32,
+    "key": "320",
+    "center": [
+      34.751684,
+      32.052099
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 320,
+    "neigborhood_name": "יפו העתיקה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 31,
+    "key": "492",
+    "center": [
+      34.74968,
+      32.033669
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 492,
+    "neigborhood_name": "יפו ג' ונווה גולן",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 30,
+    "key": "199",
+    "center": [
+      34.821861,
+      32.119386
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 199,
+    "neigborhood_name": "נאות אפקה ב'",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 30,
+    "key": "211",
+    "center": [
+      34.827978,
+      32.122336
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 211,
+    "neigborhood_name": "גני צהלה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 30,
+    "key": "319",
+    "center": [
+      34.806183,
+      32.043814
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 319,
+    "neigborhood_name": "לבנה, ידידיה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 29,
+    "key": "209",
+    "center": [
+      34.807344,
+      32.050111
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 209,
+    "neigborhood_name": "כפר שלם (מזרח נווה אליעזר)",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 27,
+    "key": "486",
+    "center": [
+      34.796552,
+      32.068318
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 486,
+    "neigborhood_name": "ביצרון",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 27,
+    "key": "488",
+    "center": [
+      34.793364,
+      32.044506
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 488,
+    "neigborhood_name": "עזרא",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 26,
+    "key": "317",
+    "center": [
+      34.798087,
+      32.075194
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 317,
+    "neigborhood_name": "נחלת יצחק",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 26,
+    "key": "318",
+    "center": [
+      34.802324,
+      32.062682
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 318,
+    "neigborhood_name": "תל חיים",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 25,
+    "key": "1518",
+    "center": [
+      34.799127,
+      32.095079
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1518,
+    "neigborhood_name": "בבלי",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 24,
+    "key": "481",
+    "center": [
+      34.817347,
+      32.122663
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 481,
+    "neigborhood_name": "תל ברוך צפון",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 22,
+    "key": "203",
+    "center": [
+      34.835227,
+      32.112793
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 203,
+    "neigborhood_name": "רמת החייל",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 21,
+    "key": "208",
+    "center": [
+      34.802522,
+      32.051783
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 208,
+    "neigborhood_name": "כפר שלם (מערב נווה ברבור)",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 20,
+    "key": "1490",
+    "center": [
+      34.792465,
+      32.127215
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1490,
+    "neigborhood_name": "אזורי חן",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 19,
+    "key": "315",
+    "center": [
+      34.831722,
+      32.126806
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 315,
+    "neigborhood_name": "המשתלה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 18,
+    "key": "197",
+    "center": [
+      34.796761,
+      32.108106
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 197,
+    "neigborhood_name": "רמת אביב",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 18,
+    "key": "210",
+    "center": [
+      34.803176,
+      32.047804
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 210,
+    "neigborhood_name": "כפיר",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 17,
+    "key": "200",
+    "center": [
+      34.821112,
+      32.11534
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 200,
+    "neigborhood_name": "נאות אפקה א'",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 15,
+    "key": "1514",
+    "center": [
+      34.805946,
+      32.12099
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1514,
+    "neigborhood_name": "אפקה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 15,
+    "key": "1650",
+    "center": [
+      34.811758,
+      32.047075
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1650,
+    "neigborhood_name": "ניר אביב",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 15,
+    "key": "202",
+    "center": [
+      34.829861,
+      32.116366
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 202,
+    "neigborhood_name": "רביבים",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 13,
+    "key": "201",
+    "center": [
+      34.829119,
+      32.110927
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 201,
+    "neigborhood_name": "נווה דן",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 11,
+    "key": "312",
+    "center": [
+      34.815189,
+      32.118387
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 312,
+    "neigborhood_name": "תל ברוך",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 10,
+    "key": "1649",
+    "center": [
+      34.808173,
+      32.058399
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 1649,
+    "neigborhood_name": "רמת הטייסים",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 6,
+    "key": "313",
+    "center": [
+      34.835881,
+      32.122299
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 313,
+    "neigborhood_name": "צהלה",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 5,
+    "key": "214",
+    "center": [
+      34.813658,
+      32.110191
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 214,
+    "neigborhood_name": "מעוז אביב",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 4,
+    "key": "316",
+    "center": [
+      34.823959,
+      32.127248
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 316,
+    "neigborhood_name": "קריית שאול",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 3,
+    "key": "482",
+    "center": [
+      34.839767,
+      32.111635
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 482,
+    "neigborhood_name": "עתידים",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 3,
+    "key": "487",
+    "center": [
+      34.803259,
+      32.05629
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 487,
+    "neigborhood_name": "אורות",
+    "city_name": "תל אביב-יפו"
+  },
+  {
+    "docCount": 2,
+    "key": "489",
+    "center": [
+      34.800292,
+      32.039247
+    ],
+    "topAreaId": 2,
+    "areaId": 1,
+    "cityId": "5000",
+    "hoodId": 489,
+    "neigborhood_name": "הארגזים",
+    "city_name": "תל אביב-יפו"
+  }
+]

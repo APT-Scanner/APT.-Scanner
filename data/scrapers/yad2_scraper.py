@@ -12,28 +12,12 @@ class Yad2Scraper:
     
     BASE_URL = "https://www.yad2.co.il/realestate/_next/data"
     
-    # Parameter mappings for reference
     AREAS = {
-        "תל אביב והמרכז": 2,
-        "ירושלים והסביבה": 1,
-        "חיפה והסביבה": 4,
-        "אילת וערבה": 50,
-        "באר שבע והדרום": 7,
-        "השפלה": 8,
-        "הצפון": 9,
-        "שומרון": 10,
+        "תל אביב והמרכז": 2
     }
     
     SUB_AREAS = {
-        # Tel Aviv area (2)
-        "תל אביב": 1,
-        "רמת גן": 3,
-        "גבעתיים": 6,
-        "בני ברק": 4,
-        "פתח תקווה": 18,
-        # Jerusalem area (1)
-        "ירושלים": 5000,
-        # Add more as needed
+        "תל אביב": 1
     }
     
     PROPERTY_GROUPS = {
@@ -43,7 +27,6 @@ class Yad2Scraper:
         "commercial": "commercial",
     }
     
-    # Complete property types from the JSON
     PROPERTY_TYPES = {
         "דירה": 1,
         "דירת גן": 3,
@@ -77,7 +60,6 @@ class Yad2Scraper:
         "דרוש שיפוץ": 5,
     }
     
-    # Property characteristics
     PROPERTY_CHARACTERISTICS = {
         "parking": "חניה",
         "elevator": "מעלית",
@@ -412,7 +394,7 @@ class Yad2Scraper:
         
         return url
     
-    def scrape(self, page: int = 1, **kwargs) -> Dict[str, Any]:
+    def scrape_apt_listing(self, page: int = 1, **kwargs) -> Dict[str, Any]:
         """
         Scrape listings based on provided parameters.
         
@@ -423,24 +405,22 @@ class Yad2Scraper:
         Returns:
         - Parsed JSON data
         """
+
         url = self.build_url(page=page, **kwargs)
-        
         payload = {
-            'source': 'universal',
-            'url': url,
+            "api_key": os.getenv("SCRAPEOWL_API_KEY"),
+            "url": url,
+            "json_response": True
         }
-        
-        response = requests.request(
-            'POST',
-            'https://realtime.oxylabs.io/v1/queries',
-            auth=(self.api_username, self.api_password),
-            json=payload,
-        )
+        headers = {
+            "Content-Type": "application/json"
+        }
+        response = requests.post("https://api.scrapeowl.com/v1/scrape", data=json.dumps(payload), headers=headers)
         
         try:
-            json_data = json.loads(response.text)
-            if 'results' in json_data:
-                content = json.loads(json_data['results'][0]['content'])
+            json_data = json.loads(response.content)
+            if 'html' in json_data:
+                content = json.loads(json_data['html'])
                 private_listings = content['pageProps']['feed']['private']
                 return private_listings
         except (json.JSONDecodeError, KeyError) as e:
@@ -454,6 +434,55 @@ class Yad2Scraper:
             f.write(pretty_json)
         print(f"Data successfully saved to {file_path}")
 
+    def scrape_hood_data(self, hood_id) -> Dict[str, Any]:
+        url = f'https://gw.yad2.co.il/neighborhood-survey/{hood_id}/'
+
+        payload = {
+            "api_key": os.getenv("SCRAPEOWL_API_KEY"),
+            "url": url,
+            "json_response": True
+        }
+        headers = {
+            "Content-Type": "application/json"
+        }
+        response = requests.post("https://api.scrapeowl.com/v1/scrape", data=json.dumps(payload), headers=headers)
+        
+        try:
+            json_data = json.loads(response.content)
+            if 'html' in json_data:
+                content = json.loads(json_data['html'])
+                hood_data = content['data']['segmantList']
+                return hood_data
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Error parsing response: {e}")
+            return {"error": str(e), "raw_response": response.text}
+        
+    def scrape_hood_nearby_education(self, city_id, hood_id) -> Dict[str, Any]:
+        
+        url = f'https://gw.yad2.co.il/nearby-education/?cityId={city_id}&neighborhoodId={hood_id}'
+
+        payload = {
+            "api_key": os.getenv("SCRAPEOWL_API_KEY"),
+            "url": url,
+            "json_response": True
+        }
+        headers = {
+            "Content-Type": "application/json"
+        }
+        response = requests.post("https://api.scrapeowl.com/v1/scrape", data=json.dumps(payload), headers=headers)
+        
+        try:
+            json_data = json.loads(response.content)
+            if 'html' in json_data:
+                content = json.loads(json_data['html'])
+                education_data = content['data']
+                return education_data
+        except (json.JSONDecodeError, KeyError) as e:
+            print(f"Error parsing response: {e}")
+            return {"error": str(e), "raw_response": response.text}
+        
+
+
 # Example usage
 if __name__ == "__main__":
     # Initialize the scraper
@@ -462,13 +491,12 @@ if __name__ == "__main__":
     scraper = Yad2Scraper(api_username, api_password)
     
     # Set the hash ID (this changes periodically on the Yad2 website)
-    scraper.set_hash_id('mEIaNqZ67GjQu8V6J7MX8')
+    scraper.set_hash_id('8uglfm7wZXxu6fHuP6E6t')
     
-    # Option 1: Define parameters directly
     direct_params = {
-        'top_area': 2,           # Tel Aviv area
-        'area': 1,               # Tel Aviv city area
-        'city': 5000,            # Jerusalem (within Tel Aviv area)
+        'top_area': 2,           
+        'area': 1,               
+        'city': 5000,            # Tel Aviv city area
         'property_group': ['apartments', 'houses', 'misc'],
         'property_type': [1, 3, 5, 6, 7, 25, 39, 49, 51, 11, 43, 44, 4],  
         'rooms': '2.5-3',        
@@ -480,57 +508,8 @@ if __name__ == "__main__":
         'image_only': True,      
         'price_only': True,      
     }
+
+    #results = scraper.scrape_apt_listing(**direct_params)
+    results = scraper.scrape_hood_data(1461)
     
-    # Option 2: Use a Yad2-like JSON configuration
-    yad2_config = {
-        "priceRange": [2000, 17000],
-        "roomRange": [2.5, 3],
-        "floorRange": [2, 19],
-        "squareMeterRange": [40, 480],
-        "squareMeterBuildRange": [20, 480],
-        "adAttributes": {
-            "isImageOnly": True,
-            "isPriceOnly": True,
-            "isSettlementsOnly": False,
-            "isPriceDropped": False
-        },
-        "advertiser": {
-            "isFromBrokerage": False,
-            "isNewFromContractor": False
-        },
-        "propertyTypes": [
-            {"value": "1", "text": "דירה", "group": "1", "checked": True},
-            {"value": "3", "text": "דירת גן", "group": "1", "checked": True},
-            {"value": "6", "text": "גג/ פנטהאוז", "group": "1", "checked": True}
-        ],
-        "propertyCondition": [
-            {"value": "1", "text": "חדש מקבלן", "checked": True},
-            {"value": "2", "text": "חדש", "checked": True}
-        ],
-        "locations": [
-            {
-                "topAreaId": "2",
-                "areaId": "1",
-                "cityId": "5000",
-                "hoodId": "",
-                "streetId": "",
-                "fullTitleText": "תל אביב יפו",
-                "type": "city"
-            }
-        ],
-        "page": 1
-    }
-    
-    # Choose which method to use
-    use_direct_params = True
-    
-    # Scrape the data
-    if use_direct_params:
-        results = scraper.scrape(**direct_params)
-    else:
-        # Convert Yad2 config to our format
-        converted_params = scraper.from_json_config(yad2_config)
-        results = scraper.scrape(**converted_params)
-    
-    # Save to file
     scraper.save_to_json(results)
