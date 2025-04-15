@@ -74,11 +74,13 @@ const RegisterPage = () => {
         email,
         password
       );
+      const user = userCredential.user;
       console.log("Registration successful:", userCredential.user);
       if (user) {
         const idToken = await user.getIdToken(); // Get the token
         try {
-          const response = await fetch("/api/v1/users/sync-profile", {
+          const backendUrl = 'http://localhost:8000/api/v1/users/sync-profile';
+          const response = await fetch(backendUrl, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${idToken}`,

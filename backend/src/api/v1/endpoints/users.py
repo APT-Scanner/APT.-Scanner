@@ -17,6 +17,20 @@ async def read_users_me(current_user: UserModel = Depends(get_current_active_use
     """
     return current_user
 
+@router.post("/sync-profile", response_model=User, status_code=status.HTTP_200_OK)
+async def sync_user_profile_after_registration(
+    # The dependency handles everything: token verification, getting/creating user in DB
+    current_user: UserModel = Depends(get_current_active_user)
+):
+    """
+    Endpoint called by the frontend IMMEDIATELY after successful Firebase registration.
+    Its main purpose is to ensure the user record exists in the local DB
+    (handled by the get_current_active_user dependency) and potentially
+    trigger any backend-specific post-registration logic.
+    """
+    #logger.info(f"Syncing profile for user ID: {current_user.id}, Firebase UID: {current_user.firebase_uid}")
+    return current_user
+
 @router.get("/{user_id}", response_model=User)
 async def read_user_by_id(
     user_id: int,
