@@ -1,10 +1,6 @@
 import React from 'react';
+import LandingPage from './pages/LandingPage';
+
 export default function App() {
-  const name = 'APT.Scanner';
-  return (
-    <div>
-      {' '}
-      <h1> שלום {name}</h1> <p>אפליקציית המלצות לדירות</p>{' '}
-    </div>
-  );
+  return <LandingPage />;
 }
