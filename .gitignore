@@ -118,3 +118,4 @@ dist-ssr
 *.sln
 *.sw?
 APT-Scanner-Firebase.json
+firebase.js

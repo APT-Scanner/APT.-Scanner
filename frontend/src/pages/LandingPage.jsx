@@ -14,7 +14,7 @@ const LandingPage = () => {
     };
 
     const HandleLogin = (e) => {
-        e.preventDefualt();
+        e.preventDefault();
         console.log("Navigate to Log In page")
         navigate("/login")
     };
@@ -32,7 +32,8 @@ const LandingPage = () => {
                     </h2>
                     <img src = {house} alt = "house illustration" className ={styles.illustration}></img>
                     <button className = {styles.createAccountButton} onClick = {handleCreateAccount}>Create an Account</button>
-                    <a herf = "/login" className = {styles.loginLink} onClick = {HandleLogin}>Already have an account? Log in</a>
+                    <p>Already have an account? 
+                    <a herf = "/login" className = {styles.loginLink} onClick = {HandleLogin}>Log in</a></p>
                 </div>
             </div>
         </div>
