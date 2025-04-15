@@ -1,41 +1,42 @@
-import React from 'react';
-import houseIllustration from '../assets/house_illustration.svg';
-import logoIcon from '../assets/logo_icon.svg';
-import slogen from '../assets/slogen.svg';
+import React from "react";
+import { useNavigate } from "react-router-dom";
+import styles from "../styles/LandingPage.module.css";
+import logo from "../assets/Logo.svg";
+import house from "../assets/House.svg";
 
-function LandingPage() {
-  return (
-    <div className="min-h-screen bg-[#AEAFF7] flex flex-col items-center justify-center p-6">
-      <div className="text-center mb-8">
-        {/* לוגו */}
-        <div className="flex items-center justify-center mb-2">
-          <img src={logoIcon} alt="APT Scanner logo icon" className="h-8 w-8 mr-2" />
+const LandingPage = () => {
+
+    const navigate = useNavigate();
+
+    const handleCreateAccount = () => {
+        console.log("Navigate to create account page")
+        navigate("/register")
+    };
+
+    const HandleLogin = (e) => {
+        e.preventDefualt();
+        console.log("Navigate to Log In page")
+        navigate("/login")
+    };
+
+    return(
+        <div className = {styles.pageContainer}>
+            <div className={styles.backgroundCircle}></div>
+            <div className = {styles.card}>
+                <div className = {styles.cardContent}>
+                    <img src = {logo} alt = "APT.Scanner logo" className ={styles.logo}></img>
+                    <h2 className = {styles.slogen}>
+                        Find your perfect match,
+                        <br />
+                        The apartment thats fits you.
+                    </h2>
+                    <img src = {house} alt = "house illustration" className ={styles.illustration}></img>
+                    <button className = {styles.createAccountButton} onClick = {handleCreateAccount}>Create an Account</button>
+                    <a herf = "/login" className = {styles.loginLink} onClick = {HandleLogin}>Already have an account? Log in</a>
+                </div>
+            </div>
         </div>
-        {/* סלוגן */}
-        <img src={slogen} alt="APT Scanner slogen" className="h-8 w-8 mr-2" />
-      </div>
-
-      {/* איור מרכזי */}
-      <div className="mb-12">
-        <img src={houseIllustration} alt="House illustration" className="max-w-xs mx-auto" />
-      </div>
-
-      {/* אזור תחתון: כפתורים/פעולות */}
-      <div className="w-full max-w-xs">
-        {/* כפתור הרשמה */}
-        <button className="w-full bg-gray-800 text-white py-3 px-6 rounded-lg font-semibold hover:bg-gray-700 mb-4">
-          Create an account
-        </button>
-        {/* קישור להתחברות */}
-        <p className="text-center text-sm text-gray-600">
-          Already have an account?{' '}
-          <a href="/login" className="font-semibold text-gray-800 hover:underline">
-            Log in
-          </a>
-        </p>
-      </div>
-    </div>
-  );
-}
+    );
+};
 
 export default LandingPage;
