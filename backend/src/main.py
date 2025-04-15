@@ -29,7 +29,6 @@ logger = logging.getLogger(__name__)
 async def lifespan(app: FastAPI):
     """Lifecycle manager for the FastAPI application."""
     try:
-        # Startup: initialize resources
         logger.info("Starting APT. Scanner API...")
         
         # Initialize Firebase Admin SDK if credentials are provided
@@ -40,14 +39,13 @@ async def lifespan(app: FastAPI):
             cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
             firebase_admin.initialize_app(cred)
             logger.info("Firebase Admin SDK initialized successfully")
-        
+
         yield
         
     except Exception as e:
         logger.error(f"Error during startup: {str(e)}")
         raise
     finally:
-        # Cleanup resources
         logger.info("Shutting down APT. Scanner API...")
 
 app = FastAPI(
