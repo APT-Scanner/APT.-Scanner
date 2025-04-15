@@ -1,0 +1,200 @@
+.pageBackground {
+  display: flex;
+  justify-content: center;
+  align-items: flex-start;
+  min-height: 100vh;
+  background-color: #f7f7f7;
+  padding-top: 40px;
+  box-sizing: border-box;
+}
+
+.registerContainer {
+  background-color: #f7f7f7;
+  padding: 20px;
+  display: flex;
+  flex-direction: column;
+  align-items: center; /* Center content like title/indicator */
+  text-align: center;
+  max-width: 450px;
+  width: 100%;
+  box-sizing: border-box;
+  position: relative;
+}
+
+.backButton {
+  position: absolute;
+  top: 20px;
+  left: 20px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  color: #333;
+}
+
+.backButton:hover {
+  opacity: 0.7;
+}
+
+.title {
+  font-size: 26px;
+  font-weight: 700;
+  color: #371b34; /* Dark purple */
+  margin-top: 40px;
+  margin-bottom: 8px;
+}
+
+.stepIndicator {
+  display: flex;
+  gap: 5px;
+  margin-bottom: 32px; /* Space before form */
+}
+
+.stepDot {
+  width: 25px; /* Adjust size */
+  height: 6px; /* Adjust size */
+  border-radius: 3px; /* Make it capsule-like */
+  background-color: #e0e0e0; /* Inactive color */
+  transition: background-color 0.3s ease;
+}
+
+.stepDot.active {
+  background-color: #aeaff7; /* Active color (light purple) */
+}
+
+.form {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 20px; /* Space between elements in the form */
+  align-items: center; /* Center button */
+}
+
+.inputGroup {
+  width: 100%;
+  text-align: left;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.passwordWrapper {
+  position: relative; /* Needed for absolute positioning of the button */
+  width: 100%;
+}
+
+.input {
+  width: 100%;
+  padding: 14px 12px; /* Slightly more padding */
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  box-sizing: border-box;
+  background-color: #f7f7f7;
+  color: #333;
+}
+.input:focus {
+  outline: none;
+  border-color: #aeaff7;
+}
+/* Add padding to password input to prevent text overlap with button */
+input[type="password"],
+input[type="text"] {
+  padding-right: 40px; /* Space for the eye icon */
+}
+
+.showPasswordButton {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  color: #888;
+  padding: 5px;
+}
+
+.requirements {
+  width: 100%;
+  text-align: left;
+  font-size: 14px;
+  color: #555;
+  margin-top: -10px; /* Bring closer to password field */
+  margin-bottom: 10px;
+  padding-left: 5px; /* Align with input text */
+}
+
+.requirementItem {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 4px;
+  color: #aaa; /* Default color for unmet requirement */
+  transition: color 0.3s ease;
+}
+
+.requirementItem.met {
+  color: green; /* Color for met requirement */
+}
+
+.requirementItem svg {
+  font-size: 16px; /* Adjust icon size */
+}
+
+.errorMessage {
+  color: red;
+  font-size: 14px;
+  margin-top: 0;
+  margin-bottom: 10px;
+  text-align: center;
+  min-height: 1.2em;
+}
+
+.continueButton,
+.createButton {
+  background-color: #aeaff7; /* Light purple */
+  color: #371b34; /* Dark purple text */
+  border: none;
+  border-radius: 10px;
+  padding: 15px 20px;
+  font-size: 18px;
+  font-weight: 600;
+  cursor: pointer;
+  width: 90%; /* Match button style from previous screens */
+  margin-top: 10px;
+  transition: background-color 0.2s ease;
+}
+
+.continueButton:hover,
+.createButton:not(:disabled):hover {
+  background-color: #9d9cf0; /* Slightly darker light purple */
+}
+
+.createButton:disabled {
+  background-color: #dcdcdc; /* Greyed out when disabled */
+  color: #aaa;
+  cursor: not-allowed;
+}
+
+.disclaimer {
+  margin-top: 40px;
+  font-size: 12px;
+  color: #888;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.disclaimer a {
+  color: #555;
+  text-decoration: underline;
+}
+
+.disclaimer a:hover {
+  color: #333;
+}

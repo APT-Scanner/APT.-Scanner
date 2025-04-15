@@ -117,3 +117,9 @@
   font-weight: 400;
   line-height: 160%; /* 25.6px */
 }
+
+.loginLink:hover {
+  text-decoration: underline;
+  color: inherit;
+  cursor: pointer;
+}

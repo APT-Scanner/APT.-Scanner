@@ -1,0 +1,211 @@
+/* Styles for LoginPage - Get values from Figma! */
+
+.pageBackground {
+  display: flex;
+  justify-content: center; /* Center the login container horizontally */
+  align-items: flex-start; /* Align container to the top */
+  min-height: 100vh;
+  background-color: #f7f7f7; /* Light grey background from image */
+  padding-top: 40px; /* Add padding at the top */
+  box-sizing: border-box;
+}
+
+.loginContainer {
+  background-color: #f7f7f7; /* Same as page or slightly different if needed */
+  /* No card-like border/shadow in this design */
+  padding: 20px; /* Padding around the content */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  max-width: 450px; /* Adjust based on design */
+  width: 100%;
+  box-sizing: border-box;
+  position: relative; /* For absolute positioning of back button */
+}
+
+.backButton {
+  position: absolute;
+  top: 20px; /* Adjust based on Figma */
+  left: 20px; /* Adjust based on Figma */
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  color: #333; /* Adjust icon color */
+}
+
+.backButton:hover {
+  opacity: 0.7;
+}
+
+.title {
+  font-size: 26px; /* Adjust */
+  font-weight: 700; /* Adjust */
+  color: #371b34; /* Dark purple from image */
+  margin-top: 40px; /* Space below back button */
+  margin-bottom: 8px; /* Space before subtitle/options */
+}
+
+.subtitle {
+  font-size: 16px; /* Adjust */
+  font-weight: 400; /* Adjust */
+  color: #666; /* Adjust */
+  margin-bottom: 32px; /* Space before options */
+}
+
+.emailButton,
+.socialButton,
+.loginButton {
+  /* Shared styles for buttons */
+  width: 100%; /* Make buttons take full width of container */
+  padding: 15px 20px; /* Adjust */
+  border-radius: 8px; /* Adjust */
+  font-size: 16px; /* Adjust */
+  font-weight: 500; /* Adjust */
+  border: 1px solid #ccc; /* Default border */
+  background-color: white; /* Default background */
+  color: #333; /* Default text color */
+  cursor: pointer;
+  margin-bottom: 12px; /* Space between buttons */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px; /* Space between icon and text */
+  transition: background-color 0.2s ease, border-color 0.2s ease;
+}
+
+.emailButton {
+  background-color: #a0e0d8; /* Teal color from image */
+  border-color: #a0e0d8;
+  color: #ffffff; /* Dark text color */
+  font-weight: 600;
+}
+
+.emailButton:hover {
+  background-color: #85c7bd; /* Darker teal on hover */
+  border-color: #85c7bd;
+}
+
+.socialButton {
+  background-color: white;
+  border: 1px solid #ddd; /* Light border */
+}
+
+.socialButton:hover {
+  background-color: #f9f9f9; /* Slight grey on hover */
+}
+
+.socialIcon {
+  font-size: 20px; /* Adjust icon size */
+}
+
+.orSeparator {
+  color: #aaa; /* Adjust */
+  margin: 16px 0; /* Adjust */
+  font-size: 14px; /* Adjust */
+}
+
+/* --- Styles specific to Email Form View --- */
+
+.loginForm {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px; /* Space below title in email view */
+}
+
+.inputGroup {
+  width: 100%;
+  text-align: left;
+}
+
+.label {
+  display: block;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+  margin-bottom: 6px;
+}
+
+.input {
+  width: 100%;
+  padding: 12px 10px;
+  border: 1px solid #ccc;
+  border-radius: 8px;
+  font-size: 16px;
+  box-sizing: border-box;
+  background-color: #f7f7f7;
+}
+
+.input:focus {
+  outline: none;
+  border-color: #a0e0d8; /* Teal focus color */
+  box-shadow: 0 0 0 2px rgba(160, 224, 216, 0.3); /* Teal focus shadow */
+}
+
+.optionsContainer {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+  margin-top: -8px; /* Pull it up slightly */
+  margin-bottom: 10px;
+}
+
+.forgotPasswordLink {
+  font-size: 14px;
+  color: #371b34; /* Dark purple */
+  text-decoration: none;
+}
+.forgotPasswordLink:hover {
+  text-decoration: underline;
+}
+
+.errorMessage {
+  color: red;
+  font-size: 14px;
+  margin-top: 0;
+  margin-bottom: 10px;
+  text-align: center;
+  min-height: 1.2em;
+}
+
+/* Login button in email form view (uses shared styles but overrides color) */
+.loginButton {
+  background-color: #a0e0d8; /* Teal color */
+  border-color: #a0e0d8;
+  color: #ffffff; /* Dark text */
+  font-weight: 600;
+  margin-top: 10px;
+}
+
+.loginButton:disabled {
+  background-color: #ccc;
+  border-color: #ccc;
+  color: #666;
+  cursor: not-allowed;
+}
+
+.loginButton:not(:disabled):hover {
+  background-color: #85c7bd; /* Darker teal */
+  border-color: #85c7bd;
+}
+
+/* --- Disclaimer --- */
+.disclaimer {
+  margin-top: 40px; /* Adjust spacing */
+  font-size: 12px; /* Adjust */
+  color: #888; /* Adjust */
+  line-height: 1.5;
+  text-align: center;
+}
+
+.disclaimer a {
+  color: #555; /* Adjust link color */
+  text-decoration: underline;
+}
+
+.disclaimer a:hover {
+  color: #333;
+}
