@@ -1,38 +1,37 @@
-/* Styles for LoginPage - Get values from Figma! */
 
 .pageBackground {
-  display: flex;
-  justify-content: center; /* Center the login container horizontally */
-  align-items: flex-start; /* Align container to the top */
-  min-height: 100vh;
-  background-color: #f7f7f7; /* Light grey background from image */
-  padding-top: 40px; /* Add padding at the top */
-  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: minmax(0, 2000px);
+  justify-content: center;
+  min-height: 100vh;         
+  background-color: #f7f7f7; 
+  padding: 80px 20px 20px 20px; 
+  box-sizing: border-box;    
+  position: relative;     
 }
 
 .loginContainer {
-  background-color: #f7f7f7; /* Same as page or slightly different if needed */
-  /* No card-like border/shadow in this design */
-  padding: 20px; /* Padding around the content */
+  background-color: #f7f7f7; 
+  padding: 20px;
   display: flex;
   flex-direction: column;
   align-items: center;
   text-align: center;
-  max-width: 450px; /* Adjust based on design */
+  max-width: 450px; 
   width: 100%;
   box-sizing: border-box;
-  position: relative; /* For absolute positioning of back button */
+  position: relative; 
 }
 
 .backButton {
   position: absolute;
-  top: 20px; /* Adjust based on Figma */
-  left: 20px; /* Adjust based on Figma */
+  top: -50px; 
+  left: 5px; 
   background: none;
   border: none;
   cursor: pointer;
   padding: 5px;
-  color: #333; /* Adjust icon color */
+  color: #333; 
 }
 
 .backButton:hover {
@@ -40,80 +39,80 @@
 }
 
 .title {
-  font-size: 26px; /* Adjust */
-  font-weight: 700; /* Adjust */
-  color: #371b34; /* Dark purple from image */
-  margin-top: 40px; /* Space below back button */
-  margin-bottom: 8px; /* Space before subtitle/options */
+  font-size: 26px; 
+  font-weight: 700; 
+  color: #371b34; 
+  margin-top: 40px; 
+  margin-bottom: 8px; 
+  font-family:'Alata', sans-serif; 
 }
 
 .subtitle {
-  font-size: 16px; /* Adjust */
-  font-weight: 400; /* Adjust */
-  color: #666; /* Adjust */
-  margin-bottom: 32px; /* Space before options */
+  font-size: 16px; 
+  font-weight: 400; 
+  color: #666; 
+  margin-bottom: 32px;
+  font-family: 'Alegreya sans', sans-serif;
 }
 
 .emailButton,
 .socialButton,
 .loginButton {
-  /* Shared styles for buttons */
-  width: 100%; /* Make buttons take full width of container */
-  padding: 15px 20px; /* Adjust */
-  border-radius: 8px; /* Adjust */
-  font-size: 16px; /* Adjust */
-  font-weight: 500; /* Adjust */
-  border: 1px solid #ccc; /* Default border */
-  background-color: white; /* Default background */
-  color: #333; /* Default text color */
+  width: 100%; 
+  padding: 15px 20px; 
+  border-radius: 8px; 
+  font-size: 16px; 
+  font-weight: 500; 
+  font-family: 'Alata', sans-serif; 
+  border: 1px solid #ccc; 
+  background-color: white; 
+  color: #333; 
   cursor: pointer;
-  margin-bottom: 12px; /* Space between buttons */
+  margin-bottom: 12px; 
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 10px; /* Space between icon and text */
+  gap: 10px; 
   transition: background-color 0.2s ease, border-color 0.2s ease;
 }
 
 .emailButton {
-  background-color: #a0e0d8; /* Teal color from image */
+  background-color: #a0e0d8; 
   border-color: #a0e0d8;
-  color: #ffffff; /* Dark text color */
+  color: #ffffff; 
   font-weight: 600;
 }
 
 .emailButton:hover {
-  background-color: #85c7bd; /* Darker teal on hover */
+  background-color: #85c7bd; 
   border-color: #85c7bd;
 }
 
 .socialButton {
   background-color: white;
-  border: 1px solid #ddd; /* Light border */
+  border: 1px solid #ddd; 
 }
 
 .socialButton:hover {
-  background-color: #f9f9f9; /* Slight grey on hover */
+  background-color: #f9f9f9; 
 }
 
 .socialIcon {
-  font-size: 20px; /* Adjust icon size */
+  font-size: 20px; 
 }
 
 .orSeparator {
-  color: #aaa; /* Adjust */
-  margin: 16px 0; /* Adjust */
-  font-size: 14px; /* Adjust */
+  color: #aaa; 
+  margin: 16px 0; 
+  font-size: 14px; 
 }
-
-/* --- Styles specific to Email Form View --- */
 
 .loginForm {
   width: 100%;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  margin-top: 24px; /* Space below title in email view */
+  margin-top: 24px; 
 }
 
 .inputGroup {
@@ -137,25 +136,26 @@
   font-size: 16px;
   box-sizing: border-box;
   background-color: #f7f7f7;
+  color: black;
 }
 
 .input:focus {
   outline: none;
-  border-color: #a0e0d8; /* Teal focus color */
-  box-shadow: 0 0 0 2px rgba(160, 224, 216, 0.3); /* Teal focus shadow */
+  border-color: #a0e0d8; 
+  box-shadow: 0 0 0 2px rgba(160, 224, 216, 0.3); 
 }
 
 .optionsContainer {
   display: flex;
   justify-content: flex-end;
   width: 100%;
-  margin-top: -8px; /* Pull it up slightly */
+  margin-top: -8px; 
   margin-bottom: 10px;
 }
 
 .forgotPasswordLink {
   font-size: 14px;
-  color: #371b34; /* Dark purple */
+  color: #371b34; 
   text-decoration: none;
 }
 .forgotPasswordLink:hover {
@@ -171,13 +171,13 @@
   min-height: 1.2em;
 }
 
-/* Login button in email form view (uses shared styles but overrides color) */
 .loginButton {
-  background-color: #a0e0d8; /* Teal color */
+  background-color: #a0e0d8; 
   border-color: #a0e0d8;
-  color: #ffffff; /* Dark text */
+  color: #ffffff; 
   font-weight: 600;
   margin-top: 10px;
+  font-family: 'Alata', sans-serif; 
 }
 
 .loginButton:disabled {
@@ -188,21 +188,21 @@
 }
 
 .loginButton:not(:disabled):hover {
-  background-color: #85c7bd; /* Darker teal */
+  background-color: #85c7bd; 
   border-color: #85c7bd;
 }
 
-/* --- Disclaimer --- */
 .disclaimer {
-  margin-top: 40px; /* Adjust spacing */
-  font-size: 12px; /* Adjust */
-  color: #888; /* Adjust */
+  margin-top: 250px; 
+  font-size: 12px;
+  color: #888; 
   line-height: 1.5;
   text-align: center;
+  font-family: 'Roboto', sans-serif; 
 }
 
 .disclaimer a {
-  color: #555; /* Adjust link color */
+  color: #555; 
   text-decoration: underline;
 }
 

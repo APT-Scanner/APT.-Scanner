@@ -13,7 +13,6 @@ const QuestionnairePage = () => {
     const { questions, loading: questionsLoading, error: questionsError } = useQuestions();
     const { idToken } = useAuth();
     const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
-    // Answers state: { questionId: { option: string | string[] | number, importance: string }, ... }
     const [answers, setAnswers] = useState({});
     const [submissionLoading, setSubmissionLoading] = useState(false);
     const [submissionError, setSubmissionError] = useState(null);
@@ -105,7 +104,6 @@ const QuestionnairePage = () => {
                       'Authorization': `Bearer ${idToken}`,
                       'Content-Type': 'application/json',
                   },
-                  // Ensure answers are serializable - check for complex objects if any
                   body: JSON.stringify({ answers: answers }),
               });
 
@@ -116,7 +114,7 @@ const QuestionnairePage = () => {
 
               const result = await response.json();
               console.log("Submission successful:", result);
-              navigate('/home'); // Navigate after success
+              navigate('/home'); 
 
           } catch (error) {
               console.error("Failed to submit answers:", error);
@@ -130,7 +128,7 @@ const QuestionnairePage = () => {
     const renderAnswerOptions = () => {
         if (!currentQuestion) return null;
 
-        const { type, options = [], config = {} } = currentQuestion; // Default options/config if missing
+        const { type, options = [], config = {} } = currentQuestion;
 
         switch (type) {
             case 'single-choice':
@@ -154,7 +152,7 @@ const QuestionnairePage = () => {
                          key={option + index}
                          role="checkbox"
                          aria-checked={currentSelections.includes(option)}
-                         className={`${styles.optionButton} ${currentSelections.includes(option) ? styles.selected : ''} ${styles.checkbox}`} // Add checkbox style marker if needed
+                         className={`${styles.optionButton} ${currentSelections.includes(option) ? styles.selected : ''} ${styles.checkbox}`}
                          onClick={() => handleOptionSelect(option)} 
                      >
                          <span className={styles.checkboxSquare} aria-hidden="true">
@@ -166,7 +164,7 @@ const QuestionnairePage = () => {
 
              case 'slider':
                  const { min = 0, max = 120, step = 1, unit = '' } = config;
-                 const currentValue = typeof selectedOption === 'number' ? selectedOption : Math.round((min + max) / 2) ; // Default to middle if not set
+                 const currentValue = typeof selectedOption === 'number' ? selectedOption : Math.round((min + max) / 2) ; 
                  return (
                      <div className={styles.sliderContainer}>
                          <input
@@ -175,7 +173,7 @@ const QuestionnairePage = () => {
                              max={max}
                              step={step}
                              value={currentValue}
-                             onChange={(e) => handleOptionSelect(Number(e.target.value))} // Store as number
+                             onChange={(e) => handleOptionSelect(Number(e.target.value))} 
                              className={styles.sliderInput}
                          />
                          <div className={styles.sliderValueDisplay}>
@@ -184,10 +182,8 @@ const QuestionnairePage = () => {
                      </div>
                  );
 
-            case 'importance': // Handled separately by the Importance component below
-                 // Maybe return a message or nothing here if importance is always separate
-                 // console.log("Importance question type encountered - rendered separately");
-                 return null; // Or display something specific if needed
+            case 'importance':
+                 return null; 
 
             default:
                 console.warn(`Unsupported question type: ${type}`);
@@ -202,7 +198,6 @@ const QuestionnairePage = () => {
 
     return (
         <div className={styles.pageContainer}>
-            {/* Header */}
             <div className={styles.header}>
                 <button onClick={goToPreviousQuestion} className={styles.backButton} aria-label="Go back">
                     <IoMdArrowBack size={24} />
@@ -222,12 +217,10 @@ const QuestionnairePage = () => {
                 </span>
             </div>
 
-            {/* Question Content */}
             <div className={styles.questionCard}>
                 <p id="question-text" className={styles.questionText}>{currentQuestion.text}</p>
             </div>
 
-            {/* Dynamically Rendered Answer Options */}
             <div className={styles.optionsContainer} role="group" aria-labelledby="question-text">
                  {renderAnswerOptions()}
             </div>
@@ -236,7 +229,6 @@ const QuestionnairePage = () => {
                  <div className={styles.importanceContainer}>
                      <h2 id="importance-label" className={styles.importanceTitle}>Importance</h2>
                      <div className={styles.importanceButtons} role="group" aria-labelledby="importance-label">
-                         {/* Use importance options if type is 'importance', otherwise default levels */}
                          {(currentQuestion.type === 'importance' ? currentQuestion.options : IMPORTANCE_LEVELS).map((level) => (
                              <button
                                  key={level}

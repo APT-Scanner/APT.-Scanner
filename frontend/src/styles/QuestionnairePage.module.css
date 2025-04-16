@@ -1,3 +1,6 @@
+.text{
+  font-family: 'alata', sans-serif;
+}
 
    .pageContainer {
     display: grid;
@@ -80,7 +83,7 @@
   }
   
   .questionText {
-    font-size: 18px;
+    font-size: 21px;
     font-weight: 600;
     color: #371b34;
     line-height: 1.5;
@@ -158,50 +161,49 @@
 
   .sliderContainer {
     width: 100%;
-    padding: 15px 0; /* Add some padding */
+    padding: 15px 0; 
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 15px; /* Space between slider and value */
-    background-color: #ffffff; /* Match option background */
+    gap: 15px; 
+    background-color: #ffffff; 
     border: 1.5px solid #d0d0d0;
     border-radius: 10px;
     box-shadow: 0 1px 2px rgba(0,0,0,0.05);
   }
   
   .sliderInput {
-    width: 85%; /* Make slider slightly less wide than container */
+    width: 85%; 
     cursor: pointer;
-    height: 8px; /* Make the track thicker */
-    accent-color: #aeaff7; /* Color for thumb and track (modern browsers) */
+    height: 8px; 
+    accent-color: #aeaff7; 
     border-radius: 4px;
-    background-color: #e0e0e0; /* Fallback track color */
-    appearance: none; /* Needed for more custom styling below if desired */
+    background-color: #e0e0e0; 
+    appearance: none; 
   }
   
-  /* Basic track/thumb styling (won't cover all browsers perfectly) */
-  .sliderInput::-webkit-slider-runnable-track { /* Chrome, Safari */
+  .sliderInput::-webkit-slider-runnable-track { 
     height: 8px;
     background: #e0e0e0;
     border-radius: 4px;
   }
-  .sliderInput::-moz-range-track { /* Firefox */
+  .sliderInput::-moz-range-track { 
     height: 8px;
     background: #e0e0e0;
     border-radius: 4px;
   }
-  .sliderInput::-webkit-slider-thumb { /* Chrome, Safari */
-    appearance: none; /* Override default look */
-    margin-top: -6px; /* Adjust vertical position relative to track */
+  .sliderInput::-webkit-slider-thumb { 
+    appearance: none; 
+    margin-top: -6px; 
     height: 20px;
     width: 20px;
     background: #aeaff7;
     border-radius: 50%;
-    border: 2px solid white; /* Optional border for thumb */
+    border: 2px solid white; 
     box-shadow: 0 1px 3px rgba(0,0,0,0.2);
   }
-  .sliderInput::-moz-range-thumb { /* Firefox */
-    height: 18px; /* Adjust size */
+  .sliderInput::-moz-range-thumb { 
+    height: 18px; 
     width: 18px;
     background: #aeaff7;
     border-radius: 50%;
@@ -214,7 +216,7 @@
     font-size: 16px;
     font-weight: 500;
     color: #371b34;
-    background-color: #e8e8fa; /* Light purple background */
+    background-color: #e8e8fa; 
     padding: 5px 12px;
     border-radius: 5px;
   }

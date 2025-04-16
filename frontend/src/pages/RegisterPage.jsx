@@ -77,7 +77,7 @@ const RegisterPage = () => {
       const user = userCredential.user;
       console.log("Registration successful:", userCredential.user);
       if (user) {
-        const idToken = await user.getIdToken(); // Get the token
+        const idToken = await user.getIdToken();
         try {
           const backendUrl = 'http://localhost:8000/api/v1/users/sync-profile';
           const response = await fetch(backendUrl, {

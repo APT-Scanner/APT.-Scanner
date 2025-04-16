@@ -1,11 +1,12 @@
 .pageBackground {
-  display: flex;
+  display: grid;
+  grid-template-columns: minmax(0, 2000px);
   justify-content: center;
-  align-items: flex-start;
-  min-height: 100vh;
-  background-color: #f7f7f7;
-  padding-top: 40px;
-  box-sizing: border-box;
+  min-height: 100vh;         
+  background-color: #f7f7f7; 
+  padding: 80px 20px 20px 20px; 
+  box-sizing: border-box;    
+  position: relative;      
 }
 
 .registerContainer {
@@ -13,7 +14,7 @@
   padding: 20px;
   display: flex;
   flex-direction: column;
-  align-items: center; /* Center content like title/indicator */
+  align-items: center; 
   text-align: center;
   max-width: 450px;
   width: 100%;
@@ -23,8 +24,8 @@
 
 .backButton {
   position: absolute;
-  top: 20px;
-  left: 20px;
+  top: -50px;
+  left: 5px;
   background: none;
   border: none;
   cursor: pointer;
@@ -39,35 +40,36 @@
 .title {
   font-size: 26px;
   font-weight: 700;
-  color: #371b34; /* Dark purple */
+  color: #371b34; 
   margin-top: 40px;
   margin-bottom: 8px;
+  font-family: 'Alata', sans-serif;
 }
 
 .stepIndicator {
   display: flex;
   gap: 5px;
-  margin-bottom: 32px; /* Space before form */
+  margin-bottom: 32px; 
 }
 
 .stepDot {
-  width: 25px; /* Adjust size */
-  height: 6px; /* Adjust size */
-  border-radius: 3px; /* Make it capsule-like */
-  background-color: #e0e0e0; /* Inactive color */
+  width: 25px; 
+  height: 6px; 
+  border-radius: 3px; 
+  background-color: #e0e0e0;
   transition: background-color 0.3s ease;
 }
 
 .stepDot.active {
-  background-color: #aeaff7; /* Active color (light purple) */
+  background-color: #aeaff7; 
 }
 
 .form {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 20px; /* Space between elements in the form */
-  align-items: center; /* Center button */
+  gap: 20px; 
+  align-items: center; 
 }
 
 .inputGroup {
@@ -81,16 +83,18 @@
   font-weight: 500;
   color: #555;
   margin-bottom: 6px;
+  margin-top: 80px;
+
 }
 
 .passwordWrapper {
-  position: relative; /* Needed for absolute positioning of the button */
+  position: relative; 
   width: 100%;
 }
 
 .input {
   width: 100%;
-  padding: 14px 12px; /* Slightly more padding */
+  padding: 14px 12px; 
   border: 1px solid #ccc;
   border-radius: 8px;
   font-size: 16px;
@@ -102,10 +106,10 @@
   outline: none;
   border-color: #aeaff7;
 }
-/* Add padding to password input to prevent text overlap with button */
+
 input[type="password"],
 input[type="text"] {
-  padding-right: 40px; /* Space for the eye icon */
+  padding-right: 40px; 
 }
 
 .showPasswordButton {
@@ -125,9 +129,9 @@ input[type="text"] {
   text-align: left;
   font-size: 14px;
   color: #555;
-  margin-top: -10px; /* Bring closer to password field */
+  margin-top: -10px; 
   margin-bottom: 10px;
-  padding-left: 5px; /* Align with input text */
+  padding-left: 5px;
 }
 
 .requirementItem {
@@ -135,16 +139,16 @@ input[type="text"] {
   align-items: center;
   gap: 8px;
   margin-bottom: 4px;
-  color: #aaa; /* Default color for unmet requirement */
+  color: #aaa; 
   transition: color 0.3s ease;
 }
 
 .requirementItem.met {
-  color: green; /* Color for met requirement */
+  color: green; 
 }
 
 .requirementItem svg {
-  font-size: 16px; /* Adjust icon size */
+  font-size: 16px; 
 }
 
 .errorMessage {
@@ -158,36 +162,38 @@ input[type="text"] {
 
 .continueButton,
 .createButton {
-  background-color: #aeaff7; /* Light purple */
-  color: #371b34; /* Dark purple text */
+  background-color: #aeaff7; 
+  color: #ffffff; 
   border: none;
   border-radius: 10px;
   padding: 15px 20px;
   font-size: 18px;
   font-weight: 600;
+  font-family: 'Alata', sans-serif;
   cursor: pointer;
-  width: 90%; /* Match button style from previous screens */
+  width: 100%; 
   margin-top: 10px;
   transition: background-color 0.2s ease;
 }
 
 .continueButton:hover,
 .createButton:not(:disabled):hover {
-  background-color: #9d9cf0; /* Slightly darker light purple */
+  background-color: #9d9cf0;
 }
 
 .createButton:disabled {
-  background-color: #dcdcdc; /* Greyed out when disabled */
+  background-color: #dcdcdc; 
   color: #aaa;
   cursor: not-allowed;
 }
 
 .disclaimer {
-  margin-top: 40px;
+  margin-top: 250px;
   font-size: 12px;
   color: #888;
   line-height: 1.5;
   text-align: center;
+  font-family: 'Roboto', sans-serif;
 }
 
 .disclaimer a {
