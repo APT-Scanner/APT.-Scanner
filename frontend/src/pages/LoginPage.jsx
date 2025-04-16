@@ -155,7 +155,6 @@ const LoginPage = () => {
         <label htmlFor="password" className={styles.label}>
           Password
         </label>
-        {/* Optional: Add show/hide password functionality */}
         <input
           type="password"
           id="password"

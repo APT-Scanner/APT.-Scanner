@@ -1,31 +1,30 @@
 .pageContainer {
     display: flex;
     justify-content: center;
-    align-items: center; /* נרכז אנכית */
+    align-items: center;
     min-height: 100vh;
-    background-color: #f7f7f7; /* רקע אפרפר בהיר כמו במסכי ההתחברות/הרשמה */
+    background-color: #f7f7f7; 
     padding: 20px;
     box-sizing: border-box;
-    position: relative; /* נדרש עבור עיגול הרקע */
-    overflow: hidden; /* למנוע גלילה אם העיגול גדול מדי */
+    position: relative; 
+    overflow: hidden;
   }
   
   .backgroundCircle {
-    position: absolute; /* ממוקם מאחורי הכרטיס */
-    width: 450px; /* גודל משוער, התאם לפי הצורך */
+    position: absolute;
+    width: 450px; 
     height: 450px;
-    background-color: #a0e3e2; /* צבע תכלת בהיר מהתמונה ומ-LandingPage */
+    background-color: #a0e3e2; 
     border-radius: 392px;
-    /* מיקום - התאם לפי הפיגמה. כאן ממורכז מאחורי הכרטיס */
     top: 40%;
     left: 20%;
-    transform: translate(-50%, -30%); /* הזזה קלה למעלה */
+    transform: translate(-50%, -30%); 
     z-index: 1;
-    opacity: 0.4; /* שקיפות קלה */
+    opacity: 0.4;
   }
   
   .contentCard {
-    background-color: transparent; /* הכרטיסיה שקופה, הרקע הוא ה-pageContainer והעיגול */
+    background-color: transparent; 
     padding: 40px 20px;
     display: flex;
     flex-direction: column;
@@ -34,52 +33,50 @@
     max-width: 400px;
     width: 100%;
     box-sizing: border-box;
-    position: relative; /* מעל העיגול */
+    position: relative;
     z-index: 2;
   }
   
   .title {
-    font-size: 28px; /* התאם גודל */
+    font-size: 28px; 
     font-weight: 700;
-    color: #371b34; /* סגול כהה כמו בכותרות אחרות */
+    color: #371b34; 
     margin-bottom: 16px;
   }
   
   .description {
-    font-size: 16px; /* התאם גודל */
-    color: #555; /* אפור */
+    font-size: 16px; 
+    color: #555; 
     line-height: 1.6;
     margin-bottom: 12px;
-    max-width: 300px; /* הגבלת רוחב הטקסט */
+    max-width: 300px; 
   }
   
-  /* סגנון נוסף לפסקה השנייה אם צריך */
   .description:last-of-type {
-     margin-bottom: 30px; /* מרווח לפני האיור */
+     margin-bottom: 30px; 
   }
   
   .illustration {
-    width: 180px; /* התאם גודל איור */
+    width: 180px;
     height: auto;
-    margin-bottom: 40px; /* מרווח לפני הכפתור */
+    margin-bottom: 40px; 
   }
   
   .getStartedButton {
-    /* סגנון דומה לכפתור Create an Account */
     border-radius: 10px;
-    background: #371b34; /* סגול כהה */
+    background: #371b34; 
     display: flex;
-    width: 290px; /* התאם רוחב */
+    width: 290px;
     max-width: 90%;
-    height: 60px; /* התאם גובה */
+    height: 60px; 
     padding: 10px;
     justify-content: center;
     align-items: center;
     gap: 10px;
     flex-shrink: 0;
-    color: #e5e5e5; /* טקסט בהיר */
+    color: #e5e5e5; 
     text-align: center;
-    font-size: 22px; /* התאם גודל פונט */
+    font-size: 22px; 
     font-weight: 500;
     line-height: 1.6;
     border: none;

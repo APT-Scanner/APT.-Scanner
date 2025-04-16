@@ -32,8 +32,8 @@ const LandingPage = () => {
                     </h2>
                     <img src = {house} alt = "house illustration" className ={styles.illustration}></img>
                     <button className = {styles.createAccountButton} onClick = {handleCreateAccount}>Create an Account</button>
-                    <p>Already have an account? 
-                    <a herf = "/login" className = {styles.loginLink} onClick = {HandleLogin}>Log in</a></p>
+                    <p>Already have an account?  
+                    <a herf = "/login" className = {styles.loginLink} onClick = {HandleLogin}> Log in</a></p>
                 </div>
             </div>
         </div>
