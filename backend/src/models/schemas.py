@@ -113,29 +113,17 @@ class QuestionnaireAnswers(BaseModel):
     commute_pref_bike: Optional[bool] = None
     commute_pref_car: Optional[bool] = None
     commute_pref_wfh: Optional[bool] = None
-    parking_importance: Optional[ParkingImportance] = None
-    max_commute_time: Optional[conint(ge=5, le=180)] = None
-    social_community_importance: Optional[conint(ge=1, le=5)] = None
-    wfh_needs_quiet_area: Optional[bool] = None
-    nearby_restaurants_importance: Optional[ImportanceScale] = None
-    budget_min: Optional[conint(ge=1000, le=50000)] = None
-    budget_max: Optional[conint(ge=1000, le=50000)] = None
-    preferred_size: Optional[conint(ge=10, le=1000)] = None
-    pref_apt_type_new: Optional[bool] = None
-    pref_apt_type_old: Optional[bool] = None
-    pref_apt_type_renovated: Optional[bool] = None
-    needs_furnished: Optional[YesNoPref] = None
-    needs_balcony: Optional[YesNoPref] = None
-    dealbreaker_no_parking: Optional[bool] = None
-    dealbreaker_no_elevator_high: Optional[bool] = None
-    needs_pet_friendly: Optional[YesNoPref] = None
-    proximity_shops_importance: Optional[conint(ge=1, le=5)] = None
+    proximity_pref_shops: Optional[bool] = None
+    proximity_pref_gym: Optional[bool] = None
+    max_commute_time: Optional[conint(ge=5, le=120)] = None
+    dog_park_nearby: Optional[YesNoPref] = None
+    learning_space_nearby: Optional[YesNoPref] = None
     proximity_beach_importance: Optional[ImportanceScale] = None
     safety_importance: Optional[ImportanceScale] = None
-    priority_work: Optional[bool] = None
-    priority_price: Optional[bool] = None
-    compromise_size_for_location: Optional[YesNoPref] = None
-    avoid_construction: Optional[YesNoPref] = None
+    green_spaces_importance: Optional[ImportanceScale] = None
+    medical_center_importance: Optional[ImportanceScale] = None
+    schools_importance: Optional[ImportanceScale] = None
+
 
     model_config = ConfigDict(
         from_attributes=True,

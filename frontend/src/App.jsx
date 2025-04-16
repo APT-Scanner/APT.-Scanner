@@ -4,6 +4,7 @@ import LandingPage from "./pages/LandingPage";
 import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import GetStartedPage from "./pages/GetStartedPage";
+import QuestionnairePage from "./pages/QuestionnairePage";
 
 function App() {
 
@@ -12,10 +13,11 @@ function App() {
       <div className="App">
         <div className="content">
           <Routes>
-            <Route path="/" element={<LandingPage />} />
-            <Route path ="/login" element={<LoginPage/>}></Route>
-            <Route path= "/register" element={<RegisterPage/>}></Route>
-            <Route path="/get-started" element={<GetStartedPage />} />
+            <Route path = "/" element={<LandingPage />}></Route>
+            <Route path = "/login" element={<LoginPage/>}></Route>
+            <Route path = "/register" element={<RegisterPage/>}></Route>
+            <Route path = "/get-started" element={<GetStartedPage/>}></Route>
+            <Route path = "/questionnaire" element = {<QuestionnairePage/>}></Route>
           </Routes>
         </div>
       </div>

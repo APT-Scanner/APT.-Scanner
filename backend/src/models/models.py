@@ -8,9 +8,10 @@ from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
+from typing import Any, Optional, List
 from enum import Enum as PyEnum
 from .database import Base 
+from pydantic import BaseModel, Field
 
 # Define the association table for the Many-to-Many relationship
 # between listings and tags using SQLAlchemy Core Table object
@@ -194,41 +195,31 @@ class UserPreferences(Base):
     commute_pref_bike: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     commute_pref_car: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
     commute_pref_wfh: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    parking_importance: Mapped[Optional[ParkingImportance]] = mapped_column(SQLEnum(ParkingImportance), nullable=True)
-    max_commute_time: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # In minutes
-    social_community_importance: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Scale 1-5
-    wfh_needs_quiet_area: Mapped[Optional[bool]] = mapped_column(Boolean, nullable=True)
-    nearby_restaurants_importance: Mapped[Optional[ImportanceScale]] = mapped_column(SQLEnum(ImportanceScale), nullable=True)
 
-    # Section 2: Housing Preferences
-    budget_min: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    budget_max: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)
-    preferred_size: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # In sqm
-    pref_apt_type_new: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    pref_apt_type_old: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    pref_apt_type_renovated: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    needs_furnished: Mapped[Optional[YesNoPref]] = mapped_column(SQLEnum(YesNoPref), nullable=True)
-    needs_balcony: Mapped[Optional[YesNoPref]] = mapped_column(SQLEnum(YesNoPref), nullable=True)
-    dealbreaker_no_parking: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    dealbreaker_no_elevator_high: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    needs_pet_friendly: Mapped[Optional[YesNoPref]] = mapped_column(SQLEnum(YesNoPref), nullable=True)
-    # ... (הוסיפו את שאר העמודות לכל השאלות)
+    # Section 2: Location preferences
+    proximity_pref_shops: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    proximity_pref_gym: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
+    max_commute_time: Mapped[Optional[int]] = mapped_column(Integer, nullable=True)  # in minutes
 
-    # Section 3: Location
-    proximity_shops_importance: Mapped[Optional[int]] = mapped_column(Integer, nullable=True) # Scale 1-5
+    # Section 3: Lifestyle-related needs
+    dog_park_nearby: Mapped[Optional[YesNoPref]] = mapped_column(SQLEnum(YesNoPref), nullable=True)
+    learning_space_nearby: Mapped[Optional[YesNoPref]] = mapped_column(SQLEnum(YesNoPref), nullable=True)
+
+    # Section 4: Importance ratings
     proximity_beach_importance: Mapped[Optional[ImportanceScale]] = mapped_column(SQLEnum(ImportanceScale), nullable=True)
-    # ... (הוסיפו את שאר העמודות)
-
-    # Section 4: Atmosphere & Safety
     safety_importance: Mapped[Optional[ImportanceScale]] = mapped_column(SQLEnum(ImportanceScale), nullable=True)
-    # ... (הוסיפו את שאר העמודות)
-
-    # Section 5: Personalization
-    priority_work: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    priority_price: Mapped[Optional[bool]] = mapped_column(Boolean, default=False)
-    compromise_size_for_location: Mapped[Optional[YesNoPref]] = mapped_column(SQLEnum(YesNoPref), nullable=True)
-    avoid_construction: Mapped[Optional[YesNoPref]] = mapped_column(SQLEnum(YesNoPref), nullable=True)
-    # ... (הוסיפו את שאר העמודות)
+    green_spaces_importance: Mapped[Optional[ImportanceScale]] = mapped_column(SQLEnum(ImportanceScale), nullable=True)
+    medical_center_importance: Mapped[Optional[ImportanceScale]] = mapped_column(SQLEnum(ImportanceScale), nullable=True)
+    schools_importance: Mapped[Optional[ImportanceScale]] = mapped_column(SQLEnum(ImportanceScale), nullable=True)
 
     # Relationship back to User
     owner: Mapped["User"] = relationship(back_populates="preferences")
+
+class QuestionModel(BaseModel):
+    category: str
+    id: str
+    text: str
+    type: str
+    options: Optional[List[str]] = None
+    config: Optional[dict[str,Any]] = None
+    conditional: Optional[dict[str,Any]] = None
