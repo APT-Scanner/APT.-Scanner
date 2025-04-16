@@ -99,7 +99,7 @@ const RegisterPage = () => {
           console.log("Backend sync successful:", backendUser);
 
           setIsLoading(false);
-          navigate("/getstarted");
+          navigate("/get-started");
         } catch (backendError) {
           console.error("Backend sync error:", backendError);
           setError(

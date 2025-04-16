@@ -1,0 +1,94 @@
+.pageContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center; /* נרכז אנכית */
+    min-height: 100vh;
+    background-color: #f7f7f7; /* רקע אפרפר בהיר כמו במסכי ההתחברות/הרשמה */
+    padding: 20px;
+    box-sizing: border-box;
+    position: relative; /* נדרש עבור עיגול הרקע */
+    overflow: hidden; /* למנוע גלילה אם העיגול גדול מדי */
+  }
+  
+  .backgroundCircle {
+    position: absolute; /* ממוקם מאחורי הכרטיס */
+    width: 450px; /* גודל משוער, התאם לפי הצורך */
+    height: 450px;
+    background-color: #a0e3e2; /* צבע תכלת בהיר מהתמונה ומ-LandingPage */
+    border-radius: 392px;
+    /* מיקום - התאם לפי הפיגמה. כאן ממורכז מאחורי הכרטיס */
+    top: 40%;
+    left: 20%;
+    transform: translate(-50%, -30%); /* הזזה קלה למעלה */
+    z-index: 1;
+    opacity: 0.4; /* שקיפות קלה */
+  }
+  
+  .contentCard {
+    background-color: transparent; /* הכרטיסיה שקופה, הרקע הוא ה-pageContainer והעיגול */
+    padding: 40px 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+    max-width: 400px;
+    width: 100%;
+    box-sizing: border-box;
+    position: relative; /* מעל העיגול */
+    z-index: 2;
+  }
+  
+  .title {
+    font-size: 28px; /* התאם גודל */
+    font-weight: 700;
+    color: #371b34; /* סגול כהה כמו בכותרות אחרות */
+    margin-bottom: 16px;
+  }
+  
+  .description {
+    font-size: 16px; /* התאם גודל */
+    color: #555; /* אפור */
+    line-height: 1.6;
+    margin-bottom: 12px;
+    max-width: 300px; /* הגבלת רוחב הטקסט */
+  }
+  
+  /* סגנון נוסף לפסקה השנייה אם צריך */
+  .description:last-of-type {
+     margin-bottom: 30px; /* מרווח לפני האיור */
+  }
+  
+  .illustration {
+    width: 180px; /* התאם גודל איור */
+    height: auto;
+    margin-bottom: 40px; /* מרווח לפני הכפתור */
+  }
+  
+  .getStartedButton {
+    /* סגנון דומה לכפתור Create an Account */
+    border-radius: 10px;
+    background: #371b34; /* סגול כהה */
+    display: flex;
+    width: 290px; /* התאם רוחב */
+    max-width: 90%;
+    height: 60px; /* התאם גובה */
+    padding: 10px;
+    justify-content: center;
+    align-items: center;
+    gap: 10px;
+    flex-shrink: 0;
+    color: #e5e5e5; /* טקסט בהיר */
+    text-align: center;
+    font-size: 22px; /* התאם גודל פונט */
+    font-weight: 500;
+    line-height: 1.6;
+    border: none;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+  }
+  
+  .getStartedButton:hover {
+    background-color: #53314e; 
+  }
+  
+  
