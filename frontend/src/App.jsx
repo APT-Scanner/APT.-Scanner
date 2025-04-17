@@ -5,6 +5,7 @@ import LoginPage from "./pages/LoginPage";
 import RegisterPage from "./pages/RegisterPage";
 import GetStartedPage from "./pages/GetStartedPage";
 import QuestionnairePage from "./pages/QuestionnairePage";
+import ApartmentSwipePage from "./pages/ApartmentSwipePage";
 
 function App() {
 
@@ -18,6 +19,7 @@ function App() {
             <Route path = "/register" element={<RegisterPage/>}></Route>
             <Route path = "/get-started" element={<GetStartedPage/>}></Route>
             <Route path = "/questionnaire" element = {<QuestionnairePage/>}></Route>
+            <Route path = "/apartment-swipe" element={<ApartmentSwipePage/>}></Route>
           </Routes>
         </div>
       </div>

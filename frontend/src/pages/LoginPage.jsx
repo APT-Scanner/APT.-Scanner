@@ -46,7 +46,7 @@ const LoginPage = () => {
       );
       console.log("Email Login successful:", userCredentials.user);
       setIsLoading(false);
-      navigate("/home");
+      navigate("/apartment-swipe");
     } catch (firebaseError) {
       setIsLoading(false);
       console.error(
