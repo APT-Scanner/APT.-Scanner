@@ -87,7 +87,7 @@ const LoginPage = () => {
       const result = await signInWithPopup(auth, provider);
       console.log(`${providerName} Sign-in successful:`, result.user);
       setIsLoading(false);
-      navigate("/home");
+      navigate("/apartment-swipe");
     } catch (error) {
       setIsLoading(false);
       console.error(

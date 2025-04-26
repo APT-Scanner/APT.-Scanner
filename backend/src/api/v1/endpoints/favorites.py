@@ -1,0 +1,119 @@
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from sqlalchemy.orm import selectinload
+from sqlalchemy import and_
+from typing import List
+import logging
+
+from src.models.database import get_db
+from src.models.models import Favorite, Listing
+from src.models.schemas import FavoriteSchema, FavoriteCreateSchema
+from src.middleware.auth import get_current_firebase_user
+
+logger = logging.getLogger(__name__)
+router = APIRouter()
+
+@router.post(
+    "/",
+    response_model=FavoriteSchema,
+    status_code=status.HTTP_201_CREATED,
+    summary="Add a listing to favorites"
+)
+async def add_favorites(
+    favorite: FavoriteCreateSchema,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_firebase_user)
+):
+    """Add a listing to user's favorites"""
+    user_id = current_user["user_id"]
+
+    listing = await db.get(Listing, favorite.listing_id)
+    if not listing:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+    
+    stmt = select(Favorite).where(and_(
+        Favorite.user_id == user_id,
+        Favorite.listing_id == listing.order_id
+    ))
+    result = await db.execute(stmt)
+    existing = result.scalar_one_or_none()
+
+    if existing:
+        return existing
+    
+    new_favorite = Favorite(
+        user_id=user_id,
+        listing_id=listing.order_id
+    )
+
+    db.add(new_favorite)
+    await db.commit()
+    await db.refresh(new_favorite)
+
+    return new_favorite
+
+@router.get(
+    "/",
+    response_model=List[FavoriteSchema],
+    summary="Get user's favorites"
+)
+async def get_favorites(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_firebase_user)
+):
+    """Get all favorites for the current user"""
+    user_id = current_user["user_id"]
+    
+    stmt = (
+        select(Favorite)
+        .where(Favorite.user_id == user_id)
+        .options(
+            selectinload(Favorite.listing)
+            .selectinload(Listing.neighborhood)
+        )
+    )
+    
+    result = await db.execute(stmt)
+    favorites = result.scalars().all()
+    
+    return favorites
+
+
+@router.delete(
+    "/{listing_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Remove from favorites"
+)
+async def remove_from_favorites(
+    listing_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_firebase_user)
+):
+    """Remove a listing from user's favorites"""
+    user_id = current_user["user_id"]
+    
+    stmt = select(Favorite).where(
+        and_(
+            Favorite.user_id == user_id,
+            Favorite.listing_id == listing_id
+        )
+    )
+    
+    result = await db.execute(stmt)
+    favorite = result.scalar_one_or_none()
+    
+    if not favorite:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Favorite not found"
+        )
+    
+    await db.delete(favorite)
+    await db.commit()
+
+    
+
+    
+    
+

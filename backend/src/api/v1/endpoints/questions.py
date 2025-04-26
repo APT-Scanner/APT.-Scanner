@@ -2,7 +2,7 @@ import json
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
 from src.middleware.auth import get_current_firebase_user
-from src.models.models import QuestionModel
+from src.models.schemas import QuestionModel
 from pathlib import Path
 import logging
 

@@ -25,6 +25,8 @@
   max-width: 350px; /* רוחב מקסימלי */
   height: 65vh; /* גובה אזור הכרטיסים */
   max-height: 500px; /* גובה מקסימלי */
+  padding-bottom: 200px; /* Add space at bottom for buttons */
+  min-height: calc(100vh - 400px); /* Ensure cards stay above buttons */
   flex-grow: 1; /* מאפשר לקונטיינר לתפוס מקום פנוי */
   display: flex; /* חיוני כדי ש-Swiper יקבל מידות */
   justify-content: center;
@@ -93,14 +95,15 @@
 
 /* --- כפתורי פעולה --- */
 .buttonsContainer {
+  position: fixed;       /* Add this */
+  bottom: 100px;         /* Adjust this value to position higher (100px example) */
+  left: 0;
+  width: 100vw;
   display: flex;
   justify-content: center;
-  align-items: center;
-  width: 100%;
-  padding: 10px 0; /* הקטנת הריווח האנכי */
-  gap: 110px; /* רווח בין הכפתורים */
-  flex-shrink: 0; /* מונע התכווצות הכפתורים */
-  z-index: 10; /* מבטיח שהכפתורים יהיו קליקביליים מעל אלמנטים אחרים */
+  z-index: 200;          /* Increased from 10 to be above bottom bar's z-index 100 */
+  padding: 10px 0;
+  gap: 110px;
 }
 
 .button {
@@ -175,4 +178,28 @@
   opacity: 0;
   pointer-events: none;
   transition: opacity 0.3s ease;
+}
+
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  background: #fff;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0;
+  z-index: 100;
+}
+
+.bottomBarButton {
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
 }

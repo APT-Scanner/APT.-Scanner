@@ -97,5 +97,47 @@ async def get_all_listings(db: AsyncSession = Depends(get_db), limit: int = 20):
             detail="An error occurred while retrieving listings."
         )
 
-
+@router.get(
+    "/{listing_id}",
+    response_model=ListingSchema,
+    summary="Get listing by ID"
+)
+async def get_listing_by_id(
+    listing_id: int,
+    db: AsyncSession = Depends(get_db)
+):
+    """Get a specific listing by ID"""
+    logger.info(f"Fetching listing with ID: {listing_id}")
+    
+    stmt = (
+        select(ListingModel)
+        .where(ListingModel.order_id == listing_id)
+        .options(
+            selectinload(ListingModel.neighborhood),
+            selectinload(ListingModel.property_condition),
+            selectinload(ListingModel.images),
+            selectinload(ListingModel.tags)
+        )
+    )
+    
+    try:
+        result = await db.execute(stmt)
+        listing = result.scalar_one_or_none()
+        
+        if not listing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Listing with ID {listing_id} not found"
+            )
+            
+        return listing
+        
+    except Exception as e:
+        if isinstance(e, HTTPException):
+            raise e
+        logger.error(f"Database error while fetching listing {listing_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while retrieving the listing"
+        )
     

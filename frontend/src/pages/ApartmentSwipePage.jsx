@@ -5,29 +5,26 @@ import 'swiper/css';
 import 'swiper/css/effect-cards';
 import { useDrag } from '@use-gesture/react'; 
 import { useApartments } from '../hooks/useApartments';
-import { useAuth } from '../hooks/useAuth';
 import styles from '../styles/ApartmentSwipePage.module.css';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
 import { Heart, X } from 'lucide-react';
 import logo from "../assets/logo-swipe-screen.jpeg";
-
-const safeSwiperAction = (swiperRef, action) => {
-    if (swiperRef.current && swiperRef.current.swiper) {
-        action(swiperRef.current.swiper);
-    } else {
-        console.warn("Swiper instance not available yet.");
-    }
-};
+import HomeIcon from '../assets/home_pressed.svg';
+import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
+import SettingsIcon from '../assets/settings_not_pressed.svg';
+import { useFavorites } from '../hooks/useFavorites';
+import { useNavigate } from 'react-router-dom';
 
 const SWIPE_UP_THRESHOLD = -5; 
 
 const ApartmentSwipePage = () => {
     const { apartments: initialApartments, loading, error } = useApartments();
-    const { idtoken } = useAuth();
     const [apartments, setApartments] = useState([]);
     const swiperRef = useRef(null);
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const [detailedApartmentIndex, setDetailedApartmentIndex] = useState(null);
+    const { addFavorite } = useFavorites();
+const navigate = useNavigate();
 
     useEffect(() => {
         if (initialApartments.length > 0) {
@@ -44,18 +41,33 @@ const ApartmentSwipePage = () => {
 
     const handleReachEnd = () => {
         console.log("Reached the end of apartments!");
-        // You could potentially load more apartments here
     };
 
-    // Function triggered by Like/Dislike buttons
-    const triggerSwipe = (direction) => {
+    const triggerSwipe = async (direction) => {
         const currentApartment = apartments[swiperRef.current?.swiper?.activeIndex];
         if (!currentApartment) {
             console.log("No current apartment found or Swiper not ready.");
             return;
         }
-    }
-
+        
+        // Log the apartment object to see its structure
+        console.log("Current apartment:", currentApartment);
+        
+        // Add to favorites if swiped right
+        if (direction === 'right') {
+            try {
+                // Use order_id instead of id (backend uses order_id as the primary key)
+                await addFavorite(currentApartment.order_id);
+                console.log("Added to favorites:", currentApartment.order_id);
+            } catch (error) {
+                console.error("Failed to add to favorites:", error);
+            }
+        }
+        
+        // Advance to next slide
+        swiperRef.current?.swiper?.slideNext();
+    };
+    
     const openDetailSheet = (index) => {
         if (index !== undefined && index !== null && index >= 0 && index < apartments.length) {
             console.log(`Opening details for apartment index: ${index}`);
@@ -66,59 +78,45 @@ const ApartmentSwipePage = () => {
         }
     };
 
-    // פונקציה לסגירת חלון הפרטים
     const closeDetailSheet = () => {
         setIsDetailSheetOpen(false);
-        // אפשר להוסיף השהיה קטנה לפני איפוס האינדקס כדי לאפשר לאנימציה להסתיים
-        // setTimeout(() => setDetailedApartmentIndex(null), 300);
     };
 
     
-    // Hook לזיהוי החלקה למעלה - מוחל על כל העמוד
     const bind = useDrag(({ active, movement: [, my], direction: [, dy], cancel, event }) => {
-        // מניעת הפעלה אם הגרירה מתחילה על הכפתורים
         const targetElement = event.target;
         const buttonsContainer = targetElement.closest(`.${styles.buttonsContainer}`);
         if (buttonsContainer) {
-            // אם רוצים לבטל את הגרירה לגמרי כשהיא מתחילה על הכפתור
-            // if (cancel) cancel();
             return;
         }
 
         const isSwipeUp = !active && dy < 0 && my < SWIPE_UP_THRESHOLD;
 
         if (isSwipeUp) {
-            // קבל את האינדקס הנוכחי מה-Swiper
             const currentSwiperIndex = swiperRef.current?.swiper?.activeIndex;
             console.log(`Swipe Up detected on page, current swiper index: ${currentSwiperIndex}`);
-            openDetailSheet(currentSwiperIndex); // פתח פרטים עבור השקופית הנוכחית
+            openDetailSheet(currentSwiperIndex);
             if (cancel) cancel();
         }
     }, {
         axis: 'y',
         filterTaps: true,
-        enabled: !isDetailSheetOpen, // (*) מופעל רק אם חלון הפרטים סגור
-        // אפשר להוסיף eventOptions אם יש בעיות עם stopPropagation/preventDefault
-        // eventOptions: { passive: false },
+        enabled: !isDetailSheetOpen,
     });
 
     if (loading) return <div className={styles.message}>Loading apartments...</div>;
     if (error) return <div className={`${styles.message} ${styles.error}`}>Error: {error}</div>;
 
-    // קבל את הדירה הנוכחית להצגה בפרטים (אם יש)
     const currentDetailedApartment = detailedApartmentIndex !== null && detailedApartmentIndex < apartments.length
         ? apartments[detailedApartmentIndex]
         : null;
 
     return (
-        // החלת bind על העטיפה הראשית של העמוד
         <div
-            {...bind()} // (*) החל את bind כאן
+            {...bind()}
             className={`${styles.pageWrapper} ${isDetailSheetOpen ? styles.detailsActive : ''}`}
-            // נדרש כדי לאפשר גלילה אנכית על ידי הדפדפן, אחרת useDrag עשוי לחסום אותה
-             style={{ touchAction: 'pan-y' }}
+            style={{ touchAction: 'pan-y' }}
         >
-            {/* שים לב: אם pageWrapper לא עוטף את הכל, החל את bind על pageContainer */}
             <div className={styles.pageContainer}>
                 <img src={logo} alt="APT.Scanner logo" className={styles.logo} />
 
@@ -142,9 +140,8 @@ const ApartmentSwipePage = () => {
                             className={styles.swiperContainer}
                             allowTouchMove={!isDetailSheetOpen}
                         >
-                            {apartments.map((apartment, index) => (
+                            {apartments.map((apartment) => (
                                 <SwiperSlide key={apartment.id} className={styles.swipe}>
-                                    {/* (*) הסרנו את bind מכאן */}
                                     <div style={{ height: '100%', width: '100%' }}>
                                         <div style={{ backgroundImage: `url(${apartment.cover_image_url || apartment.image || ''})` }} className={styles.card}>
                                             <div className={styles.cardInfo}>
@@ -165,7 +162,6 @@ const ApartmentSwipePage = () => {
                     )}
                 </div>
 
-                {/* כפתורי לייק/דיסלייק */}
                 {apartments.length > 0 && (
                     <div className={`${styles.buttonsContainer} ${isDetailSheetOpen ? styles.buttonsHidden : ''}`}>
                         <button onClick={() => triggerSwipe('left')} className={`${styles.button} ${styles.dislike}`} disabled={isDetailSheetOpen}>
@@ -176,18 +172,30 @@ const ApartmentSwipePage = () => {
                         </button>
                     </div>
                 )}
-            </div> {/* סוף pageContainer */}
+            </div> 
 
-             {/* רינדור חלון הפרטים */}
-              {currentDetailedApartment && (
-                 <ApartmentDetailSheet
+            {currentDetailedApartment && (
+                <ApartmentDetailSheet
                     apartment={currentDetailedApartment}
                     isOpen={isDetailSheetOpen}
                     onClose={closeDetailSheet}
                 />
             )}
 
-        </div> // סוף pageWrapper
+            <div className={styles.bottomBar}>
+            <button className={styles.bottomBarButton}
+            onClick={() => navigate('/apartment-swipe')}>
+                <img src={HomeIcon} alt="Home" className={styles.bottomBarButton} />
+            </button>
+            <button className={styles.bottomBarButton}
+            onClick={() => navigate('/favorites')}>
+                <img src={HeartOutlineIcon} alt="Heart" className={styles.bottomBarButton} />
+            </button>
+            <button className={styles.bottomBarButton}>
+                <img src={SettingsIcon} alt="Settings" className={styles.bottomBarButton} />
+            </button>
+            </div>
+        </div> 
     );
 };
 

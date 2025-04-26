@@ -1,6 +1,6 @@
 """Schemas for the API."""
 from pydantic import BaseModel, Field, conint, confloat, ConfigDict, EmailStr
-from typing import Optional, List
+from typing import Optional, List, Any
 from datetime import datetime
 from decimal import Decimal 
 from .models import PaceOfLife, ParkingImportance, ImportanceScale, YesNoPref
@@ -129,3 +129,24 @@ class QuestionnaireAnswers(BaseModel):
         from_attributes=True,
         use_enum_values=True
     )
+
+class QuestionModel(BaseModel):
+    category: str
+    id: str
+    text: str
+    type: str
+    options: Optional[List[str]] = None
+    config: Optional[dict[str,Any]] = None
+    conditional: Optional[dict[str,Any]] = None
+
+class FavoriteCreateSchema(BaseModel):
+    listing_id: int
+    
+class FavoriteSchema(BaseModel):
+    id: int
+    user_id: str
+    listing_id: int
+    created_at: datetime
+    
+    class Config:
+        orm_mode = True
