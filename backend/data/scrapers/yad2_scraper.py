@@ -4,7 +4,6 @@ from typing import Dict, Any
 from dotenv import load_dotenv
 import os
 
-# Load environment variables from .env file
 load_dotenv()
 
 class Yad2Scraper:
@@ -422,7 +421,9 @@ class Yad2Scraper:
             if 'html' in json_data:
                 content = json.loads(json_data['html'])
                 private_listings = content['pageProps']['feed']['private']
-                return private_listings
+                platinum_listings = content['pageProps']['feed']['platinum']
+                combined_listings = private_listings + platinum_listings
+                return combined_listings
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Error parsing response: {e}")
             return {"error": str(e), "raw_response": response.text}
@@ -491,25 +492,17 @@ if __name__ == "__main__":
     scraper = Yad2Scraper(api_username, api_password)
     
     # Set the hash ID (this changes periodically on the Yad2 website)
-    scraper.set_hash_id('8uglfm7wZXxu6fHuP6E6t')
+    scraper.set_hash_id('K8ZXlI0K9KoJKzwo7O4rZ')
     
     direct_params = {
         'top_area': 2,           
         'area': 1,               
-        'city': 5000,            # Tel Aviv city area
-        'property_group': ['apartments', 'houses', 'misc'],
-        'property_type': [1, 3, 5, 6, 7, 25, 39, 49, 51, 11, 43, 44, 4],  
-        'rooms': '2.5-3',        
-        'price': '2000-17000',   
-        'squaremeter': '40-480', 
-        'squaremeter_build': '20-480',  
-        'property_condition': [1, 6, 2, 3, 5],  
-        'floor': '2-19',         
+        'city': 5000,            # Tel Aviv city area       
         'image_only': True,      
         'price_only': True,      
     }
 
-    #results = scraper.scrape_apt_listing(**direct_params)
-    results = scraper.scrape_hood_data(1461)
+    results = scraper.scrape_apt_listing(**direct_params)
+    #results = scraper.scrape_hood_data(1461)
     
     scraper.save_to_json(results)

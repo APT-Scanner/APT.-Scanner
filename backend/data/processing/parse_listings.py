@@ -17,7 +17,7 @@ PROPERTY_CONDITION_MAP = {
 
 # --- Main Parsing Function ---
 
-def parse_listings(filepath="/Users/or.hershko/Desktop/APT.-Scanner/data/sources/response.json"):
+def parse_listings(raw_data):
     """
     Loads listing data from a JSON file, filters for relevant apartment listings,
     and structures the data for database insertion.
@@ -31,19 +31,6 @@ def parse_listings(filepath="/Users/or.hershko/Desktop/APT.-Scanner/data/sources
                'property_conditions': []}
               Returns None if the file cannot be read or parsed.
     """
-    if not os.path.exists(filepath):
-        print(f"Error: File not found at {filepath}")
-        return None
-
-    try:
-        with open(filepath, 'r', encoding='utf-8') as f:
-            raw_data = json.load(f)
-    except json.JSONDecodeError:
-        print(f"Error: Could not decode JSON from {filepath}")
-        return None
-    except Exception as e:
-        print(f"Error reading file {filepath}: {e}")
-        return None
 
     listings_data = []
     images_data = []

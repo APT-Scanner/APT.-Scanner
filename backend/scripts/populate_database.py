@@ -2,46 +2,31 @@ import json
 import csv
 import os
 import psycopg2
-from psycopg2.extras import execute_values, RealDictCursor # RealDictCursor to return rows as dictionaries
+from psycopg2.extras import execute_values, RealDictCursor
 import logging
+from dotenv import load_dotenv
+from typing import Set
+        
+# Load environment variables
+load_dotenv()
         
 # --- Database Connection Details ---
-DB_NAME = os.getenv("DB_NAME", "default_db")
-DB_USER = os.getenv("DB_USER", "default_user")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "default_password")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
+DATABASE_URL = os.getenv("DATABASE_URL")
+if not DATABASE_URL:
+    raise ValueError("DATABASE_URL environment variable not set")
 
 # --- File Names ---
-NEIGHBORHOOD_DETAILS_CSV = 'data/sources/neighborhood_details.csv'
-YAD2_HOOD_MAPPING_JSON = 'data/sources/yad2_hood_mapping.json'
-LISTINGS_DATA_FILE = 'data/sources/listings_data.json'
-NEIGHBORHOOD_VARIANTS_MAP_JSON = 'data/sources/neighborhood_variants_map.json'
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+NEIGHBORHOOD_VARIANTS_MAP_JSON = os.path.join(BASE_DIR, "data", "sources", "neighborhood_variants_map.json")
+YAD2_HOOD_MAPPING_JSON = os.path.join(BASE_DIR, "data", "sources", "yad2_hood_mapping.json")
+NEIGHBORHOOD_DETAILS_CSV = os.path.join(BASE_DIR, "data", "sources", "neighborhood_details.csv")
 
 
-# Configure logging
 logging.basicConfig(level=logging.INFO,
                     format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
                     datefmt='%Y-%m-%d %H:%M:%S')
 logger = logging.getLogger(__name__)
 
-
-def get_db_connection():
-    """Creates and returns a database connection."""
-    logger.info("Attempting to connect to the database...")
-    try:
-        conn = psycopg2.connect(
-            dbname=DB_NAME,
-            user=DB_USER,
-            password=DB_PASSWORD,
-            host=DB_HOST,
-            port=DB_PORT
-        )
-        logger.info("Database connection successful.")
-        return conn
-    except psycopg2.Error as e:
-        logger.exception(f"Error connecting to the database: {e}") # Use exception to log traceback
-        return None
 
 def safe_float(value, default=None):
     """Convert value to float safely."""
@@ -57,7 +42,6 @@ def safe_int(value, default=None):
     if value is None or value == '':
         return default
     try:
-        # Handle potential float strings like '2.0'
         return int(float(value))
     except (ValueError, TypeError):
         return default
@@ -73,10 +57,12 @@ def populate_lookups(conn):
 
         # --- Property Conditions ---
         conditions = [
+            (1, 'לא משופץ', 'Not Renovated'),
             (2, 'משופץ', 'Renovated'),
             (3, 'מצב טוב', 'Good Condition'),
             (6, 'חדש מקבלן', 'New from Contractor'),
-            # ... Add more as needed
+            (4, 'שמור', 'Well-Kept'),
+            (5, 'דורש שיפוץ', 'Needs Renovation')
         ]
         execute_values(cursor,
                        "INSERT INTO property_conditions (condition_id, condition_name_he, condition_name_en) VALUES %s ON CONFLICT (condition_id) DO NOTHING",
@@ -91,12 +77,14 @@ def populate_lookups(conn):
             (1009, 'ממ"ד'), (1004, 'נוף פתוח לים'), (1005, 'נוף פתוח לפארק'),
             (1017, 'קרוב לים'), (1003, 'חניה'), (1012, '2 מרפסות'),
             (1021, 'גמיש במחיר'), (1010, '3 חדרי מקלחת'),
-            # ... Add more as needed
+            (1093, 'ייחודי'), (1016, 'אחריי להתחדשות עירונית'), (1000, 'חדש מקבלן'),
+            (1008, '4 כיווני אוויר'),(1001, 'נכס חדש'),(1011, '4 חדרי מקלחת')
         ]
         execute_values(cursor,
                        "INSERT INTO tags (tag_id, tag_name) VALUES %s ON CONFLICT (tag_id) DO NOTHING",
                        tags)
         logger.debug(f"Processed {len(tags)} tags.")
+        logger.debug(f"Tags: {tags}")
 
         conn.commit()
         logger.info("Lookup tables updated successfully.")
@@ -110,21 +98,21 @@ def populate_lookups(conn):
 
 def populate_neighborhoods(conn):
     """Loads data from CSV and JSON mapping, populates the neighborhoods table."""
+    conn = get_db_connection()
     if not conn:
         logger.error("Cannot populate neighborhoods: No database connection.")
         return False
-
+    
     if not os.path.exists(NEIGHBORHOOD_DETAILS_CSV) or not os.path.exists(YAD2_HOOD_MAPPING_JSON):
         logger.error(f"Error: Neighborhood data files not found ({NEIGHBORHOOD_DETAILS_CSV}, {YAD2_HOOD_MAPPING_JSON}).")
         return False
 
     cursor = conn.cursor()
-    try:
+    try:    
         logger.info(f"Loading Yad2 neighborhood ID mapping from {YAD2_HOOD_MAPPING_JSON}...")
         with open(YAD2_HOOD_MAPPING_JSON, 'r', encoding='utf-8') as f:
             yad2_mapping_list = json.load(f)
 
-        # Create a dictionary for quick lookup of ID by Hebrew name
         yad2_hood_lookup = {item['neigborhood_name']: item for item in yad2_mapping_list if 'neigborhood_name' in item}
         logger.info(f"Found mapping for {len(yad2_hood_lookup)} neighborhoods.")
 
@@ -134,7 +122,6 @@ def populate_neighborhoods(conn):
         skipped_count = 0
 
         with open(NEIGHBORHOOD_DETAILS_CSV, 'r', encoding='utf-8') as f:
-            # Use DictReader for easy access by column name
             reader = csv.DictReader(f)
             for i, row in enumerate(reader):
                 hebrew_name = row.get('Hebrew Neighborhood Name')
@@ -143,7 +130,6 @@ def populate_neighborhoods(conn):
                     skipped_count += 1
                     continue
 
-                # Find the corresponding Yad2 ID from the mapping
                 yad2_info = yad2_hood_lookup.get(hebrew_name)
                 if not yad2_info or not yad2_info.get('hoodId'):
                     logger.warning(f"Yad2 ID not found for neighborhood '{hebrew_name}' in mapping file. Skipping.")
@@ -156,11 +142,10 @@ def populate_neighborhoods(conn):
                     skipped_count += 1
                     continue
 
-                # Prepare the record for insertion/update, converting types safely
                 data = (
                     yad2_hood_id,
                     hebrew_name,
-                    row.get('English Neighborhood Name'), # Assumes header is 'English Neighborhood Name'
+                    row.get('English Neighborhood Name'),
                     safe_float(row.get('Average Purchase Price')),
                     safe_float(row.get('Average Rent Price')),
                     safe_float(row.get('Socioeconomic Index')),
@@ -200,7 +185,6 @@ def populate_neighborhoods(conn):
                 'yad2_area_id', 'yad2_top_area_id', 'yad2_doc_count'
             ]
             cols_sql = ", ".join(cols)
-            # Upsert logic: Update if yad2_hood_id exists, otherwise insert.
             sql = f"""
                 INSERT INTO neighborhoods ({cols_sql}) VALUES %s
                 ON CONFLICT (yad2_hood_id) DO UPDATE SET
@@ -228,9 +212,9 @@ def populate_neighborhoods(conn):
                     yad2_area_id = EXCLUDED.yad2_area_id,
                     yad2_top_area_id = EXCLUDED.yad2_top_area_id,
                     yad2_doc_count = EXCLUDED.yad2_doc_count,
-                    updated_at = NOW() -- Ensure updated_at is set on update
+                    updated_at = NOW()
             """
-            execute_values(cursor, sql, neighborhood_data_to_insert, page_size=500) # Use page_size for large datasets
+            execute_values(cursor, sql, neighborhood_data_to_insert, page_size=500)
             conn.commit()
             logger.info("Neighborhoods table updated successfully.")
             return True
@@ -245,39 +229,11 @@ def populate_neighborhoods(conn):
     finally:
         if cursor:
             cursor.close()
+        if conn:
+            conn.close()
 
-
-def populate_listings(conn):
-    """Loads listing data and populates listings, images, and listing_tags tables, using pre-mapping for variants."""
-    if not conn:
-        logger.error("Cannot populate listings: No database connection.")
-        return
-
-    # 1. Load processed listing data (no changes here)
-    logger.info(f"Loading processed listing data...")
-    structured_data = None
-    try:
-         if not os.path.exists(LISTINGS_DATA_FILE):
-             logger.error(f"Error: Listing data file {LISTINGS_DATA_FILE} not found.")
-             return
-         with open(LISTINGS_DATA_FILE, 'r', encoding='utf-8') as f:
-            structured_data = json.load(f)
-         logger.info(f"Loaded data for {len(structured_data.get('listings',[]))} listings from {LISTINGS_DATA_FILE}")
-    except (FileNotFoundError, json.JSONDecodeError) as e:
-         logger.exception(f"Error loading listing data: {e}")
-         return
-    if not structured_data:
-        logger.error("Failed to load or process listing data.")
-        return
-
-    listings_list = structured_data.get('listings', [])
-    images_list = structured_data.get('images', [])
-    listing_tags_list = structured_data.get('listing_tags', [])
-
-    if not listings_list:
-        logger.info("No valid listing data found to process.")
-        return
-
+def map_neighborhood_variants(listings_data):
+    """Loads neighborhood variant mapping and maps variants to canonical names."""
     logger.info(f"Loading neighborhood variant mapping from {NEIGHBORHOOD_VARIANTS_MAP_JSON}...")
     variant_to_canonical_map = {}
     try:
@@ -292,8 +248,10 @@ def populate_listings(conn):
                 logger.info(f"Loaded {len(variant_to_canonical_map)} variant mappings.")
     except (FileNotFoundError, json.JSONDecodeError) as e:
         logger.exception(f"Error loading neighborhood variant mapping file: {e}. Proceeding without it.")
+    return variant_to_canonical_map
 
-    # 2. Create lookup dictionary for neighborhood ID by CANONICAL Hebrew name from DB (no changes here)
+def create_neighborhood_lookup(conn):
+    """Creates a lookup dictionary for neighborhood ID by canonical Hebrew name."""
     logger.info("Creating neighborhood lookup dictionary (canonical names) from DB...")
     neighborhood_name_to_id = {}
     cursor = conn.cursor(cursor_factory=RealDictCursor)
@@ -308,140 +266,240 @@ def populate_listings(conn):
     finally:
         if cursor:
             cursor.close()
+    return neighborhood_name_to_id
 
+def get_neighborhood_id_from_listing(listing_dict, neighborhood_name_to_id, variant_to_canonical_map, unmapped_listings_count):
+    """Parses the neighborhood name from the listing dictionary."""
+    raw_hood_name = listing_dict.get('neighborhood_text')
+    neighborhood_id = None
 
-    # 3. Update/Insert listings, images, and listing_tags
-    cursor = conn.cursor()
-    try:
-        logger.info(f"Processing {len(listings_list)} listings for DB update/insert...")
-        listings_to_insert_update = []
-        processed_listings_count = 0
-        unmapped_listings_count = 0 
+    if raw_hood_name:
+        neighborhood_id = neighborhood_name_to_id.get(raw_hood_name)
+        if not neighborhood_id:
+            canonical_name_from_map = variant_to_canonical_map.get(raw_hood_name)
+            if canonical_name_from_map:
+                neighborhood_id = neighborhood_name_to_id.get(canonical_name_from_map)
+                if not neighborhood_id:
+                    logger.warning(f"Mapped canonical name '{canonical_name_from_map}' for variant '{raw_hood_name}' not found in DB lookup (listing {listing_dict.get('order_id')}). Setting neighborhood_id to NULL.")
 
-        for listing_dict in listings_list:
-            raw_hood_name = listing_dict.get('neighborhood_text')
-            canonical_name = None
-            neighborhood_id = None
+    if neighborhood_id is None:
+        if raw_hood_name: 
+            logger.warning(f"Neighborhood ID not found for raw name '{raw_hood_name}' (listing {listing_dict.get('order_id')}) after checking direct match and variant map. Setting neighborhood_id to NULL.")
+        else:
+                logger.warning(f"Raw neighborhood name was missing for listing {listing_dict.get('order_id')}. Setting neighborhood_id to NULL.")
+        unmapped_listings_count += 1
+    return neighborhood_id, unmapped_listings_count
 
-            if raw_hood_name:
+def fetch_existing_ids(conn, table, column) -> Set:
+    """Fetches all existing IDs from a table for a given column."""
+    with conn.cursor() as cur:
+        cur.execute(f"SELECT {column} FROM {table}")
+        return {row[0] for row in cur.fetchall()}
+    
+def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags_list, conn, variant_to_canonical_map):
+    """Inserts listings into the database."""
+    logger.info(f"Processing {len(listings_list)} listings for DB update/insert...")
+    listings_to_insert_update = []
+    processed_listings_count = 0
+    unmapped_listings_count = 0 
 
-                neighborhood_id = neighborhood_name_to_id.get(raw_hood_name)
-                if neighborhood_id:
-                    canonical_name = raw_hood_name 
-                else:
-                    canonical_name_from_map = variant_to_canonical_map.get(raw_hood_name)
-                    if canonical_name_from_map:
-                        neighborhood_id = neighborhood_name_to_id.get(canonical_name_from_map)
-                        if neighborhood_id:
-                           canonical_name = canonical_name_from_map 
-                        else:
+    for listing_dict in listings_list:
+        listing_dict['neighborhood_id'], unmapped_listings_count = get_neighborhood_id_from_listing(listing_dict, neighborhood_name_to_id, variant_to_canonical_map, unmapped_listings_count)
+        processed_listings_count += 1
+        listings_to_insert_update.append(listing_dict)
 
-                           logger.warning(f"Mapped canonical name '{canonical_name_from_map}' for variant '{raw_hood_name}' not found in DB lookup (listing {listing_dict.get('order_id')}). Setting neighborhood_id to NULL.")
+    if listings_to_insert_update:
+        listing_cols = [
+            'order_id', 'token', 'neighborhood_id', 'property_condition_id',
+            'subcategory_id', 'category_id', 'ad_type', 'price',
+            'property_type', 'rooms_count', 'square_meter',
+            'cover_image_url', 'video_url', 'city', 'area',
+            'neighborhood_text', 'street', 'house_number', 'floor',
+            'longitude', 'latitude'
+        ]
+        listing_tuples = [[l.get(col) for col in listing_cols] for l in listings_to_insert_update]
+        cols_sql = ", ".join(listing_cols)
+        placeholders = ", ".join(["%s"] * len(listing_cols))
+        update_set_sql = ", ".join([f"{col} = EXCLUDED.{col}" for col in listing_cols if col != 'order_id']) + ", updated_at = NOW()"
+        sql_listings = f"""
+            INSERT INTO listings ({cols_sql}) VALUES ({placeholders})
+            ON CONFLICT (order_id) DO UPDATE SET {update_set_sql}
+        """
 
-            if neighborhood_id is None:
-                if raw_hood_name: 
-                    logger.warning(f"Neighborhood ID not found for raw name '{raw_hood_name}' (listing {listing_dict.get('order_id')}) after checking direct match and variant map. Setting neighborhood_id to NULL.")
-                else:
-                     logger.warning(f"Raw neighborhood name was missing for listing {listing_dict.get('order_id')}. Setting neighborhood_id to NULL.")
-                unmapped_listings_count += 1
-                # continue # uncomment this line to skip listings without a neighborhood ID
+        try:
+            cursor.executemany(sql_listings, listing_tuples)
+            logger.info(f"Upserted {processed_listings_count} listings ({unmapped_listings_count} remain unmapped).")
+        except (psycopg2.Error, TypeError) as e:
+            conn.rollback()
+            logger.exception(f"Error during listing upsert: {e}")
 
-            listing_dict['neighborhood_id'] = neighborhood_id
-            processed_listings_count += 1
-            listings_to_insert_update.append(listing_dict)
+            if "violates foreign key constraint" in str(e):
+                logger.warning("Foreign key violation detected. Attempting to fix...")
 
-        # --- DEBUGGING CODE for TypeError (KEEP THIS UNTIL TypeError IS SOLVED) ---
-        if listings_to_insert_update:
-            # ... (The debugging print/log statements for TypeError) ...
-            listing_cols = [
-                'order_id', 'token', 'neighborhood_id', 'property_condition_id',
-                'subcategory_id', 'category_id', 'ad_type', 'price',
-                'property_type', 'rooms_count', 'square_meter',
-                'cover_image_url', 'video_url', 'city', 'area',
-                'neighborhood_text', 'street', 'house_number', 'floor',
-                'longitude', 'latitude'
-            ]
-            listing_tuples = [[l.get(col) for col in listing_cols] for l in listings_to_insert_update]
-            cols_sql = ", ".join(listing_cols)
-            placeholders = ", ".join(["%s"] * len(listing_cols))
-            update_set_sql = ", ".join([f"{col} = EXCLUDED.{col}" for col in listing_cols if col != 'order_id']) + ", updated_at = NOW()"
-            sql_listings = f"""
-                INSERT INTO listings ({cols_sql}) VALUES ({placeholders})
-                ON CONFLICT (order_id) DO UPDATE SET {update_set_sql}
-            """
+                if "property_condition_id" in str(e):
+                    try:
+                        valid_ids = fetch_existing_ids(conn, "property_conditions", "condition_id")
+                        for l in listings_to_insert_update:
+                            if l.get("property_condition_id") not in valid_ids:
+                                logger.info(f"Nullifying invalid property_condition_id in listing {l.get('order_id')}")
+                                l["property_condition_id"] = None
+                    except Exception as ce:
+                        logger.exception("Error fixing property_condition_id: {ce}")
 
-            logger.debug(f"Number of columns defined in listing_cols: {len(listing_cols)}")
-            logger.debug(f"Number of placeholders (%s) in SQL query: {sql_listings.count('%s')}")
-            if listing_tuples:
-                logger.debug(f"Length of first data tuple: {len(listing_tuples[0])}")
-                logger.debug(f"Content of first data tuple: {listing_tuples[0]}")
-                # ... (rest of debug prints) ...
-            # --- END DEBUGGING ---
+                elif "tag_id" in str(e):
+                    try:
+                        valid_ids = fetch_existing_ids(conn, "tags", "tag_id")
+                        listing_tags_list[:] = [lt for lt in listing_tags_list if lt.get("tag_id") in valid_ids]
+                    except Exception as ce:
+                        logger.exception("Error fixing tag_id: {ce}")
 
+                # Attempt second insert
+                listing_tuples = [[l.get(col) for col in listing_cols] for l in listings_to_insert_update]
+                try:
+                    cursor.executemany(sql_listings, listing_tuples)
+                    conn.commit()
+                    logger.info("Retry successful after FK fix.")
+                except Exception as retry_e:
+                    conn.rollback()
+                    logger.exception("Retry after FK fix failed.")
+            elif isinstance(e, TypeError):
+                logger.error("Likely column count mismatch.")
+                logger.debug(f"Tuple: {listing_tuples[0] if listing_tuples else 'N/A'}")
+
+def insert_images(cursor, images_list):
+    """Inserts images into the database."""
+    if images_list:
+        logger.info(f"Inserting {len(images_list)} image records...")
+        img_tuples = [(i.get('listing_order_id'), i.get('image_url'))
+                    for i in images_list if i.get('listing_order_id') and i.get('image_url')]
+        if img_tuples:
+            execute_values(cursor,
+                        "INSERT INTO images (listing_order_id, image_url) VALUES %s ON CONFLICT DO NOTHING",
+                        img_tuples, page_size=500)
+            logger.debug("Image insertion attempt complete.")
+
+def insert_listing_tags(cursor, listing_tags_list):
+    """Inserts listing-tag relationships into the database."""
+    if listing_tags_list:
+        logger.info(f"Inserting {len(listing_tags_list)} listing-tag relationships...")
+        lt_tuples = [(lt.get('listing_order_id'), lt.get('tag_id'))
+                        for lt in listing_tags_list if lt.get('listing_order_id') and lt.get('tag_id')]
+        if lt_tuples:
             try:
-                cursor.executemany(sql_listings, listing_tuples)
-                logger.info(f"Upserted {processed_listings_count} listings ({unmapped_listings_count} remain unmapped).")
-            except (psycopg2.Error, TypeError) as e:
-                 conn.rollback() 
-                 logger.exception(f"Error during listing upsert: {e}")
-
-                 if isinstance(e, TypeError):
-                     logger.error(f"Review listing_cols count ({len(listing_cols)}) vs data tuple length (example: {len(listing_tuples[0]) if listing_tuples else 'N/A'})")
-                     logger.error(f"Problematic tuple example (first one): {listing_tuples[0] if listing_tuples else 'N/A'}")
-                 return 
-
-        # Insert Images and Listing-Tags (only if listings were processed successfully)
-        if images_list:
-             logger.info(f"Inserting {len(images_list)} image records...")
-             img_tuples = [(i.get('listing_order_id'), i.get('image_url'))
-                           for i in images_list if i.get('listing_order_id') and i.get('image_url')]
-             if img_tuples:
-                 execute_values(cursor,
-                                "INSERT INTO images (listing_order_id, image_url) VALUES %s ON CONFLICT DO NOTHING",
-                                img_tuples, page_size=500)
-                 logger.debug("Image insertion attempt complete.")
-
-        if listing_tags_list:
-            logger.info(f"Inserting {len(listing_tags_list)} listing-tag relationships...")
-            lt_tuples = [(lt.get('listing_order_id'), lt.get('tag_id'), lt.get('priority'))
-                         for lt in listing_tags_list if lt.get('listing_order_id') and lt.get('tag_id')]
-            if lt_tuples:
                 execute_values(cursor,
-                                "INSERT INTO listing_tags (listing_order_id, tag_id, priority) VALUES %s ON CONFLICT (listing_order_id, tag_id) DO NOTHING",
+                                "INSERT INTO listing_tags (listing_order_id, tag_id) VALUES %s ON CONFLICT (listing_order_id, tag_id) DO NOTHING",
                                 lt_tuples, page_size=1000)
                 logger.debug("Listing-tag insertion attempt complete.")
+            except Exception as e:
+                logger.exception(f"Error during listing-tag insertion: {e}")
+                logger.debug(f"Second attempt to insert listing-tag relationships: {lt_tuples}")
+                execute_values(cursor,
+                                "INSERT INTO listing_tags (listing_order_id, tag_id) VALUES %s ON CONFLICT (listing_order_id, tag_id) DO NOTHING",
+                                lt_tuples, page_size=1000)
 
 
-        conn.commit() # Commit all changes for listings, images, tags
+def populate_listings(listings_data):
+    """Loads listing data and populates listings, images, and listing_tags tables, using pre-mapping for variants."""
+
+    conn = get_db_connection()
+    if not conn:
+        logger.error("Cannot populate listings: No database connection.")
+        return
+
+    listings_list = listings_data.get('listings', [])
+    images_list = listings_data.get('images', [])
+    listing_tags_list = listings_data.get('listing_tags', [])
+
+    if not listings_list:
+        logger.info("No valid listing data found to process.")
+        return
+        
+    logger.info("Ensuring all neighborhoods in listings exist in the database...")
+    ensure_neighborhoods_exist(conn, listings_data)
+
+    variant_to_canonical_map = map_neighborhood_variants(listings_data)
+    neighborhood_name_to_id = create_neighborhood_lookup(conn)
+
+    cursor = conn.cursor()
+    try:
+        insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags_list, conn, variant_to_canonical_map)
+        insert_images(cursor, images_list)
+        insert_listing_tags(cursor, listing_tags_list)
+        conn.commit() 
         logger.info("Listing, image, and tag data committed successfully.")
-
-    # except (psycopg2.Error, KeyError, TypeError) as e: # לכדה שגיאות כלליות יותר
-    #     conn.rollback()
-    #     logger.exception(f"Error updating listing data: {e}")
     finally:
         if cursor:
             cursor.close()
+        if conn:
+            conn.close()
 
-# --- Main Execution Block ---
-if __name__ == "__main__":
-    connection = get_db_connection()
-    if connection:
-        try:
-            # 1. Populate/Update lookup tables (run once or periodically)
-            populate_lookups(connection)
+def get_db_connection():
+    """Creates and returns a database connection using psycopg2."""
+    logger.info("Attempting to connect to the database...")
+    try:
+        db_url = DATABASE_URL
+        if db_url.startswith('postgresql+asyncpg://'):
+            db_url = db_url.replace('postgresql+asyncpg://', 'postgresql://')
+        
+        conn = psycopg2.connect(
+            db_url,
+            sslmode='require'
+        )
+        logger.info("Database connection successful.")
+        return conn
+    except psycopg2.Error as e:
+        logger.exception(f"Error connecting to the database: {e}")
+        return None
 
-            # 2. Populate/Update neighborhoods (requires CSV and JSON mapping files)
-            neighborhoods_updated = populate_neighborhoods(connection)
-
-            # 3. Populate/Update listings (requires processed listing data and updated neighborhoods table)
-            # Only run if neighborhood update was successful (or considered up-to-date)
-            if neighborhoods_updated:
-                 populate_listings(connection)
-            else:
-                 logger.warning("Skipping listing population because neighborhood population failed or found no data.")
-
-        finally:
-            connection.close()
-            logger.info("Database connection closed.")
-    else:
-        logger.error("Script finished: Could not establish database connection.")
+def ensure_neighborhoods_exist(conn, listings_data):
+    """
+    Ensures that all neighborhoods mentioned in listings exist in the neighborhoods table.
+    Creates simple placeholder entries for any missing neighborhoods.
+    """
+    if not conn or not listings_data:
+        return
+    
+    cursor = conn.cursor(cursor_factory=RealDictCursor)
+    try:
+        cursor.execute("SELECT yad2_hood_id, hebrew_name FROM neighborhoods")
+        db_neighborhoods = {row['hebrew_name']: row['yad2_hood_id'] for row in cursor.fetchall()}
+        logger.info(f"Found {len(db_neighborhoods)} existing neighborhoods in database")
+        
+        unique_neighborhoods = set()
+        for listing in listings_data.get('listings', []):
+            if listing.get('neighborhood_text'):
+                unique_neighborhoods.add(listing.get('neighborhood_text'))
+        
+        missing_neighborhoods = unique_neighborhoods - set(db_neighborhoods.keys())
+        
+        if missing_neighborhoods:
+            logger.info(f"Found {len(missing_neighborhoods)} neighborhoods in listings that are missing from database")
+            logger.debug(f"Missing neighborhoods: {sorted(missing_neighborhoods)}")
+            
+            cursor.execute("SELECT COALESCE(MAX(yad2_hood_id), 100000) FROM neighborhoods")
+            max_id = cursor.fetchone()['coalesce']
+            next_id = max_id + 1
+            
+            neighborhoods_to_insert = []
+            for i, neighborhood in enumerate(missing_neighborhoods):
+                neighborhoods_to_insert.append((
+                    next_id + i,
+                    neighborhood,
+                    None,
+                ))
+            
+            if neighborhoods_to_insert:
+                execute_values(cursor,
+                           "INSERT INTO neighborhoods (yad2_hood_id, hebrew_name, english_name) VALUES %s ON CONFLICT (yad2_hood_id) DO NOTHING",
+                           neighborhoods_to_insert)
+                conn.commit()
+                logger.info(f"Added {len(neighborhoods_to_insert)} missing neighborhoods to the database")
+        else:
+            logger.info("All neighborhoods in listings already exist in the database")
+            
+    except (psycopg2.Error, Exception) as e:
+        conn.rollback()
+        logger.exception(f"Error ensuring neighborhoods exist: {e}")
+    finally:
+        if cursor:
+            cursor.close()
