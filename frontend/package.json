@@ -13,7 +13,7 @@
     "@use-gesture/react": "^10.3.0",
     "firebase": "^10.8.0",
     "leaflet": "^1.9.4",
-    "lucide-react": "^0.344.0",
+    "lucide-react": "^0.488.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-icons": "^5.0.1",

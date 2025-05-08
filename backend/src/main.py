@@ -31,7 +31,6 @@ async def lifespan(app: FastAPI):
     try:
         logger.info("Starting APT. Scanner API...")
         
-        # Initialize Firebase Admin SDK if credentials are provided
         if settings.FIREBASE_CREDENTIALS_PATH:
             import firebase_admin
             from firebase_admin import credentials
