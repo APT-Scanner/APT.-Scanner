@@ -1,4 +1,3 @@
-// Update FavoritesPage.jsx
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useFavorites } from '../hooks/useFavorites';
@@ -15,7 +14,6 @@ const FavoritesPage = () => {
     const [isEditing, setIsEditing] = useState(false);
     const navigate = useNavigate();
 
-    // Fetch listing details for each favorite
     useEffect(() => {
         if (favorites.length > 0) {
             favorites.forEach(favorite => {
