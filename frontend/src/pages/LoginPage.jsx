@@ -46,7 +46,7 @@ const LoginPage = () => {
       );
       console.log("Email Login successful:", userCredentials.user);
       setIsLoading(false);
-      navigate("/home");
+      navigate("/apartment-swipe");
     } catch (firebaseError) {
       setIsLoading(false);
       console.error(
@@ -87,7 +87,7 @@ const LoginPage = () => {
       const result = await signInWithPopup(auth, provider);
       console.log(`${providerName} Sign-in successful:`, result.user);
       setIsLoading(false);
-      navigate("/home");
+      navigate("/apartment-swipe");
     } catch (error) {
       setIsLoading(false);
       console.error(

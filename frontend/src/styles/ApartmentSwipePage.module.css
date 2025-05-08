@@ -1,0 +1,205 @@
+
+/* --- פריסת עמוד כללית --- */
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: space-between; /* דוחף כפתורים לתחתית */
+  height: 100vh;
+  width: 100vw;
+  background-color: #ffffff; /* רקע אפור בהיר */
+  padding: 20px;
+  box-sizing: border-box;
+  overflow: hidden; /* מונע גלילה מיותרת */
+}
+
+.logo {
+  height: 65px;
+  width: 240px;
+  margin-bottom: 20px; 
+  flex-shrink: 0; 
+}
+
+.cardContainer {
+  width: 90vw; /* רוחב רספונסיבי */
+  max-width: 350px; /* רוחב מקסימלי */
+  height: 65vh; /* גובה אזור הכרטיסים */
+  max-height: 500px; /* גובה מקסימלי */
+  padding-bottom: 200px; /* Add space at bottom for buttons */
+  min-height: calc(100vh - 400px); /* Ensure cards stay above buttons */
+  flex-grow: 1; /* מאפשר לקונטיינר לתפוס מקום פנוי */
+  display: flex; /* חיוני כדי ש-Swiper יקבל מידות */
+  justify-content: center;
+  align-items: center;
+  margin-bottom: 20px; /* רווח מעל הכפתורים */
+  position: relative; /* יכול לעזור אם יש בעיות מיקום */
+
+}
+
+/* עיצוב קומפוננטת ה-Swiper עצמה */
+.swiperContainer {
+  width: 100%; /* תופס רוחב מלא של cardContainer */
+  height: 100%; /* תופס גובה מלא של cardContainer */
+  overflow: hidden;
+}
+
+/* עיצוב כל שקופית (slide) - Swiper מטפל במיקום ובטרנספורמציות */
+.swipe { /* הקלאס הזה נמצא על SwiperSlide */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%; /* ודא שהשקופית תופסת רוחב מלא */
+  height: 100%; /* ודא שהשקופית תופסת גובה מלא */
+  overflow: hidden;
+  /* EffectCards מטפל ב-border-radius ובצל על השקופית עצמה, אבל נוסיף גם כאן ליתר ביטחון */
+  border-radius: 20px; /* פינות מעוגלות לשקופית עצמה */
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* הוספת צל בסיסי לשקופית */
+}
+
+/* עיצוב התוכן *בתוך* השקופית */
+.card {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  display: flex; /* מיישר את המידע לתחתית */
+  flex-direction: column;
+  justify-content: flex-end; /* דוחף את המידע לתחתית */
+  /* אין צורך ב-border-radius/shadow כאן אם הוחל על .swipe */
+}
+
+/* אזור המידע בתחתית הכרטיס */
+.cardInfo {
+  color: white;
+  padding: 15px 20px;
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%); /* הדרגתיות לקריאות */
+  width: 100%;
+  box-sizing: border-box;
+  position: relative; /* מבטיח שהוא נשאר בתוך זרימת הכרטיס */
+  z-index: 2; /* מעל צללים אפשריים של הכרטיס */
+}
+
+.cardInfo h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.4rem;
+  font-weight: bold;
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.5); /* צל טקסט לניגודיות טובה יותר */
+}
+
+.cardInfo p {
+  margin: 0;
+  font-size: 1rem;
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
+}
+
+/* --- כפתורי פעולה --- */
+.buttonsContainer {
+  position: fixed;       /* Add this */
+  bottom: 100px;         /* Adjust this value to position higher (100px example) */
+  left: 0;
+  width: 100vw;
+  display: flex;
+  justify-content: center;
+  z-index: 200;          /* Increased from 10 to be above bottom bar's z-index 100 */
+  padding: 10px 0;
+  gap: 110px;
+}
+
+.button {
+  background-color: #fff;
+  border-radius: 50%;
+  border: 1px solid #e8e8e8;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  cursor: pointer;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.button:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.15);
+}
+
+.button:active {
+  transform: scale(0.95);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.like {
+  background-color: #aeaff7
+
+}
+
+.dislike {
+  background-color: #a0e3e2
+}
+
+
+.message {
+  text-align: center;
+  font-size: 1.1rem;
+  color: #555;
+  padding: 20px;
+  width: 80%;
+  margin: auto; 
+}
+
+.error {
+  color: #ff4d4d; 
+  font-weight: bold;
+}
+
+
+.swiperContainer {
+    pointer-events: auto;
+}
+
+.swipe .swiper-slide-shadow-cards,
+.swipe .swiper-slide-shadow-bottom,
+.swipe .swiper-slide-shadow-left,
+.swipe .swiper-slide-shadow-right,
+.swipe .swiper-slide-shadow-top {
+  background: rgba(0, 0, 0, 0.1);
+  border-radius: 20px; 
+}
+
+.pageWrapper.detailsActive .pageContainer {
+  filter: blur(2px) brightness(0.8);
+  pointer-events: none; 
+  transition: filter 0.3s ease;
+}
+
+.buttonsHidden {
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.3s ease;
+}
+
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100vw;
+  background: #fff;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 10px 0;
+  z-index: 100;
+}
+
+.bottomBarButton {
+  background: none;
+  border: none;
+  outline: none;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}

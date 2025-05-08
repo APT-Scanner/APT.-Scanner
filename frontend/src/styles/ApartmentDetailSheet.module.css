@@ -1,0 +1,147 @@
+/* ApartmentDetailSheet.module.css */
+
+.backdrop {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background-color: rgba(0, 0, 0, 0.5); /* רקע שחור חצי שקוף */
+    opacity: 0;
+    visibility: hidden;
+    z-index: 40; /* מתחת לחלון עצמו */
+    transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
+  }
+  
+  .backdropOpen {
+    opacity: 1;
+    visibility: visible;
+  }
+  
+  .sheetContainer {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    height: 85vh; /* גובה החלון - אפשר לשנות */
+    max-height: 90vh; /* גובה מקסימלי */
+    background-color: #fff; /* רקע לבן */
+    border-top-left-radius: 16px; /* פינות עגולות למעלה */
+    border-top-right-radius: 16px;
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15); /* צל */
+    transform: translateY(100%); /* מוסתר למטה כברירת מחדל */
+    transition: transform 0.3s ease-in-out; /* אנימציית החלקה */
+    z-index: 50; /* מעל הרקע ורוב התוכן */
+    display: flex;
+    flex-direction: column;
+  }
+  
+  .sheetOpen {
+    transform: translateY(0); /* עולה למעלה כשהוא פתוח */
+  }
+  
+  .handle {
+    width: 40px;
+    height: 4px;
+    background-color: #ccc;
+    border-radius: 2px;
+    margin: 8px auto 4px; /* מיקום הידית למעלה במרכז */
+    flex-shrink: 0; /* מונע התכווצות */
+  }
+  
+  .closeButton {
+    position: absolute;
+    top: 10px;
+    right: 15px;
+    background: none;
+    border: none;
+    padding: 5px;
+    cursor: pointer;
+    color: #555;
+    z-index: 51; /* מעל התוכן הפנימי */
+  }
+  
+  .closeButton:hover {
+    color: #000;
+  }
+  
+  /* אזור התוכן הפנימי עם גלילה */
+  .content {
+    flex-grow: 1; /* תופס את שאר הגובה */
+    overflow-y: auto; /* מאפשר גלילה אם התוכן ארוך מדי */
+    padding: 10px 20px 30px; /* ריווח פנימי (עם רווח נוסף למטה) */
+  }
+  
+  .address {
+    font-size: 1.6rem;
+    font-weight: bold;
+    margin-bottom: 4px;
+    color: #333;
+  }
+  
+  .price {
+    font-size: 1.1rem;
+    color: #555;
+    margin-bottom: 20px;
+  }
+  
+  .specs {
+    display: flex;
+    flex-wrap: wrap; /* יורד שורה אם אין מקום */
+    gap: 15px; /* רווח בין פריטים */
+    margin-bottom: 25px;
+    padding-bottom: 15px;
+    border-bottom: 1px solid #eee; /* קו הפרדה */
+  }
+  
+  .specItem {
+    display: flex;
+    align-items: center;
+    gap: 6px; /* רווח בין אייקון לטקסט */
+    font-size: 0.95rem;
+    color: #444;
+  }
+  
+  .specIcon {
+    color: #777; /* צבע עדין לאייקון */
+  }
+  
+  .descriptionSection,
+  .mapSection {
+    margin-bottom: 25px;
+  }
+  
+  .descriptionSection h3,
+  .mapSection h3 {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin-bottom: 10px;
+    color: #333;
+  }
+  
+  .descriptionText {
+    font-size: 1rem;
+    line-height: 1.6;
+    color: #555;
+  }
+  
+  /* חשוב! הגדרת גובה לקונטיינר של המפה */
+  .mapContainerWrapper {
+      height: 250px; /* גובה המפה - אפשר לשנות */
+      width: 100%;
+      border-radius: 8px;
+      overflow: hidden; /* לחתוך פינות עגולות */
+      margin-top: 10px;
+  }
+  
+  .map {
+    height: 100%;
+    width: 100%;
+  }
+  
+  /* התאמות למסכים קטנים מאוד אם צריך */
+  @media (max-height: 500px) {
+    .sheetContainer {
+      height: 95vh; /* תופס כמעט את כל הגובה במסכים נמוכים */
+    }
+  }

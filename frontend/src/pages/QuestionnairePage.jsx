@@ -6,7 +6,6 @@ import { useAuth } from '../hooks/useAuth';
 import styles from '../styles/QuestionnairePage.module.css';
 
 const IMPORTANCE_LEVELS = ['A little', 'Somewhat', 'Very'];
-const BACKEND_URL = 'http://localhost:8000/api/v1';
 
 const QuestionnairePage = () => {
     const navigate = useNavigate();
@@ -98,23 +97,23 @@ const QuestionnairePage = () => {
           }
 
           try {
-              const response = await fetch(`${BACKEND_URL}/answers`, {
-                  method: 'POST',
-                  headers: {
-                      'Authorization': `Bearer ${idToken}`,
-                      'Content-Type': 'application/json',
-                  },
-                  body: JSON.stringify({ answers: answers }),
-              });
+            //   const response = await fetch(`${BACKEND_URL}/answers`, {
+            //       method: 'POST',
+            //       headers: {
+            //           'Authorization': `Bearer ${idToken}`,
+            //           'Content-Type': 'application/json',
+            //       },
+            //       body: JSON.stringify({ answers: answers }),
+            //   });
 
-              if (!response.ok) {
-                  const errorData = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
-                  throw new Error(errorData.detail || `Failed to submit answers: ${response.status}`);
-              }
+            //   if (!response.ok) {
+            //       const errorData = await response.json().catch(() => ({ detail: `HTTP error! status: ${response.status}` }));
+            //       throw new Error(errorData.detail || `Failed to submit answers: ${response.status}`);
+            //   }
 
-              const result = await response.json();
-              console.log("Submission successful:", result);
-              navigate('/home'); 
+            //   const result = await response.json();
+            //   console.log("Submission successful:", result);
+              navigate('/apartment-swipe'); 
 
           } catch (error) {
               console.error("Failed to submit answers:", error);
@@ -193,7 +192,7 @@ const QuestionnairePage = () => {
 
     if (questionsLoading) return <div className={styles.message}>Loading questions...</div>;
     if (questionsError) return <div className={`${styles.message} ${styles.error}`}>Error: {questionsError}</div>;
-    if (!currentQuestion && !questionsLoading) return <div className={styles.message}>No questions found or error displaying question. <button onClick={() => navigate('/home')}>Go Home</button></div>;
+    if (!currentQuestion && !questionsLoading) return <div className={styles.message}>No questions found or error displaying question. <button onClick={() => navigate('/apartment-swipe')}>Go Home</button></div>;
 
 
     return (

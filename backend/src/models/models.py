@@ -1,17 +1,19 @@
 """Database models for the application."""
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, ForeignKey, Enum as SQLEnum,
-    DECIMAL, TEXT, BIGINT, TIMESTAMP, Table, MetaData
+    DECIMAL, TEXT, BIGINT, TIMESTAMP, Table,
+    DateTime
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime
 from decimal import Decimal
-from typing import Any, Optional, List
+from typing import Optional, List
 from enum import Enum as PyEnum
 from .database import Base 
 from pydantic import BaseModel, Field
+
 
 # Define the association table for the Many-to-Many relationship
 # between listings and tags using SQLAlchemy Core Table object
@@ -133,6 +135,7 @@ class Listing(Base):
         secondary=listing_tags_association, back_populates="listings"
     )
 
+    favorited_by = relationship("Favorite", back_populates="listing")
     def __repr__(self):
         return f"<Listing(order_id={self.order_id}, token='{self.token}')>"
 
@@ -215,11 +218,17 @@ class UserPreferences(Base):
     # Relationship back to User
     owner: Mapped["User"] = relationship(back_populates="preferences")
 
-class QuestionModel(BaseModel):
-    category: str
-    id: str
-    text: str
-    type: str
-    options: Optional[List[str]] = None
-    config: Optional[dict[str,Any]] = None
-    conditional: Optional[dict[str,Any]] = None
+
+
+class Favorite(Base):
+    __tablename__ = "favorites"
+    
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(String, nullable=False, index=True)
+    listing_id = Column(Integer, ForeignKey("listings.order_id"), nullable=False)
+    created_at = Column(DateTime, default=datetime.now)
+    
+    listing = relationship("Listing", back_populates="favorited_by")
+
+# Add to Listing class
+favorited_by = relationship("Favorite", back_populates="listing")

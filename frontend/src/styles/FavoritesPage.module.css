@@ -1,0 +1,167 @@
+/* src/styles/FavoritesPage.module.css */
+
+.pageWrapper {
+    display: grid;
+    grid-template-columns: minmax(0, 2000px);
+    justify-content: center;
+    min-height: 100vh;         
+    background-color: #f0f0f0; 
+    padding: 20px 20px 20px 20px;
+    box-sizing: border-box;    
+    position: relative;  
+    color: #000000;
+    text-align: right;
+}
+
+.header {
+    padding: 20px 16px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-bottom: 1px solid #f0f0f0;
+}
+
+.header h1 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 500;
+}
+
+.iconButton {
+    background: none;
+    border: none;
+    padding: 8px;
+    cursor: pointer;
+}
+
+.savedCount {
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 500;
+}
+
+.favoritesGrid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 16px;
+    padding: 0 16px;
+    overflow-y: auto;
+    flex: 1;
+    padding-bottom: 100px;
+}
+
+.favoriteCard {
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+.favoriteImage {
+    aspect-ratio: 1;
+    background-size: cover;
+    background-position: center;
+    position: relative;
+}
+
+.removeButton {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.9);
+    border: none;
+    font-size: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+}
+
+.emptyState {
+    text-align: center;
+    padding: 40px;
+    grid-column: 1 / -1;
+}
+
+.editButtonContainer {
+    position: fixed;
+    bottom: 80px;
+    left: 0;
+    right: 0;
+    display: flex;
+    justify-content: center;
+    padding: 16px;
+    z-index: 90;
+}
+
+.editButton {
+    background-color: #B7E5E1;
+    border: none;
+    border-radius: 24px;
+    padding: 12px 40px;
+    font-size: 16px;
+    font-weight: 500;
+    color: #333;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+}
+
+.bottomBar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    width: 100%;
+    background: #fff;
+    box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    padding: 8px 0;
+    z-index: 100;
+}
+
+.bottomBarButton {
+    background: none;
+    border: none;
+    outline: none;
+    padding: 8px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.bottomBarButton.active {
+    color: #432243;
+}
+
+.loadingContainer, .errorContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+    font-size: 18px;
+    color: #333;
+}
+
+.errorContainer {
+    color: #d32f2f;
+}
+
+.favoriteInfo {
+    padding: 8px; /* קטן יותר */
+    font-size: 14px; /* טקסט קטן יותר */
+    text-align: center;
+}
+.favoriteInfo h3 {
+    margin: 0;
+    font-size: 16px; /* גם את הכותרת מקטינים */
+    font-weight: 500;
+}
+.favoriteInfo p {
+    margin: 4px 0 0 0;
+    font-size: 14px;
+    color: #666;
+}

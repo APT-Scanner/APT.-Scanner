@@ -28,7 +28,6 @@ export const useAuth = () => {
         return () => unsubscribe();
     }, []);
 
-    // פונקציה לרענון טוקן במידת הצורך (אופציונלי, פיירבייס מטפל בזה אוטומטית)
     const refreshToken = async () => {
          if (user) {
             try {

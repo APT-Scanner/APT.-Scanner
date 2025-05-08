@@ -88,4 +88,15 @@
     background-color: #53314e; 
   }
   
+  .icon {
+    width: 32px;
+    height: 32px;
+    stroke: #b9b2c7; /* Default color */
+  }
   
+  /* Active state for home icon */
+  .bottomBarButton:first-child .icon {
+    stroke: #432243;
+  }
+  
+  /* Active state for heart icon */
