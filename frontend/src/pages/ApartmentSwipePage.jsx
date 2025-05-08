@@ -18,70 +18,143 @@ import { useNavigate } from 'react-router-dom';
 const SWIPE_UP_THRESHOLD = -5; 
 
 const ApartmentSwipePage = () => {
-    const { apartments: initialApartments, loading, error } = useApartments();
+    const { apartments: initialApartments, loading, error: useApartmentsError } = useApartments();
     const [apartments, setApartments] = useState([]);
     const swiperRef = useRef(null);
     const [isDetailSheetOpen, setIsDetailSheetOpen] = useState(false);
     const [detailedApartmentIndex, setDetailedApartmentIndex] = useState(null);
     const { addFavorite } = useFavorites();
-const navigate = useNavigate();
+    const navigate = useNavigate();
+    const [swipeIntent, setSwipeIntent] = useState(null); // Stores { swipedApartmentOrderId: string, actionType: 'like' | 'dislike' }
 
     useEffect(() => {
-        if (initialApartments.length > 0) {
+        if (initialApartments && initialApartments.length > 0 && apartments.length === 0) {
             setApartments(initialApartments);
         }
-    }, [initialApartments]);
+    }, [initialApartments, apartments.length]);
 
-    const handleSlideChange = (swiper) => {
-        console.log(`Slide changed to index: ${swiper.activeIndex}`);
-        if (isDetailSheetOpen) {
+    useEffect(() => {
+        const swiperInstance = swiperRef.current?.swiper;
+        if (swiperInstance && !swiperInstance.destroyed) {
+            swiperInstance.update();
+            // console.log("Swiper updated due to apartments change. New slide count:", swiperInstance.slides.length);
+        }
+    }, [apartments]);
+
+    const currentDetailedApartment = (detailedApartmentIndex !== null && detailedApartmentIndex < apartments.length && apartments[detailedApartmentIndex])
+        ? apartments[detailedApartmentIndex]
+        : null;
+
+    const handleApartmentAction = async (apartmentOrderId, actionType) => {
+        const apartmentToAction = apartments.find(apt => apt.order_id === apartmentOrderId);
+        if (!apartmentToAction) {
+            console.warn("Apartment for action not found in current list:", apartmentOrderId);
+            return;
+        }
+
+        console.log(`Performing action '${actionType}' on apartment:`, apartmentToAction.order_id);
+
+        if (actionType === 'like') {
+            try {
+                await addFavorite(apartmentToAction.order_id);
+                console.log("Successfully added to favorites:", apartmentToAction.order_id);
+            } catch (err) {
+                console.error("Failed to add to favorites:", err);
+            }
+        }
+
+        setApartments(prevApartments => prevApartments.filter(apt => apt.order_id !== apartmentOrderId));
+        
+        if (isDetailSheetOpen && currentDetailedApartment && currentDetailedApartment.order_id === apartmentOrderId) {
             closeDetailSheet();
         }
     };
 
+    const handleSlideChange = (swiper) => {
+        console.log(`Slide changed to index: ${swiper.activeIndex}. Total slides: ${swiper.slides.length}`);
+    };
+
     const handleReachEnd = () => {
-        console.log("Reached the end of apartments!");
+        console.log("Reached the end of available apartments in Swiper! fetching more apartments...");
     };
 
     const triggerSwipe = async (direction) => {
-        const currentApartment = apartments[swiperRef.current?.swiper?.activeIndex];
-        if (!currentApartment) {
-            console.log("No current apartment found or Swiper not ready.");
+        const currentSwiper = swiperRef.current?.swiper;
+        if (!currentSwiper) {
+            console.log("Swiper not ready for button action.");
+            return;
+        }
+
+        const currentVisibleIndex = currentSwiper.activeIndex;
+        if (currentVisibleIndex < 0 || currentVisibleIndex >= apartments.length) {
+            console.log("No apartment at current swiper index or apartments list is empty.");
             return;
         }
         
-        // Log the apartment object to see its structure
-        console.log("Current apartment:", currentApartment);
-        
-        // Add to favorites if swiped right
-        if (direction === 'right') {
-            try {
-                // Use order_id instead of id (backend uses order_id as the primary key)
-                await addFavorite(currentApartment.order_id);
-                console.log("Added to favorites:", currentApartment.order_id);
-            } catch (error) {
-                console.error("Failed to add to favorites:", error);
-            }
+        const apartmentToProcess = apartments[currentVisibleIndex];
+        if (!apartmentToProcess) {
+            console.log("No current apartment found for button action (apartmentToProcess is null/undefined).");
+            return;
         }
         
-        // Advance to next slide
-        swiperRef.current?.swiper?.slideNext();
+        console.log("Button action for apartment:", apartmentToProcess.order_id, "Direction:", direction);
+        const actionType = direction === 'right' ? 'like' : 'dislike';
+        await handleApartmentAction(apartmentToProcess.order_id, actionType);
     };
     
+    const recordSwipeIntent = (swiper) => {
+        // Ensure there's a swipe direction and the activeIndex is valid for the current apartments array.
+        if (!swiper.swipeDirection || swiper.activeIndex < 0 || swiper.activeIndex >= apartments.length) {
+            setSwipeIntent(null); 
+            // console.log("Swipe intent cleared: no direction or activeIndex out of bounds.", swiper.swipeDirection, swiper.activeIndex, apartments.length);
+            return;
+        }
+
+        const swipedApartment = apartments[swiper.activeIndex]; // Get the apartment using the current activeIndex
+        if (!swipedApartment) {
+            console.warn(`Swipe gesture intent: no apartment found at activeIndex ${swiper.activeIndex}.`);
+            setSwipeIntent(null);
+            return;
+        }
+
+        // User-defined mapping: 'next' (swipe right) is 'dislike', 'prev' (swipe left) is 'like'.
+        const actionType = swiper.swipeDirection === 'next' ? 'dislike' : 'like'; 
+        console.log(`Swipe intent recorded: ${actionType} for apartment ${swipedApartment.order_id} (index ${swiper.activeIndex})`);
+        setSwipeIntent({
+            swipedApartmentOrderId: swipedApartment.order_id,
+            actionType: actionType
+            // fromIndex is no longer stored
+        });
+    };
+
+    const processSwipeAction = (swiper) => {
+        if (swipeIntent && swipeIntent.swipedApartmentOrderId) {
+            const { swipedApartmentOrderId, actionType } = swipeIntent;
+            console.log(`TransitionEnd: Processing action '${actionType}' for apartment ${swipedApartmentOrderId}`);
+            handleApartmentAction(swipedApartmentOrderId, actionType);
+            setSwipeIntent(null); // Clear intent after processing
+        } else if (swipeIntent) {
+            // If swipeIntent exists but is somehow invalid (e.g., missing order_id), clear it.
+            // console.log("TransitionEnd: swipeIntent present but invalid, clearing.");
+            setSwipeIntent(null);
+        }
+    };
+
     const openDetailSheet = (index) => {
-        if (index !== undefined && index !== null && index >= 0 && index < apartments.length) {
-            console.log(`Opening details for apartment index: ${index}`);
+        const apartmentForDetail = apartments[index];
+        if (apartmentForDetail) {
+             console.log(`Opening details for apartment ID: ${apartmentForDetail.order_id} at index: ${index}`);
             setDetailedApartmentIndex(index);
             setIsDetailSheetOpen(true);
         } else {
-            console.warn("Attempted to open details with invalid index:", index);
+            console.warn("Attempted to open details with invalid index or apartment not found:", index);
         }
     };
 
     const closeDetailSheet = () => {
         setIsDetailSheetOpen(false);
+        setDetailedApartmentIndex(null);
     };
-
     
     const bind = useDrag(({ active, movement: [, my], direction: [, dy], cancel, event }) => {
         const targetElement = event.target;
@@ -93,9 +166,14 @@ const navigate = useNavigate();
         const isSwipeUp = !active && dy < 0 && my < SWIPE_UP_THRESHOLD;
 
         if (isSwipeUp) {
-            const currentSwiperIndex = swiperRef.current?.swiper?.activeIndex;
-            console.log(`Swipe Up detected on page, current swiper index: ${currentSwiperIndex}`);
-            openDetailSheet(currentSwiperIndex);
+            const currentSwiper = swiperRef.current?.swiper;
+            if (currentSwiper) {
+                const currentSwiperIndex = currentSwiper.activeIndex;
+                 console.log(`Swipe Up detected on page, current swiper index: ${currentSwiperIndex}`);
+                openDetailSheet(currentSwiperIndex);
+            } else {
+                console.log("Swipe Up detected, but Swiper not ready.");
+            }
             if (cancel) cancel();
         }
     }, {
@@ -104,12 +182,8 @@ const navigate = useNavigate();
         enabled: !isDetailSheetOpen,
     });
 
-    if (loading) return <div className={styles.message}>Loading apartments...</div>;
-    if (error) return <div className={`${styles.message} ${styles.error}`}>Error: {error}</div>;
-
-    const currentDetailedApartment = detailedApartmentIndex !== null && detailedApartmentIndex < apartments.length
-        ? apartments[detailedApartmentIndex]
-        : null;
+    if (loading && apartments.length === 0) return <div className={styles.message}>Loading apartments...</div>;
+    if (useApartmentsError) return <div className={`${styles.message} ${styles.error}`}>Error: {useApartmentsError}</div>;
 
     return (
         <div
@@ -139,9 +213,11 @@ const navigate = useNavigate();
                             onReachEnd={handleReachEnd}
                             className={styles.swiperContainer}
                             allowTouchMove={!isDetailSheetOpen}
+                            onTouchEnd={recordSwipeIntent}
+                            onTransitionEnd={processSwipeAction}
                         >
                             {apartments.map((apartment) => (
-                                <SwiperSlide key={apartment.id} className={styles.swipe}>
+                                <SwiperSlide key={apartment.order_id} className={styles.swipe}>
                                     <div style={{ height: '100%', width: '100%' }}>
                                         <div style={{ backgroundImage: `url(${apartment.cover_image_url || apartment.image || ''})` }} className={styles.card}>
                                             <div className={styles.cardInfo}>
