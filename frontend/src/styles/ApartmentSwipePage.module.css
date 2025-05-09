@@ -1,16 +1,19 @@
-
-/* --- פריסת עמוד כללית --- */
 .pageContainer {
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between; /* דוחף כפתורים לתחתית */
+  justify-content: space-between;
   height: 100vh;
   width: 100vw;
-  background-color: #ffffff; /* רקע אפור בהיר */
+  background-color: #ffffff;
   padding: 20px;
   box-sizing: border-box;
-  overflow: hidden; /* מונע גלילה מיותרת */
+  overflow: hidden;
+  transition: transform 0.4s ease-out;
+}
+
+.pageContainer.detailsActive {
+  transform: translateY(-60px);
 }
 
 .logo {
@@ -18,92 +21,67 @@
   width: 240px;
   margin-bottom: 20px; 
   flex-shrink: 0; 
+  transition: opacity 0.3s ease;
+}
+
+.detailsActive .logo {
+  opacity: 0.5;
 }
 
 .cardContainer {
-  width: 90vw; /* רוחב רספונסיבי */
-  max-width: 350px; /* רוחב מקסימלי */
-  height: 65vh; /* גובה אזור הכרטיסים */
-  max-height: 500px; /* גובה מקסימלי */
-  padding-bottom: 200px; /* Add space at bottom for buttons */
-  min-height: calc(100vh - 400px); /* Ensure cards stay above buttons */
-  flex-grow: 1; /* מאפשר לקונטיינר לתפוס מקום פנוי */
-  display: flex; /* חיוני כדי ש-Swiper יקבל מידות */
+  width: 90vw;
+  max-width: 350px;
+  height: 65vh;
+  max-height: 500px;
+  padding-bottom: 200px;
+  min-height: calc(100vh - 400px);
+  flex-grow: 1;
+  display: flex;
   justify-content: center;
   align-items: center;
-  margin-bottom: 20px; /* רווח מעל הכפתורים */
-  position: relative; /* יכול לעזור אם יש בעיות מיקום */
-
+  margin-bottom: 20px;
+  position: relative;
 }
 
-/* עיצוב קומפוננטת ה-Swiper עצמה */
 .swiperContainer {
-  width: 100%; /* תופס רוחב מלא של cardContainer */
-  height: 100%; /* תופס גובה מלא של cardContainer */
+  width: 100%;
+  height: 100%;
   overflow: hidden;
 }
 
-/* עיצוב כל שקופית (slide) - Swiper מטפל במיקום ובטרנספורמציות */
-.swipe { /* הקלאס הזה נמצא על SwiperSlide */
+.swipe {
   display: flex;
   align-items: center;
   justify-content: center;
-  width: 100%; /* ודא שהשקופית תופסת רוחב מלא */
-  height: 100%; /* ודא שהשקופית תופסת גובה מלא */
+  width: 100%;
+  height: 100%;
   overflow: hidden;
-  /* EffectCards מטפל ב-border-radius ובצל על השקופית עצמה, אבל נוסיף גם כאן ליתר ביטחון */
-  border-radius: 20px; /* פינות מעוגלות לשקופית עצמה */
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1); /* הוספת צל בסיסי לשקופית */
+  border-radius: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
 }
 
-/* עיצוב התוכן *בתוך* השקופית */
 .card {
   position: relative;
   width: 100%;
   height: 100%;
   background-size: cover;
   background-position: center;
-  display: flex; /* מיישר את המידע לתחתית */
+  display: flex;
   flex-direction: column;
-  justify-content: flex-end; /* דוחף את המידע לתחתית */
-  /* אין צורך ב-border-radius/shadow כאן אם הוחל על .swipe */
+  justify-content: flex-end;
 }
 
-/* אזור המידע בתחתית הכרטיס */
-.cardInfo {
-  color: white;
-  padding: 15px 20px;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.8) 0%, rgba(0, 0, 0, 0) 100%); /* הדרגתיות לקריאות */
-  width: 100%;
-  box-sizing: border-box;
-  position: relative; /* מבטיח שהוא נשאר בתוך זרימת הכרטיס */
-  z-index: 2; /* מעל צללים אפשריים של הכרטיס */
-}
-
-.cardInfo h3 {
-  margin: 0 0 5px 0;
-  font-size: 1.4rem;
-  font-weight: bold;
-  text-shadow: 1px 1px 3px rgba(0,0,0,0.5); /* צל טקסט לניגודיות טובה יותר */
-}
-
-.cardInfo p {
-  margin: 0;
-  font-size: 1rem;
-  text-shadow: 1px 1px 2px rgba(0,0,0,0.4);
-}
-
-/* --- כפתורי פעולה --- */
 .buttonsContainer {
-  position: fixed;       /* Add this */
-  bottom: 100px;         /* Adjust this value to position higher (100px example) */
+  position: fixed;
+  bottom: 120px;
   left: 0;
   width: 100vw;
   display: flex;
   justify-content: center;
-  z-index: 200;          /* Increased from 10 to be above bottom bar's z-index 100 */
+  z-index: 200;
   padding: 10px 0;
   gap: 110px;
+  transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
 .button {
@@ -131,14 +109,12 @@
 }
 
 .like {
-  background-color: #aeaff7
-
+  background-color: #aeaff7;
 }
 
 .dislike {
-  background-color: #a0e3e2
+  background-color: #a0e3e2;
 }
-
 
 .message {
   text-align: center;
@@ -152,11 +128,6 @@
 .error {
   color: #ff4d4d; 
   font-weight: bold;
-}
-
-
-.swiperContainer {
-    pointer-events: auto;
 }
 
 .swipe .swiper-slide-shadow-cards,
@@ -191,7 +162,13 @@
   justify-content: space-around;
   align-items: center;
   padding: 10px 0;
-  z-index: 100;
+  z-index: 200;
+  transition: transform 0.3s ease, opacity 0.3s ease;
+}
+
+.bottomBarHidden {
+  transform: translateY(100%);
+  opacity: 0;
 }
 
 .bottomBarButton {
@@ -202,4 +179,117 @@
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.cardStackContainer {
+  position: relative;
+  width: 80vw;
+  max-width: 380px;
+  height: 35vh;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding-bottom: 200px;
+  margin-bottom: 100px; 
+  transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.detailsActive .cardStackContainer {
+  opacity: 0.7;
+  transform: scale(0.95);
+}
+
+.animatedCardWrapper {
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  cursor: grab;
+  border-radius: 20px;
+  box-shadow: 0px 4px 15px rgba(0, 0, 0, 0.1);
+}
+
+.animatedCardWrapper:active {
+  cursor: grabbing;
+}
+
+.cardContentVisual {
+  width: 100%;
+  height: 100%;
+  background-size: cover;
+  background-position: center;
+  border-radius: 20px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  color: white;
+}
+
+.cardInfo {
+  padding: 15px;
+  background: linear-gradient(to top, rgba(0,0,0,0.7) 0%, rgba(0,0,0,0) 100%);
+}
+
+.cardInfo h3 {
+  margin: 0 0 5px 0;
+  font-size: 1.4rem;
+}
+
+.cardInfo p {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.noMoreApartmentsMessage {
+  text-align: center;
+  color: #555;
+  font-size: 1.1rem;
+}
+
+.detailsContainer {
+  position: fixed;
+  left: 0;
+  bottom: -10px;
+  width: 100%;
+  background: white;
+  border-top-left-radius: 20px;
+  border-top-right-radius: 20px;
+  box-shadow: 0px -4px 15px rgba(0, 0, 0, 0.1);
+  z-index: 200;
+  overflow: hidden;
+  transition: height 0.3s ease-out, transform 0.3s ease-out;
+}
+
+.detailsHandle {
+  width: 100%;
+  height: 40px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  background-color: #f5f5f5;
+  border-bottom: 1px solid #eaeaea;
+  user-select: none;
+  z-index: 10;
+  position: sticky;
+  top: 0;
+}
+
+.detailsHandle span {
+  margin-left: 8px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #555;
+}
+
+.handleIcon {
+  color: #888;
+}
+
+.detailsContent {
+  padding: 0 15px 80px 15px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  height: 100%;
+  box-sizing: border-box;
 }

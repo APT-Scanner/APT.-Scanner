@@ -58,7 +58,7 @@
     padding: 5px;
     cursor: pointer;
     color: #555;
-    z-index: 51; /* מעל התוכן הפנימי */
+    z-index: 51;
   }
   
   .closeButton:hover {
@@ -67,81 +67,194 @@
   
   /* אזור התוכן הפנימי עם גלילה */
   .content {
-    flex-grow: 1; /* תופס את שאר הגובה */
-    overflow-y: auto; /* מאפשר גלילה אם התוכן ארוך מדי */
-    padding: 10px 20px 30px; /* ריווח פנימי (עם רווח נוסף למטה) */
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+    padding: 5px 0;
+    width: 100%;
+    text-align: center;
   }
   
-  .address {
-    font-size: 1.6rem;
-    font-weight: bold;
-    margin-bottom: 4px;
-    color: #333;
+  /* Header section styles */
+  .header {
+    padding: 5px 15px 15px;
+    border-bottom: 1px solid #eee;
+    margin-bottom: 10px;
   }
   
   .price {
-    font-size: 1.1rem;
-    color: #555;
-    margin-bottom: 20px;
+    font-size: 1.6rem;
+    font-weight: 700;
+    color: #371b34;
+    margin: 0 0 5px 0;
   }
   
+  .address {
+    display: flex;
+    align-items: center;
+    font-size: 1rem;
+    font-weight: 500;
+    color: #666;
+    margin: 0;
+  }
+  
+  .headerIcon {
+    margin-right: 5px;
+  }
+  
+  /* Specs section styles */
   .specs {
     display: flex;
-    flex-wrap: wrap; /* יורד שורה אם אין מקום */
-    gap: 15px; /* רווח בין פריטים */
-    margin-bottom: 25px;
-    padding-bottom: 15px;
-    border-bottom: 1px solid #eee; /* קו הפרדה */
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 10px;
+    padding: 0 15px;
   }
   
   .specItem {
     display: flex;
     align-items: center;
-    gap: 6px; /* רווח בין אייקון לטקסט */
-    font-size: 0.95rem;
+    background-color: #f5f5f5;
+    border-radius: 20px;
+    padding: 6px 12px;
+    font-size: 0.9rem;
     color: #444;
   }
   
   .specIcon {
-    color: #777; /* צבע עדין לאייקון */
+    margin-right: 6px;
+    color: #371b34;
   }
   
-  .descriptionSection,
-  .mapSection {
-    margin-bottom: 25px;
+  /* Section styles */
+  .section {
+    border-bottom: 1px solid #eee;
+    padding: 10px 15px;
+    margin-bottom: 10px;
   }
   
-  .descriptionSection h3,
-  .mapSection h3 {
+  .sectionTitle {
     font-size: 1.2rem;
     font-weight: 600;
-    margin-bottom: 10px;
-    color: #333;
+    margin: 0 0 15px 0;
+    color: #371b34;
   }
   
-  .descriptionText {
-    font-size: 1rem;
-    line-height: 1.6;
+  .sectionContent {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  
+  /* Detail items (for financial details, contact info, etc.) */
+  .detailItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 0.95rem;
+    padding: 5px 0;
+  }
+  
+  .detailIcon {
+    color: #aeaff7;
+    flex-shrink: 0;
+  }
+  
+  .detailLabel {
+    font-weight: 500;
     color: #555;
   }
   
-  /* חשוב! הגדרת גובה לקונטיינר של המפה */
+  .detailValue {
+    color: #333;
+  }
+  
+  /* Amenities grid */
+  .amenitiesGrid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+    gap: 12px;
+    margin-bottom: 10px;
+  }
+  
+  .amenityItem {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px;
+    background-color: #f8f8f8;
+    border-radius: 8px;
+    font-size: 0.9rem;
+  }
+  
+  .amenityIcon {
+    color: #a0e3e2;
+  }
+  
+  /* Description section */
+  .descriptionText {
+    font-size: 0.95rem;
+    line-height: 1.5;
+    color: #444;
+    white-space: pre-line;
+  }
+  
+  /* Map section */
+  .mapSection {
+    margin-bottom: 20px;
+    padding: 10px 15px;
+  }
+  
   .mapContainerWrapper {
-      height: 250px; /* גובה המפה - אפשר לשנות */
-      width: 100%;
-      border-radius: 8px;
-      overflow: hidden; /* לחתוך פינות עגולות */
-      margin-top: 10px;
+    height: 220px;
+    width: 100%;
+    border-radius: 12px;
+    overflow: hidden;
+    margin-top: 10px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
   }
   
   .map {
     height: 100%;
     width: 100%;
   }
+
+  .tag {
+    background-color: #e0dbdb;
+    border-radius: 10px;
+    padding: 4px 8px;
+    font-size: 1rem;
+    color: #333;
+  }
+
+  .tagList {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  
+  
   
   /* התאמות למסכים קטנים מאוד אם צריך */
   @media (max-height: 500px) {
     .sheetContainer {
       height: 95vh; /* תופס כמעט את כל הגובה במסכים נמוכים */
+    }
+  }
+  
+  /* Responsive adjustments */
+  @media (max-width: 480px) {
+    .specs {
+      gap: 8px;
+    }
+    
+    .specItem {
+      padding: 5px 10px;
+      font-size: 0.8rem;
+    }
+    
+    .amenitiesGrid {
+      grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
     }
   }
