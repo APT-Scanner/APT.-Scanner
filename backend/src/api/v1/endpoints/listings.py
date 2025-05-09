@@ -87,7 +87,6 @@ async def get_all_listings(db: AsyncSession = Depends(get_db), limit: int = 20):
     try:
         result = await db.execute(stmt)
         listings = result.scalars().all()
-        logger.info(f"Found {len(listings)} listings")
         return listings 
 
     except Exception as e:
