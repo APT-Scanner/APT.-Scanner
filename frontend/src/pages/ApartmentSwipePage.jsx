@@ -1,10 +1,10 @@
-import React, { useState, useEffect, useCallback, useRef, forwardRef } from 'react';
+import React, { useState, useEffect, useCallback, useRef, forwardRef, useMemo } from 'react';
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import { useApartments } from '../hooks/useApartments';
 import styles from '../styles/ApartmentSwipePage.module.css';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
-import { Heart, X, ChevronUp, ChevronDown } from 'lucide-react';
+import { Heart, X, ChevronUp, ChevronDown, Image as ImageIcon } from 'lucide-react';
 import logo from "../assets/logo-swipe-screen.jpeg";
 import HomeIcon from '../assets/home_pressed.svg';
 import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
@@ -17,9 +17,9 @@ const SWIPE_UP_THRESHOLD = -5;
 
 // Wrap the component with forwardRef to properly handle refs from parent components
 const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) => {
+    const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-200, 0, 200], [-25, 0, 25], { clamp: false });
-    // Use the forwarded ref directly for the gesture binding
     const gestureBind = useDrag(
         ({ active, movement: [mx], direction: [dx], velocity: [vx], cancel }) => {
             if (active) {
@@ -42,6 +42,35 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) =
         },
         { filterTaps: true, rubberband: 0.2, from: () => [x.get(), 0] }
     );
+    const images = React.useMemo(() => {
+        const availableImages = [];
+        
+        if (apartment.cover_image_url && apartment.cover_image_url.trim() !== '') {
+            availableImages.push(apartment.cover_image_url);
+        }
+        
+        if (apartment.images && Array.isArray(apartment.images)) {
+            console.log(apartment.images);
+            apartment.images.forEach(img => {
+                if (img.image_url && img.image_url.trim() !== '' && !availableImages.includes(img.image_url)) {
+                    availableImages.push(img.image_url);
+                }
+            });
+        }
+        
+        if (availableImages.length === 0) {
+            availableImages.push('');
+        }
+        
+        return availableImages;
+    }, [apartment]);
+
+    const handleImageClick = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        
+        setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
+    };
     return (
         <motion.div
             ref={ref}
@@ -61,7 +90,17 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) =
                 transition: { duration: 0.3, ease: "easeIn" }
             }}
         >
-            <div style={{ backgroundImage: `url(${apartment.cover_image_url || apartment.image || ''})` }} className={styles.cardContentVisual}>
+            <div 
+                style={{ backgroundImage: `url(${images[currentImageIndex]})` }} 
+                className={styles.cardContentVisual}
+                onClick={handleImageClick}
+            >
+                {images.length > 1 && (
+                    <div className={styles.imageCounter}>
+                        <ImageIcon size={14} />
+                        <span>{currentImageIndex + 1}/{images.length}</span>
+                    </div>
+                )}
                 <div className={styles.cardInfo}>
                     <h3>{`${apartment.street}, ${apartment.city}`}</h3>
                     <p>{Math.floor(apartment.price)}₪/month</p>
@@ -70,6 +109,7 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) =
         </motion.div>
     );
 });
+
 
 // Add display name for better debugging
 AnimatedApartmentCard.displayName = 'AnimatedApartmentCard';
@@ -271,7 +311,6 @@ const ApartmentSwipePage = () => {
                         >
                             {currentApartment && (
                                 <>  
-                                    {/* Always render the full details, they'll be scrollable when expanded */}
                                     <ApartmentDetailSheet apartment={currentApartment} />
                                 </>
                             )}

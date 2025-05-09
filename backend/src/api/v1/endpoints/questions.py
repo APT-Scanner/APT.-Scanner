@@ -7,7 +7,7 @@ from pathlib import Path
 import logging
 
 BASE_DIR = Path(__file__).resolve().parents[5]
-QUESTIONS_FILE = BASE_DIR / "data" / "sources" / "questions.json"
+QUESTIONS_FILE = BASE_DIR / "backend" / "data" / "sources" / "questions.json"
 logger = logging.getLogger(__name__)
 
 
