@@ -70,7 +70,7 @@ const ApartmentDetailSheet = ({ apartment }) => {
     };
 
     return (
-        <div className={styles.content}>
+            <div className={styles.content}>
             <div className={styles.header}>
                 <h3 className={styles.sectionTitle}>General Information</h3>
                 <h3 className={styles.address}>
@@ -105,23 +105,23 @@ const ApartmentDetailSheet = ({ apartment }) => {
                 )}
                 {apartment.square_meter && (
                     <span className={styles.address}>
-                        <Maximize2 size={18} className={styles.specIcon} />
+                            <Maximize2 size={18} className={styles.specIcon} />
                         {`Square Meters: ${apartment.square_meter}`}
-                    </span>
-                )}
+                        </span>
+                    )}
                 {apartment.rooms_count && (
                     <span className={styles.address}>
                         <BedDouble size={18} className={styles.specIcon} />
                         {`Rooms: ${parseInt(apartment.rooms_count)}`}
-                    </span>
-                )}
+                            </span>
+                    )}
                 {apartment.property_condition && (
                     <span className={styles.address}>
                         <CheckCircle2 size={18} className={styles.specIcon} />
                         {`Property Condition: ${apartment.property_condition.condition_name_en}`}
-                    </span>
-                )}
-            </div>
+                            </span>
+                    )}
+                </div>
 
             {(apartment.price || apartment.arnona || apartment.vaad_bayit || apartment.electricity || apartment.water) && (
                 <div className={styles.section}>
@@ -223,29 +223,29 @@ const ApartmentDetailSheet = ({ apartment }) => {
                             </div>
                         )}
                     </div>
-                </div>
-            )}
+                    </div>
+                )}
 
             {/* Map section */}
-            {apartment.latitude && apartment.longitude && (
-                <div className={styles.mapSection}>
+                {apartment.latitude && apartment.longitude && (
+                    <div className={styles.mapSection}>
                     <h3 className={styles.sectionTitle}>Location</h3>
-                    <div className={styles.mapContainerWrapper}>
-                        <MapContainer key={mapKey} center={position} zoom={15} scrollWheelZoom={false} className={styles.map}>
-                            <TileLayer
-                                attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
-                                url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-                            />
+                            <div className={styles.mapContainerWrapper}>
+                            <MapContainer key={mapKey} center={position} zoom={15} scrollWheelZoom={false} className={styles.map}>
+                                <TileLayer
+                                    attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+                                    url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+                                />
                             <Marker position={position} icon={customIcon}>
-                                <Popup>
+                                    <Popup>
                                     {apartment.street ? `${apartment.street}, ${apartment.city}` : apartment.address || 'Location'}
-                                </Popup>
-                            </Marker>
-                        </MapContainer>
+                                    </Popup>
+                                </Marker>
+                            </MapContainer>
+                        </div>
                     </div>
-                </div>
-            )}
-        </div>
+                )}
+            </div>
     );
 };
 

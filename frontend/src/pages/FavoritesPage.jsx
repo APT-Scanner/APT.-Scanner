@@ -6,7 +6,17 @@ import styles from '../styles/FavoritesPage.module.css';
 import HomeIcon from '../assets/home_not_pressed.svg';
 import HeartIcon from '../assets/heart_pressed.svg';
 import SettingsIcon from '../assets/settings_not_pressed.svg';
-import { Menu, Filter } from 'lucide-react';
+import { Menu, Filter, X, Loader } from 'lucide-react';
+
+// Add a LoadingSpinner component
+const LoadingSpinner = () => (
+  <div className={styles.loadingContainer}>
+    <div className={styles.spinner}>
+      <Loader size={40} className={styles.spinnerIcon} />
+      <p>Loading favorites...</p>
+    </div>
+  </div>
+);
 
 const FavoritesPage = () => {
     const { favorites, loading: favoritesLoading, error: favoritesError, removeFavorite } = useFavorites();
@@ -15,6 +25,9 @@ const FavoritesPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
+        // Reset scroll position when component mounts
+        window.scrollTo(0, 0);
+        
         if (favorites.length > 0) {
             favorites.forEach(favorite => {
                 if (!listings[favorite.listing_id]) {
@@ -24,7 +37,7 @@ const FavoritesPage = () => {
         }
     }, [favorites, getListing, listings]);
 
-    if (favoritesLoading) return <div className={styles.loadingContainer}>Loading favorites...</div>;
+    if (favoritesLoading) return <LoadingSpinner />;
     if (favoritesError) return <div className={styles.errorContainer}>Error: {favoritesError}</div>;
 
     console.log("Favorites:", favorites);
@@ -67,7 +80,7 @@ const FavoritesPage = () => {
                                             onClick={() => removeFavorite(favorite.listing_id)}
                                             className={styles.removeButton}
                                         >
-                                            ×
+                                            X
                                         </button>
                                     )}
                                     {isLoading && (

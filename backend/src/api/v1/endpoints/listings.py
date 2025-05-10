@@ -1,18 +1,89 @@
-
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.orm import selectinload 
 from typing import List
 import logging
+from datetime import datetime, timedelta
+from sqlalchemy import and_, delete
 
 from src.models.database import get_db
-from src.models.models import Listing as ListingModel, Neighborhood as NeighborhoodModel
-from src.models.schemas import ListingSchema 
+from src.models.models import Listing as ListingModel, Neighborhood as NeighborhoodModel, ViewHistory as ViewHistoryModel
+from src.models.schemas import ListingSchema, ViewHistoryCreate, ViewHistorySchema
+from src.middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+@router.get(
+    "/all",
+    response_model=List[ListingSchema],
+    summary="Get all listings",
+    description="Retrieves all listings from the database."
+)
+async def get_all_listings(
+    db: AsyncSession = Depends(get_db), 
+    limit: int = 20,
+    current_user = Depends(get_current_user),
+    filter_viewed: bool = True
+):
+    """
+    Retrieves all listings from the database, optionally filtering out recently viewed listings.
+    """
+    logger.info(f"Fetching all listings with limit: {limit}")
+    
+    try:
+        if filter_viewed:
+            one_day_ago = datetime.now() - timedelta(days=1)
+            
+            # Extract the firebase_uid from current_user
+            user_id = current_user.firebase_uid
+            
+            viewed_stmt = (
+                select(ViewHistoryModel.listing_id)
+                .where(and_(
+                    ViewHistoryModel.user_id == user_id,  # Use extracted user_id
+                    ViewHistoryModel.viewed_at >= one_day_ago
+                ))
+            )
+            
+            result = await db.execute(viewed_stmt)
+            recently_viewed_ids = [row[0] for row in result.all()]
+            
+            stmt = (
+                select(ListingModel)
+                .where(~ListingModel.order_id.in_(recently_viewed_ids) if recently_viewed_ids else True)
+                .options(
+                    selectinload(ListingModel.neighborhood),
+                    selectinload(ListingModel.property_condition), 
+                    selectinload(ListingModel.images), 
+                    selectinload(ListingModel.tags) 
+                )
+                .limit(limit)
+            )
+        else:
+            stmt = (
+                select(ListingModel)
+                .options(
+                    selectinload(ListingModel.neighborhood),
+                    selectinload(ListingModel.property_condition), 
+                    selectinload(ListingModel.images), 
+                    selectinload(ListingModel.tags) 
+                )
+                .limit(limit)
+            )
+
+        result = await db.execute(stmt)
+        listings = result.scalars().all()
+        return listings
+
+    except Exception as e:
+        logger.error(f"Database error while fetching all listings: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while retrieving listings."
+        )
 
 @router.get(
     "/by-neighborhood/{neighborhood_id}",
@@ -61,39 +132,149 @@ async def get_listings_by_neighborhood(
             detail="An error occurred while retrieving listings."
         )
 
-@router.get(
-    "/all",
-    response_model=List[ListingSchema],
-    summary="Get all listings",
-    description="Retrieves all listings from the database."
+@router.post(
+    "/view",
+    response_model=ViewHistorySchema,
+    summary="Record a listing view",
+    description="Records when a user views a listing."
 )
-async def get_all_listings(db: AsyncSession = Depends(get_db), limit: int = 20):
+async def record_listing_view(
+    view_data: ViewHistoryCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
     """
-    Retrieves all listings from the database.
+    Records when a user views a listing to prevent showing it again for a day.
     """
-    logger.info(f"Fetching all listings with limit: {limit}")
-
-    stmt = (
-        select(ListingModel)
-        .options(
-            selectinload(ListingModel.neighborhood),
-            selectinload(ListingModel.property_condition), 
-            selectinload(ListingModel.images), 
-            selectinload(ListingModel.tags) 
-        )
-        .limit(limit)
-    )
-
+    logger.info(f"Recording view for listing ID: {view_data.listing_id} by user {current_user}")
+    
     try:
+        # First check if the listing exists
+        stmt = select(ListingModel).where(ListingModel.order_id == view_data.listing_id)
         result = await db.execute(stmt)
-        listings = result.scalars().all()
-        return listings 
-
+        listing = result.scalar_one_or_none()
+        
+        if not listing:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Listing with ID {view_data.listing_id} not found"
+            )
+            
+        # Extract user_id from current_user
+        user_id = current_user.firebase_uid
+        
+        # Check if there's already a recent view record (to prevent duplicates)
+        one_day_ago = datetime.now() - timedelta(days=1)
+        existing_view_stmt = (
+            select(ViewHistoryModel)
+            .where(and_(
+                ViewHistoryModel.user_id == user_id,  # Use extracted user_id
+                ViewHistoryModel.listing_id == view_data.listing_id,
+                ViewHistoryModel.viewed_at >= one_day_ago
+            ))
+        )
+        
+        existing_result = await db.execute(existing_view_stmt)
+        existing_view = existing_result.scalar_one_or_none()
+        
+        if existing_view:
+            # Update the timestamp on the existing view
+            existing_view.viewed_at = datetime.now()
+            await db.commit()
+            return existing_view
+        
+        # Create a new view record
+        new_view = ViewHistoryModel(
+            user_id=user_id,  # Use extracted user_id
+            listing_id=view_data.listing_id
+        )
+        
+        db.add(new_view)
+        await db.commit()
+        await db.refresh(new_view)
+        
+        return new_view
+            
     except Exception as e:
-        logger.error(f"Database error while fetching all listings: {e}", exc_info=True)
+        if isinstance(e, HTTPException):
+            raise e
+        logger.error(f"Database error while recording view: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while retrieving listings."
+            detail="An error occurred while recording the view"
+        )
+
+@router.get(
+    "/view-history",
+    response_model=List[ViewHistorySchema],
+    summary="Get user's view history",
+    description="Retrieves the user's listing view history."
+)
+async def get_view_history(
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user),
+    limit: int = 50
+):
+    """
+    Retrieves the user's listing view history.
+    """
+    logger.info(f"Fetching view history for user: {current_user}")
+    
+    try:
+        # Extract user_id from current_user
+        user_id = current_user.firebase_uid
+        
+        stmt = (
+            select(ViewHistoryModel)
+            .where(ViewHistoryModel.user_id == user_id)  # Use extracted user_id
+            .order_by(ViewHistoryModel.viewed_at.desc())
+            .limit(limit)
+        )
+        
+        result = await db.execute(stmt)
+        view_history = result.scalars().all()
+        
+        return view_history
+            
+    except Exception as e:
+        logger.error(f"Database error while fetching view history: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while retrieving view history"
+        )
+
+@router.delete(
+    "/view-history/clear",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Clear user's view history",
+    description="Clears the user's listing view history."
+)
+async def clear_view_history(
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Clears the user's listing view history.
+    """
+    logger.info(f"Clearing view history for user: {current_user}")
+    
+    try:
+        # Extract user_id from current_user
+        user_id = current_user.firebase_uid
+        
+        stmt = (
+            delete(ViewHistoryModel)
+            .where(ViewHistoryModel.user_id == user_id)  # Use extracted user_id
+        )
+        
+        await db.execute(stmt)
+        await db.commit()
+            
+    except Exception as e:
+        logger.error(f"Database error while clearing view history: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while clearing view history"
         )
 
 @router.get(

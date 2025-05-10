@@ -1,16 +1,18 @@
-/* src/styles/FavoritesPage.module.css */
-
 .pageWrapper {
     display: grid;
-    grid-template-columns: minmax(0, 2000px);
-    justify-content: center;
-    min-height: 100vh;         
+    grid-template-rows: auto 1fr auto auto; 
     background-color: #f0f0f0; 
-    padding: 20px 20px 20px 20px;
     box-sizing: border-box;    
-    position: relative;  
     color: #000000;
-    text-align: right;
+    height: 100vh;
+    width: 100vw;
+    overflow: hidden;
+}
+
+body, html {
+    margin: 0;
+    padding: 0;
+    overflow: auto; 
 }
 
 .header {
@@ -44,11 +46,13 @@
     display: grid;
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
-    padding: 0 16px;
+    padding: 0 16px 100px;
     overflow-y: auto;
-    flex: 1;
-    padding-bottom: 100px;
+    align-self: start; 
+    height: 100vh;
+    grid-template-rows: auto auto 1fr auto;
 }
+
 
 .favoriteCard {
     border-radius: 16px;
@@ -68,10 +72,9 @@
     position: absolute;
     top: 8px;
     right: 8px;
-    width: 28px;
-    height: 28px;
-    border-radius: 50%;
-    background: rgba(255,255,255,0.9);
+    width: 20px;
+    height: 20px;
+    border-radius: 20%;
     border: none;
     font-size: 20px;
     display: flex;
@@ -144,20 +147,44 @@
     text-align: center;
     font-size: 18px;
     color: #333;
+    background-color: #f5f5f5;
+    width: 100vw;
 }
 
 .errorContainer {
     color: #d32f2f;
 }
 
+.spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.spinnerIcon {
+    animation: spin 1.5s linear infinite;
+    color: #aeaff7;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}
+
 .favoriteInfo {
-    padding: 8px; /* קטן יותר */
-    font-size: 14px; /* טקסט קטן יותר */
+    padding: 8px; 
+    font-size: 14px; 
     text-align: center;
 }
 .favoriteInfo h3 {
     margin: 0;
-    font-size: 16px; /* גם את הכותרת מקטינים */
+    font-size: 16px; 
     font-weight: 500;
 }
 .favoriteInfo p {

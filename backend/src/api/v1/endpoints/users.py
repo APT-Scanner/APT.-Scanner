@@ -6,12 +6,12 @@ import src.services.user_service as user_service
 from src.models.schemas import User, UserCreate # Keep UserCreate if you need direct creation API
 from src.models.database import get_db
 from src.models.models import User as UserModel
-from src.middleware.auth import get_current_active_user
+from src.middleware.auth import get_current_user
 
 router = APIRouter()
 
 @router.get("/me", response_model=User)
-async def read_users_me(current_user: UserModel = Depends(get_current_active_user)):
+async def read_users_me(current_user: UserModel = Depends(get_current_user)):
     """
     Get current authenticated user's details from the database.
     """
@@ -20,7 +20,7 @@ async def read_users_me(current_user: UserModel = Depends(get_current_active_use
 @router.post("/sync-profile", response_model=User, status_code=status.HTTP_200_OK)
 async def sync_user_profile_after_registration(
     # The dependency handles everything: token verification, getting/creating user in DB
-    current_user: UserModel = Depends(get_current_active_user)
+    current_user: UserModel = Depends(get_current_user)
 ):
     """
     Endpoint called by the frontend IMMEDIATELY after successful Firebase registration.

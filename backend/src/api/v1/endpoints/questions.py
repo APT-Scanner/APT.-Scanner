@@ -1,7 +1,7 @@
 import json
 from typing import List
 from fastapi import APIRouter, Depends, HTTPException
-from src.middleware.auth import get_current_firebase_user
+from src.middleware.auth import verify_firebase_user
 from src.models.schemas import QuestionModel
 from pathlib import Path
 import logging
@@ -16,7 +16,7 @@ router = APIRouter()
 @router.get("/all",
              response_model=List[QuestionModel],
              summary="Get all questions",
-             dependencies=[Depends(get_current_firebase_user)])
+             dependencies=[Depends(verify_firebase_user)])
 async def get_questions():
     try:
         with open(QUESTIONS_FILE, "r",encoding = "utf-8") as file:

@@ -150,3 +150,15 @@ class FavoriteSchema(BaseModel):
     
     class Config:
         orm_mode = True
+
+# ViewHistory schemas
+class ViewHistoryCreate(BaseModel):
+    listing_id: int
+
+class ViewHistorySchema(BaseModel):
+    id: int
+    user_id: str
+    listing_id: int
+    viewed_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)

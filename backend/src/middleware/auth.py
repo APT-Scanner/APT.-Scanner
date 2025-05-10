@@ -1,19 +1,17 @@
 
-from fastapi import Depends, HTTPException, status, Request
+from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
 from sqlalchemy.ext.asyncio import AsyncSession
-from typing import Optional, Dict
+from typing import Dict
 
 from src.models.database import get_db
-from src.services import user_service # ייבוא שירות המשתמשים
-from src.models.models import User as UserModel # ייבוא מודל המשתמש
+from src.services import user_service 
+from src.models.models import User as UserModel
 
-# HTTPBearer scheme
 security = HTTPBearer()
 
-# Dependency to verify Firebase token and return decoded token
-async def get_current_firebase_user(token: HTTPAuthorizationCredentials = Depends(security)) -> Dict:
+async def verify_firebase_user(token: HTTPAuthorizationCredentials = Depends(security)) -> Dict:
     """
     Verifies the Firebase ID token and returns the decoded token dictionary.
     Raises HTTPException if the token is invalid or expired.
@@ -24,7 +22,6 @@ async def get_current_firebase_user(token: HTTPAuthorizationCredentials = Depend
             detail="No credentials provided",
         )
     try:
-        # Verify the token against the Firebase Auth API
         decoded_token = auth.verify_id_token(token.credentials)
         return decoded_token
     except auth.ExpiredIdTokenError:
@@ -40,15 +37,13 @@ async def get_current_firebase_user(token: HTTPAuthorizationCredentials = Depend
             headers={"WWW-Authenticate": "Bearer"},
         )
     except Exception as e:
-        # Catch other potential errors during verification
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Could not validate credentials: {e}",
         )
 
-# Dependency to get the corresponding local DB user (and create if not exists)
-async def get_current_active_user(
-    decoded_token: Dict = Depends(get_current_firebase_user), 
+async def get_current_user(
+    decoded_token: Dict = Depends(verify_firebase_user), 
     db: AsyncSession = Depends(get_db)) -> UserModel:
     """
     Gets the decoded Firebase token, finds or creates the corresponding

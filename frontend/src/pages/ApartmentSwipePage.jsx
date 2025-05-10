@@ -2,9 +2,10 @@ import React, { useState, useEffect, useCallback, useRef, forwardRef, useMemo } 
 import { motion, AnimatePresence, useMotionValue, useTransform, animate } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
 import { useApartments } from '../hooks/useApartments';
+import { useViewHistory } from '../hooks/useViewHistory';
 import styles from '../styles/ApartmentSwipePage.module.css';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
-import { Heart, X, ChevronUp, ChevronDown, Image as ImageIcon } from 'lucide-react';
+import { Heart, X, ChevronUp, ChevronDown, Image as ImageIcon, Loader } from 'lucide-react';
 import logo from "../assets/logo-swipe-screen.jpeg";
 import HomeIcon from '../assets/home_pressed.svg';
 import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
@@ -119,8 +120,23 @@ AnimatedApartmentCard.propTypes = {
     onSwipeComplete: PropTypes.func.isRequired,
 };
 
+// Add a LoadingSpinner component
+const LoadingSpinner = () => (
+  <div className={styles.loadingContainer}>
+    <div className={styles.spinner}>
+      <Loader size={40} className={styles.spinnerIcon} />
+      <p>Loading apartments...</p>
+    </div>
+  </div>
+);
+
 const ApartmentSwipePage = () => {
-    const { apartments: initialApartments, loading, error: useApartmentsError } = useApartments();
+    // Get apartments with server-side filtering (will exclude apartments viewed server-side)
+    const { apartments: fetchedApartments, loading: apartmentsLoading, error: useApartmentsError } = useApartments({ filterViewed: true });
+    
+    // Get view history functionality for client-side tracking
+    const { recordView, filterViewedApartments, loading: viewHistoryLoading } = useViewHistory();
+    
     const [apartments, setApartments] = useState([]);
     const [detailsExpanded, setDetailsExpanded] = useState(false);
     const { addFavorite } = useFavorites();
@@ -143,21 +159,41 @@ const ApartmentSwipePage = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
+    // Apply additional client-side filtering for recently viewed apartments
+    // This catches any apartments viewed on other devices or in the current session
     useEffect(() => {
-        if (initialApartments && initialApartments.length > 0 && apartments.length === 0) {
-            setApartments(initialApartments);
+        if (fetchedApartments && fetchedApartments.length > 0 && !viewHistoryLoading) {
+            // Double-check filtering client-side to catch any views not yet synced to server
+            const filteredApartments = filterViewedApartments(fetchedApartments);
+            
+            // If we don't have any apartments after filtering and there are fetched apartments,
+            // it means all have been viewed. In this case, we'll show them anyway.
+            if (filteredApartments.length === 0 && fetchedApartments.length > 0) {
+                setApartments(fetchedApartments);
+            } else {
+                setApartments(filteredApartments);
+            }
         }
-    }, [initialApartments, apartments.length]);
+    }, [fetchedApartments, viewHistoryLoading, filterViewedApartments]);
 
     const currentApartment = apartments.length > 0 ? apartments[0] : null;
 
+    // Record view when user interacts with an apartment
     const handleSwipeAction = useCallback((actionType, apartmentOrderId) => {
+        // Remove the apartment from the current stack
         setApartments(prev => prev.filter(apt => apt.order_id !== apartmentOrderId));
-        setDetailsExpanded(false); // Reset details panel when swiping
+        
+        // Record the view (this will be stored locally and synced with the server)
+        recordView(apartmentOrderId);
+        
+        // Reset details panel when swiping
+        setDetailsExpanded(false);
+        
+        // Add to favorites if liked
         if (actionType === 'like') {
             addFavorite(apartmentOrderId).catch(() => {});
         }
-    }, [addFavorite]);
+    }, [addFavorite, recordView]);
 
     const handleCardSwipeComplete = (direction, apartmentOrderId) => {
         const actionType = direction === 'right' ? 'like' : 'dislike';
@@ -235,8 +271,10 @@ const ApartmentSwipePage = () => {
     const expandedPanelHeight = windowHeight - 120; // Leave space for the top area and padding
     const collapsedPanelHeight = 120; // Height when collapsed
 
-    if (loading && apartments.length === 0) return <div className={styles.message}>Loading apartments...</div>;
-    if (useApartmentsError) return <div className={`${styles.message} ${styles.error}`}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>;
+    const loading = apartmentsLoading || viewHistoryLoading;
+    
+    if (loading && apartments.length === 0) return <LoadingSpinner />;
+    if (useApartmentsError) return <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>;
 
     return (
         <div className={styles.pageWrapper}>

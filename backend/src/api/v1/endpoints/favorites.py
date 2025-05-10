@@ -9,7 +9,7 @@ import logging
 from src.models.database import get_db
 from src.models.models import Favorite, Listing
 from src.models.schemas import FavoriteSchema, FavoriteCreateSchema
-from src.middleware.auth import get_current_firebase_user
+from src.middleware.auth import verify_firebase_user
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -23,7 +23,7 @@ router = APIRouter()
 async def add_favorites(
     favorite: FavoriteCreateSchema,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_firebase_user)
+    current_user: dict = Depends(verify_firebase_user)
 ):
     """Add a listing to user's favorites"""
     user_id = current_user["user_id"]
@@ -60,7 +60,7 @@ async def add_favorites(
 )
 async def get_favorites(
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_firebase_user)
+    current_user: dict = Depends(verify_firebase_user)
 ):
     """Get all favorites for the current user"""
     user_id = current_user["user_id"]
@@ -88,7 +88,7 @@ async def get_favorites(
 async def remove_from_favorites(
     listing_id: int,
     db: AsyncSession = Depends(get_db),
-    current_user: dict = Depends(get_current_firebase_user)
+    current_user: dict = Depends(verify_firebase_user)
 ):
     """Remove a listing from user's favorites"""
     user_id = current_user["user_id"]

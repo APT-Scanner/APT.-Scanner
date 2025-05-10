@@ -136,6 +136,12 @@ class Listing(Base):
     )
 
     favorited_by = relationship("Favorite", back_populates="listing")
+
+    # Add ViewHistory model to track when users viewed apartments
+    view_history: Mapped[List["ViewHistory"]] = relationship(
+        "ViewHistory", back_populates="listing"
+    )
+
     def __repr__(self):
         return f"<Listing(order_id={self.order_id}, token='{self.token}')>"
 
@@ -230,5 +236,17 @@ class Favorite(Base):
     
     listing = relationship("Listing", back_populates="favorited_by")
 
-# Add to Listing class
-favorited_by = relationship("Favorite", back_populates="listing")
+# Add ViewHistory model to track when users viewed apartments
+class ViewHistory(Base):
+    __tablename__ = "view_history"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.order_id"), nullable=False, index=True)
+    viewed_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    
+    # Relationship to listing
+    listing: Mapped["Listing"] = relationship("Listing")
+    
+    def __repr__(self):
+        return f"<ViewHistory(user_id={self.user_id}, listing_id={self.listing_id}, viewed_at={self.viewed_at})>"
