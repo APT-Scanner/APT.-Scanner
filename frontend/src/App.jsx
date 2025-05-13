@@ -7,6 +7,7 @@ import GetStartedPage from "./pages/GetStartedPage";
 import QuestionnairePage from "./pages/QuestionnairePage";
 import ApartmentSwipePage from "./pages/ApartmentSwipePage";
 import FavoritesPage from './pages/FavoritesPage';
+import FilterPage from './pages/FilterPage';
 
 function App() {
 
@@ -22,6 +23,7 @@ function App() {
             <Route path = "/questionnaire" element = {<QuestionnairePage/>}></Route>
             <Route path = "/apartment-swipe" element={<ApartmentSwipePage/>}></Route>
             <Route path="/favorites" element={<FavoritesPage />}></Route>
+            <Route path="/filter" element={<FilterPage />}></Route>
           </Routes>
         </div>
       </div>

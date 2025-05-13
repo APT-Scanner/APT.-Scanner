@@ -16,12 +16,35 @@
   transform: translateY(-60px);
 }
 
+.topBar {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+}
+
 .logo {
   height: 65px;
   width: 240px;
-  margin-bottom: 20px; 
   flex-shrink: 0; 
   transition: opacity 0.3s ease;
+}
+
+.filterButton {
+  color: #371B34;
+  background-color: transparent;
+  border: none;
+  padding: 5px;
+  cursor: pointer;
+}
+
+.filterButton:hover {
+  opacity: 0.7;
+}
+
+.filterButton:active {
+  opacity: 0.5;
 }
 
 .detailsActive .logo {
@@ -347,4 +370,43 @@
 
 .imageCounter span {
   color: white;
+}
+
+/* Header for Swipe Page */
+.swipePageHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 15px;
+    width: 100%;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.menuButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 5px;
+    margin-right: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* If you add a title in the header */
+.swipePageTitle {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+/* Adjust main content padding if header is fixed */
+.pageWrapper {
+    padding-top: 60px;
 }

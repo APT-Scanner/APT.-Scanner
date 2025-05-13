@@ -5,7 +5,7 @@ import { useApartments } from '../hooks/useApartments';
 import { useViewHistory } from '../hooks/useViewHistory';
 import styles from '../styles/ApartmentSwipePage.module.css';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
-import { Heart, X, ChevronUp, ChevronDown, Image as ImageIcon, Loader } from 'lucide-react';
+import { Heart, X, ChevronUp, ChevronDown, Image as ImageIcon, Loader, Filter, Menu } from 'lucide-react';
 import logo from "../assets/logo-swipe-screen.jpeg";
 import HomeIcon from '../assets/home_pressed.svg';
 import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
@@ -150,6 +150,9 @@ const ApartmentSwipePage = () => {
     // Calculate window height for dynamic panel sizing
     const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
     
+    // const [isMenuOpen, setIsMenuOpen] = useState(false);
+    // const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
     useEffect(() => {
         const handleResize = () => {
             setWindowHeight(window.innerHeight);
@@ -273,13 +276,38 @@ const ApartmentSwipePage = () => {
 
     const loading = apartmentsLoading || viewHistoryLoading;
     
+    const handleNavigateToFilter = () => {
+        navigate('/filter');
+    };
+
     if (loading && apartments.length === 0) return <LoadingSpinner />;
     if (useApartmentsError) return <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>;
 
     return (
         <div className={styles.pageWrapper}>
+            {/* Header for Menu Icon and Filter Icon */}
+            <div className={styles.swipePageHeader}>
+                <button className={styles.menuButton} /* onClick={toggleMenu} */ >
+                    <Menu size={28} color="#333" />
+                </button>
+                {/* Optional: Add a title here like <h1 className={styles.swipePageTitle}>Apartments</h1> */}
+                <button 
+                    className={styles.filterButton}
+                    onClick={handleNavigateToFilter}
+                    aria-label="Filter apartments"
+                >
+                    <Filter size={24} />
+                </button>
+            </div>
+
             <div className={`${styles.pageContainer} ${detailsExpanded ? styles.detailsActive : ''}`}>
-                <img src={logo} alt="APT.Scanner logo" className={styles.logo} />
+                {apartmentsLoading && <LoadingSpinner />}
+                {useApartmentsError && <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>}
+                <div className={styles.topBar}>
+                    <img src={logo} alt="APT.Scanner logo" className={styles.logo} />
+                    {/* Filter button was here, now moved to swipePageHeader */}
+                </div>
+                
                 <div className={styles.cardStackContainer}>
                     <AnimatePresence mode="popLayout">
                         {currentApartment && !detailsExpanded && (
