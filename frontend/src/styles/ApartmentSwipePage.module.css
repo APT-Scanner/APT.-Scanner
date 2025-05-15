@@ -95,9 +95,8 @@
 }
 
 .buttonsContainer {
-  position: fixed;
-  bottom: 120px;
-  left: 0;
+  position: absolute;
+  bottom: -5px;
   width: 100vw;
   display: flex;
   justify-content: center;
@@ -372,7 +371,6 @@
   color: white;
 }
 
-/* Header for Swipe Page */
 .swipePageHeader {
     display: flex;
     align-items: center;
@@ -399,14 +397,13 @@
     justify-content: center;
 }
 
-/* If you add a title in the header */
 .swipePageTitle {
     font-size: 1.2rem;
     font-weight: 600;
     margin: 0;
 }
-
-/* Adjust main content padding if header is fixed */
+  
 .pageWrapper {
     padding-top: 60px;
+    background-color: #ffffff;
 }

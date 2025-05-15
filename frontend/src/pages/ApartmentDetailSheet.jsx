@@ -72,9 +72,10 @@ const ApartmentDetailSheet = ({ apartment }) => {
     return (
             <div className={styles.content}>
             <div className={styles.header}>
-                <h3 className={styles.sectionTitle}>General Information</h3>
-                <h3 className={styles.address}>
-                    <Landmark size={16} className={styles.headerIcon} />
+                <a href={`https://www.yad2.co.il/realestate/item/${apartment.order_id}`} target="_blank" rel="noopener noreferrer">Go to Yad2 to see contact details</a>
+                    <h3 className={styles.sectionTitle}>General Information</h3>
+                    <h3 className={styles.address}>
+                        <Landmark size={16} className={styles.headerIcon} />
                     {`City: ${apartment.city || ''}`}
                 </h3>
                 <h3 className={styles.address}>

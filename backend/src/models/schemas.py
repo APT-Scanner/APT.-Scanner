@@ -98,6 +98,7 @@ class ListingSchema(BaseModel):
     latitude: Optional[float] = None
     created_at: datetime
     updated_at: datetime
+    is_active: bool
 
     neighborhood: Optional[NeighborhoodSchema] = None
     property_condition: Optional[PropertyConditionSchema] = None

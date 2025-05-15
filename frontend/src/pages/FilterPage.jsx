@@ -1,10 +1,9 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styles from '../styles/FilterPage.module.css';
-import { ArrowLeft } from 'lucide-react'; // Assuming lucide-react for icons
+import { ArrowLeft } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
 
-// Import icon images
-import shelterIcon from '../assets/icons/image 12.png'; // Replace with your actual file names
+import shelterIcon from '../assets/icons/image 12.png'; 
 import elevatorIcon from '../assets/icons/image 11.png';
 import parkingIcon from '../assets/icons/image 10.png';
 import storageIcon from '../assets/icons/image 15.png';
@@ -17,12 +16,10 @@ import roommatesIcon from '../assets/icons/image 33.png';
 import petFriendlyIcon from '../assets/icons/image 32.png';
 import furnishedIcon from '../assets/icons/image 31.png';
 
-// Placeholder data for options - will need to be dynamic later
 const cities = ['Tel Aviv', 'Jerusalem', 'Haifa', 'Beersheba'];
 const neighborhoods = {
     'Tel Aviv': ['Florentin', 'Neve Tzedek', 'Jaffa', 'Old North'],
     'Jerusalem': ['Rehavia', 'Nachlaot', 'Baka', 'German Colony'],
-    // ... more cities and neighborhoods
 };
 
 const moreOptionsConfig = [
@@ -50,7 +47,7 @@ const MIN_SIZE = 10;
 const MAX_SIZE = 500;
 
 const FilterPage = () => {
-    const [filterType, setFilterType] = useState('rent'); // 'rent' or 'sale'
+    const [filterType, setFilterType] = useState('rent'); 
     const [selectedCity, setSelectedCity] = useState('');
     const [selectedNeighborhood, setSelectedNeighborhood] = useState('');
     const navigate = useNavigate();
@@ -83,7 +80,7 @@ const FilterPage = () => {
     const draggingSizeHandleRef = useRef(null); // For size slider: 'min' or 'max'
 
     const handleBack = () => {
-        navigate(-1); // Go back to previous page
+        navigate(-1); 
     };
 
     const handleApplyFilters = () => {
@@ -97,7 +94,7 @@ const FilterPage = () => {
             sizeRange: [sizeMin, sizeMax],
             selectedOptions
         });
-        navigate(-1); // Go back to previous page after applying filters
+        navigate(-1); 
     };
 
     const toggleOption = (optionId) => {
@@ -122,7 +119,7 @@ const FilterPage = () => {
             });
             draggingHandleRef.current = null;
         }
-    }, []); // No dependencies needed as it only uses refs and global document
+    }, []); 
 
     const handleMouseMove = useCallback((event) => {
         if (!draggingHandleRef.current || !priceSliderRef.current) return;
@@ -131,7 +128,6 @@ const FilterPage = () => {
         let offsetX = event.clientX - sliderRect.left;
         const sliderWidth = sliderRect.width;
 
-        // For touch events, event.clientX might be undefined, use event.touches[0].clientX
         if (event.touches && event.touches.length > 0) {
             offsetX = event.touches[0].clientX - sliderRect.left;
         }
@@ -149,12 +145,11 @@ const FilterPage = () => {
         } else if (draggingHandleRef.current === 'max') {
             setPriceMax(prevMax => Math.min(MAX_PRICE, Math.max(newValue, priceMin + step)));
         }
-    }, [priceMin, priceMax, setPriceMin, setPriceMax]); // Dependencies for using current priceMin/priceMax and setters
+    }, [priceMin, priceMax, setPriceMin, setPriceMax]); 
 
     useEffect(() => {
-        // Add touchmove listener as well
         document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('touchmove', handleMouseMove, { passive: false }); // passive:false if preventDefault is needed
+        document.addEventListener('touchmove', handleMouseMove, { passive: false }); 
         document.addEventListener('mouseup', handleMouseUp);
         document.addEventListener('touchend', handleMouseUp);
 
@@ -164,7 +159,7 @@ const FilterPage = () => {
             document.removeEventListener('mouseup', handleMouseUp);
             document.removeEventListener('touchend', handleMouseUp);
         };
-    }, [handleMouseMove, handleMouseUp]); // Depend on the memoized handlers
+    }, [handleMouseMove, handleMouseUp]); 
 
     // Rooms Slider Handlers
     const handleRoomsMouseDown = (handleType) => (event) => {
@@ -284,7 +279,6 @@ const FilterPage = () => {
                 <button onClick={handleBack} className={styles.backButton}>
                     <ArrowLeft size={24} />
                 </button>
-                <h2>Filter Favorites by:</h2>
             </div>
 
             <div className={styles.typeToggle}>

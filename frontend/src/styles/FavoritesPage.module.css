@@ -68,6 +68,24 @@ body, html {
     position: relative;
 }
 
+.inactiveOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    font-weight: bold;
+    z-index: 2;
+    text-align: center;
+    pointer-events: none;
+}
+
 .removeButton {
     position: absolute;
     top: 8px;

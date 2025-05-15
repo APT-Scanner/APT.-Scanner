@@ -14,9 +14,7 @@ import { useFavorites } from '../hooks/useFavorites';
 import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
-const SWIPE_UP_THRESHOLD = -5;
 
-// Wrap the component with forwardRef to properly handle refs from parent components
 const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const x = useMotionValue(0);
@@ -112,7 +110,6 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) =
 });
 
 
-// Add display name for better debugging
 AnimatedApartmentCard.displayName = 'AnimatedApartmentCard';
 
 AnimatedApartmentCard.propTypes = {
@@ -120,7 +117,6 @@ AnimatedApartmentCard.propTypes = {
     onSwipeComplete: PropTypes.func.isRequired,
 };
 
-// Add a LoadingSpinner component
 const LoadingSpinner = () => (
   <div className={styles.loadingContainer}>
     <div className={styles.spinner}>
@@ -131,10 +127,8 @@ const LoadingSpinner = () => (
 );
 
 const ApartmentSwipePage = () => {
-    // Get apartments with server-side filtering (will exclude apartments viewed server-side)
     const { apartments: fetchedApartments, loading: apartmentsLoading, error: useApartmentsError } = useApartments({ filterViewed: true });
     
-    // Get view history functionality for client-side tracking
     const { recordView, filterViewedApartments, loading: viewHistoryLoading } = useViewHistory();
     
     const [apartments, setApartments] = useState([]);
@@ -142,16 +136,11 @@ const ApartmentSwipePage = () => {
     const { addFavorite } = useFavorites();
     const navigate = useNavigate();
     
-    // Reference for the details panel for drag gestures
     const detailsPanelRef = useRef(null);
-    // Motion value for the sliding animation
     const detailsPanelY = useMotionValue(0);
     
-    // Calculate window height for dynamic panel sizing
     const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
-    
-    // const [isMenuOpen, setIsMenuOpen] = useState(false);
-    // const toggleMenu = () => setIsMenuOpen(!isMenuOpen);
+
 
     useEffect(() => {
         const handleResize = () => {
@@ -162,15 +151,10 @@ const ApartmentSwipePage = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    // Apply additional client-side filtering for recently viewed apartments
-    // This catches any apartments viewed on other devices or in the current session
     useEffect(() => {
         if (fetchedApartments && fetchedApartments.length > 0 && !viewHistoryLoading) {
-            // Double-check filtering client-side to catch any views not yet synced to server
             const filteredApartments = filterViewedApartments(fetchedApartments);
             
-            // If we don't have any apartments after filtering and there are fetched apartments,
-            // it means all have been viewed. In this case, we'll show them anyway.
             if (filteredApartments.length === 0 && fetchedApartments.length > 0) {
                 setApartments(fetchedApartments);
             } else {
@@ -181,18 +165,13 @@ const ApartmentSwipePage = () => {
 
     const currentApartment = apartments.length > 0 ? apartments[0] : null;
 
-    // Record view when user interacts with an apartment
     const handleSwipeAction = useCallback((actionType, apartmentOrderId) => {
-        // Remove the apartment from the current stack
         setApartments(prev => prev.filter(apt => apt.order_id !== apartmentOrderId));
         
-        // Record the view (this will be stored locally and synced with the server)
         recordView(apartmentOrderId);
         
-        // Reset details panel when swiping
         setDetailsExpanded(false);
         
-        // Add to favorites if liked
         if (actionType === 'like') {
             addFavorite(apartmentOrderId).catch(() => {});
         }
@@ -210,7 +189,6 @@ const ApartmentSwipePage = () => {
     };
 
     const toggleDetailsPanel = () => {
-        // When expanding, scroll to top to ensure a good starting point
         if (!detailsExpanded && detailsPanelRef.current) {
             const detailsContent = detailsPanelRef.current.querySelector(`.${styles.detailsContent}`);
             if (detailsContent) {
@@ -220,7 +198,6 @@ const ApartmentSwipePage = () => {
         
         setDetailsExpanded(!detailsExpanded);
         
-        // Animate the panel to the appropriate position
         animate(detailsPanelY, 0, {
             type: 'spring',
             stiffness: 400,
@@ -230,22 +207,18 @@ const ApartmentSwipePage = () => {
 
     const detailsPanelDrag = useDrag(
         ({ active, movement: [_, my], direction: [__, dy], velocity: [___, vy], cancel }) => {
-            // Don't allow dragging beyond certain bounds
             if (active) {
                 const newY = detailsExpanded 
-                    ? Math.max(0, my) // When expanded, only allow dragging down
-                    : Math.min(0, my); // When collapsed, only allow dragging up
+                    ? Math.max(0, my) 
+                    : Math.min(0, my); 
                 detailsPanelY.set(newY);
             } else {
-                // When released, check if it was a significant drag
                 const significantDrag = Math.abs(my) > 80 || Math.abs(vy) > 0.5;
                 
                 if (significantDrag) {
-                    // If dragging down while expanded, or up while collapsed
                     if ((detailsExpanded && dy > 0) || (!detailsExpanded && dy < 0)) {
                         toggleDetailsPanel();
                     } else {
-                        // If the drag was in the wrong direction, animate back
                         animate(detailsPanelY, 0, {
                             type: 'spring',
                             stiffness: 400,
@@ -253,7 +226,6 @@ const ApartmentSwipePage = () => {
                         });
                     }
                 } else {
-                    // For small drags, snap back to current state
                     animate(detailsPanelY, 0, {
                         type: 'spring',
                         stiffness: 400,
@@ -266,13 +238,12 @@ const ApartmentSwipePage = () => {
             axis: 'y',
             filterTaps: true,
             from: () => [0, detailsPanelY.get()],
-            bounds: { top: -300, bottom: 300 } // Allow enough drag in both directions
+            bounds: { top: -300, bottom: 300 } 
         }
     );
 
-    // Calculate expanded panel height based on window size
-    const expandedPanelHeight = windowHeight - 120; // Leave space for the top area and padding
-    const collapsedPanelHeight = 120; // Height when collapsed
+    const expandedPanelHeight = windowHeight - 120; 
+    const collapsedPanelHeight = 120; 
 
     const loading = apartmentsLoading || viewHistoryLoading;
     
@@ -287,10 +258,9 @@ const ApartmentSwipePage = () => {
         <div className={styles.pageWrapper}>
             {/* Header for Menu Icon and Filter Icon */}
             <div className={styles.swipePageHeader}>
-                <button className={styles.menuButton} /* onClick={toggleMenu} */ >
+                <button className={styles.menuButton} >
                     <Menu size={28} color="#333" />
                 </button>
-                {/* Optional: Add a title here like <h1 className={styles.swipePageTitle}>Apartments</h1> */}
                 <button 
                     className={styles.filterButton}
                     onClick={handleNavigateToFilter}
@@ -305,7 +275,6 @@ const ApartmentSwipePage = () => {
                 {useApartmentsError && <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>}
                 <div className={styles.topBar}>
                     <img src={logo} alt="APT.Scanner logo" className={styles.logo} />
-                    {/* Filter button was here, now moved to swipePageHeader */}
                 </div>
                 
                 <div className={styles.cardStackContainer}>
@@ -323,18 +292,18 @@ const ApartmentSwipePage = () => {
                             There are no more apartments to swipe right now...
                         </div>
                     )}
+                    
+                    {currentApartment && !detailsExpanded && (
+                        <div className={styles.buttonsContainer}>
+                            <button onClick={() => triggerButtonSwipe('left')} className={`${styles.button} ${styles.dislike}`}>
+                                <X size={32} color="#ffffff" />
+                            </button>
+                            <button onClick={() => triggerButtonSwipe('right')} className={`${styles.button} ${styles.like}`}>
+                                <Heart size={32} color="#ffffff" />
+                            </button>
+                        </div>
+                    )}
                 </div>
-                
-                {currentApartment && !detailsExpanded && (
-                    <div className={styles.buttonsContainer}>
-                        <button onClick={() => triggerButtonSwipe('left')} className={`${styles.button} ${styles.dislike}`}>
-                            <X size={32} color="#ffffff" />
-                        </button>
-                        <button onClick={() => triggerButtonSwipe('right')} className={`${styles.button} ${styles.like}`}>
-                            <Heart size={32} color="#ffffff" />
-                        </button>
-                    </div>
-                )}
                 
                 {currentApartment && (
                     <motion.div 

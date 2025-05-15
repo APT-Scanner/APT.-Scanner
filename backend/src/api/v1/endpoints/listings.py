@@ -149,7 +149,6 @@ async def record_listing_view(
     logger.info(f"Recording view for listing ID: {view_data.listing_id} by user {current_user}")
     
     try:
-        # First check if the listing exists
         stmt = select(ListingModel).where(ListingModel.order_id == view_data.listing_id)
         result = await db.execute(stmt)
         listing = result.scalar_one_or_none()
@@ -160,15 +159,13 @@ async def record_listing_view(
                 detail=f"Listing with ID {view_data.listing_id} not found"
             )
             
-        # Extract user_id from current_user
         user_id = current_user.firebase_uid
         
-        # Check if there's already a recent view record (to prevent duplicates)
         one_day_ago = datetime.now() - timedelta(days=1)
         existing_view_stmt = (
             select(ViewHistoryModel)
             .where(and_(
-                ViewHistoryModel.user_id == user_id,  # Use extracted user_id
+                ViewHistoryModel.user_id == user_id,  
                 ViewHistoryModel.listing_id == view_data.listing_id,
                 ViewHistoryModel.viewed_at >= one_day_ago
             ))
@@ -178,14 +175,12 @@ async def record_listing_view(
         existing_view = existing_result.scalar_one_or_none()
         
         if existing_view:
-            # Update the timestamp on the existing view
             existing_view.viewed_at = datetime.now()
             await db.commit()
             return existing_view
         
-        # Create a new view record
         new_view = ViewHistoryModel(
-            user_id=user_id,  # Use extracted user_id
+            user_id=user_id,  
             listing_id=view_data.listing_id
         )
         
@@ -221,12 +216,11 @@ async def get_view_history(
     logger.info(f"Fetching view history for user: {current_user}")
     
     try:
-        # Extract user_id from current_user
         user_id = current_user.firebase_uid
         
         stmt = (
             select(ViewHistoryModel)
-            .where(ViewHistoryModel.user_id == user_id)  # Use extracted user_id
+            .where(ViewHistoryModel.user_id == user_id)  
             .order_by(ViewHistoryModel.viewed_at.desc())
             .limit(limit)
         )
@@ -259,12 +253,11 @@ async def clear_view_history(
     logger.info(f"Clearing view history for user: {current_user}")
     
     try:
-        # Extract user_id from current_user
         user_id = current_user.firebase_uid
         
         stmt = (
             delete(ViewHistoryModel)
-            .where(ViewHistoryModel.user_id == user_id)  # Use extracted user_id
+            .where(ViewHistoryModel.user_id == user_id) 
         )
         
         await db.execute(stmt)

@@ -75,6 +75,11 @@ const FavoritesPage = () => {
                                             : 'url(/assets/apartment-placeholder.jpg)'
                                     }}
                                 >
+                                    {!favorite.is_active && (
+                                        <div className={styles.inactiveOverlay}>
+                                            This listing is no longer active
+                                        </div>
+                                    )}
                                     {isEditing && (
                                         <button 
                                             onClick={() => removeFavorite(favorite.listing_id)}
@@ -109,7 +114,6 @@ const FavoritesPage = () => {
                 )}
             </div>
             
-            {/* Rest of component remains the same */}
             {favorites.length > 0 && (
                 <div className={styles.editButtonContainer}>
                     <button 

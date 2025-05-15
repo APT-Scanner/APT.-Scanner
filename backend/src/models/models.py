@@ -121,7 +121,8 @@ class Listing(Base):
     longitude: Mapped[Optional[float]] = mapped_column(Float)
     latitude: Mapped[Optional[float]] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()) # Or rely only on DB trigger
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()) 
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Many-to-One relationships
     neighborhood: Mapped[Optional["Neighborhood"]] = relationship(back_populates="listings")
@@ -170,13 +171,12 @@ class ParkingImportance(str, PyEnum):
     PREFERABLE = "preferable"
     NOT_IMPORTANT = "not_important"
 
-# הגדירו Enums נוספים לשאר הבחירות בהתאם לצורך
-class ImportanceScale(str, PyEnum): # דוגמה לסקאלה משותפת
+class ImportanceScale(str, PyEnum):
     NOT_IMPORTANT = "not_important"
     SOMEWHAT = "somewhat"
     VERY = "very"
 
-class YesNoPref(str, PyEnum): # דוגמה לכן/לא/אין העדפה
+class YesNoPref(str, PyEnum): 
     YES = "yes"
     NO = "no"
     NO_PREFERENCE = "no_preference"
