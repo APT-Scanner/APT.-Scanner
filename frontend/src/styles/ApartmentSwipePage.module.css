@@ -2,8 +2,7 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: space-between;
-  height: 100vh;
+  height: 90vh;
   width: 100vw;
   background-color: #ffffff;
   padding: 20px;
@@ -20,13 +19,12 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  width: 100%;
-  margin-bottom: 20px;
 }
 
 .logo {
-  height: 65px;
-  width: 240px;
+  display: flex;
+  width: 70%;
+  justify-content: center;
   flex-shrink: 0; 
   transition: opacity 0.3s ease;
 }
@@ -35,8 +33,13 @@
   color: #371B34;
   background-color: transparent;
   border: none;
-  padding: 5px;
   cursor: pointer;
+  padding: 8px;
+  margin-left: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
 }
 
 .filterButton:hover {
@@ -49,21 +52,6 @@
 
 .detailsActive .logo {
   opacity: 0.5;
-}
-
-.cardContainer {
-  width: 90vw;
-  max-width: 350px;
-  height: 65vh;
-  max-height: 500px;
-  padding-bottom: 200px;
-  min-height: calc(100vh - 400px);
-  flex-grow: 1;
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  margin-bottom: 20px;
-  position: relative;
 }
 
 .swiperContainer {
@@ -237,11 +225,11 @@
   width: 80vw;
   max-width: 380px;
   height: 35vh;
+  margin-top: 120px;
   display: flex;
   justify-content: center;
   align-items: center;
   padding-bottom: 200px;
-  margin-bottom: 100px; 
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
@@ -300,6 +288,28 @@
   text-align: center;
   color: #555;
   font-size: 1.1rem;
+}
+
+.inlineLoadingIndicator {
+  position: absolute;
+  top: 40%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  background-color: rgba(255, 255, 255, 0.9);
+  border-radius: 30px;
+  padding: 15px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  z-index: 50;
+}
+
+.loadingText {
+  margin-left: 10px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
 }
 
 .detailsContainer {
@@ -375,7 +385,7 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 10px 15px;
+    padding: 10px 20px;
     width: 100%;
     box-sizing: border-box;
     position: fixed;
@@ -384,17 +394,19 @@
     z-index: 100;
     background-color: white;
     box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+    max-width: 100vw;
 }
 
 .menuButton {
     background: none;
     border: none;
     cursor: pointer;
-    padding: 5px;
+    padding: 8px;
     margin-right: 10px;
     display: flex;
     align-items: center;
     justify-content: center;
+    flex-shrink: 0;
 }
 
 .swipePageTitle {

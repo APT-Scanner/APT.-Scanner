@@ -180,7 +180,6 @@ class Yad2Scraper:
                     params["neighborhood"] = location["hoodId"]
                 if "streetId" in location and location["streetId"]:
                     params["street"] = location["streetId"]
-                # Only process the first location for simplicity
                 break
         
         # Process page number
@@ -482,6 +481,22 @@ class Yad2Scraper:
             print(f"Error parsing response: {e}")
             return {"error": str(e), "raw_response": response.text}
         
+def is_listing_still_alive(token: str):
+    url = f"https://www.yad2.co.il/realestate/item/{token}"
+    try:
+        payload = {
+            "api_key": os.getenv("SCRAPEOWL_API_KEY"),
+            "url": url,
+            "json_response": True
+        }
+        headers = {
+            "Content-Type": "application/json"
+        }
+        #response = requests.post("https://api.scrapeowl.com/v1/scrape", data=json.dumps(payload), headers=headers)
+        
+        return True
+    except:
+        return False
 
 
 # Example usage

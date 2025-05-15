@@ -94,7 +94,7 @@ class Neighborhood(Base):
 class Listing(Base):
     __tablename__ = "listings"
 
-    order_id: Mapped[int] = mapped_column(BIGINT, primary_key=True) # Use BIGINT
+    order_id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
     token: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
 
     # Foreign keys
@@ -107,7 +107,7 @@ class Listing(Base):
     ad_type: Mapped[Optional[str]] = mapped_column(String(20))
     price: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(10, 2))
     property_type: Mapped[Optional[str]] = mapped_column(String(50))
-    rooms_count: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(3, 1)) # Allows 2.5 etc.
+    rooms_count: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(3, 1))
     square_meter: Mapped[Optional[int]] = mapped_column(Integer)
     cover_image_url: Mapped[Optional[str]] = mapped_column(TEXT)
     video_url: Mapped[Optional[str]] = mapped_column(TEXT)

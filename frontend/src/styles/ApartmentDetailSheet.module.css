@@ -1,15 +1,13 @@
-/* ApartmentDetailSheet.module.css */
-
 .backdrop {
     position: fixed;
     top: 0;
     left: 0;
     width: 100%;
     height: 100%;
-    background-color: rgba(0, 0, 0, 0.5); /* רקע שחור חצי שקוף */
+    background-color: rgba(0, 0, 0, 0.5);
     opacity: 0;
     visibility: hidden;
-    z-index: 40; /* מתחת לחלון עצמו */
+    z-index: 40;
     transition: opacity 0.3s ease-in-out, visibility 0.3s ease-in-out;
   }
   
@@ -23,21 +21,21 @@
     bottom: 0;
     left: 0;
     width: 100%;
-    height: 85vh; /* גובה החלון - אפשר לשנות */
-    max-height: 90vh; /* גובה מקסימלי */
-    background-color: #fff; /* רקע לבן */
-    border-top-left-radius: 16px; /* פינות עגולות למעלה */
+    height: 85vh;
+    max-height: 90vh;
+    background-color: #fff;
+    border-top-left-radius: 16px;
     border-top-right-radius: 16px;
-    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15); /* צל */
-    transform: translateY(100%); /* מוסתר למטה כברירת מחדל */
-    transition: transform 0.3s ease-in-out; /* אנימציית החלקה */
-    z-index: 50; /* מעל הרקע ורוב התוכן */
+    box-shadow: 0 -4px 16px rgba(0, 0, 0, 0.15);
+    transform: translateY(100%);
+    transition: transform 0.3s ease-in-out;
+    z-index: 50;
     display: flex;
     flex-direction: column;
   }
   
   .sheetOpen {
-    transform: translateY(0); /* עולה למעלה כשהוא פתוח */
+    transform: translateY(0);
   }
   
   .handle {
@@ -45,8 +43,8 @@
     height: 4px;
     background-color: #ccc;
     border-radius: 2px;
-    margin: 8px auto 4px; /* מיקום הידית למעלה במרכז */
-    flex-shrink: 0; /* מונע התכווצות */
+    margin: 8px auto 4px;
+    flex-shrink: 0;
   }
   
   .closeButton {
@@ -65,17 +63,14 @@
     color: #000;
   }
   
-  /* אזור התוכן הפנימי עם גלילה */
   .content {
     display: flex;
     flex-direction: column;
     gap: 20px;
     padding: 5px 0;
     width: 100%;
-    text-align: center;
   }
   
-  /* Header section styles */
   .header {
     padding: 5px 15px 15px;
     border-bottom: 1px solid #eee;
@@ -102,7 +97,6 @@
     margin-right: 5px;
   }
   
-  /* Specs section styles */
   .specs {
     display: flex;
     flex-wrap: wrap;
@@ -126,7 +120,6 @@
     color: #371b34;
   }
   
-  /* Section styles */
   .section {
     border-bottom: 1px solid #eee;
     padding: 10px 15px;
@@ -146,7 +139,6 @@
     gap: 10px;
   }
   
-  /* Detail items (for financial details, contact info, etc.) */
   .detailItem {
     display: flex;
     align-items: center;
@@ -169,7 +161,6 @@
     color: #333;
   }
   
-  /* Amenities grid */
   .amenitiesGrid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
@@ -191,7 +182,6 @@
     color: #a0e3e2;
   }
   
-  /* Description section */
   .descriptionText {
     font-size: 0.95rem;
     line-height: 1.5;
@@ -199,7 +189,6 @@
     white-space: pre-line;
   }
   
-  /* Map section */
   .mapSection {
     margin-bottom: 20px;
     padding: 10px 15px;
@@ -236,14 +225,12 @@
   
   
   
-  /* התאמות למסכים קטנים מאוד אם צריך */
   @media (max-height: 500px) {
     .sheetContainer {
-      height: 95vh; /* תופס כמעט את כל הגובה במסכים נמוכים */
+      height: 95vh;
     }
   }
   
-  /* Responsive adjustments */
   @media (max-width: 480px) {
     .specs {
       gap: 8px;

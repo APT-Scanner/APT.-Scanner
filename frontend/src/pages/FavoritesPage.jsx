@@ -25,7 +25,6 @@ const FavoritesPage = () => {
     const navigate = useNavigate();
 
     useEffect(() => {
-        // Reset scroll position when component mounts
         window.scrollTo(0, 0);
         
         if (favorites.length > 0) {
@@ -42,6 +41,12 @@ const FavoritesPage = () => {
 
     console.log("Favorites:", favorites);
     console.log("Listings details:", listings);
+
+    const handleCardClick = (listing) => {
+        if (listing && listing.token && !isEditing) {
+            navigate(`/favorites/${listing.order_id}`);
+        }
+    };
 
     return (
         <div className={styles.pageWrapper}>
@@ -66,7 +71,12 @@ const FavoritesPage = () => {
                         const isLoading = listingsLoading[favorite.listing_id];
                         
                         return (
-                            <div key={favorite.id} className={styles.favoriteCard}>
+                            <div 
+                                key={favorite.id} 
+                                className={styles.favoriteCard}
+                                onClick={() => handleCardClick(listing)}
+                                style={{ cursor: isEditing ? 'default' : 'pointer' }}
+                            >
                                 <div 
                                     className={styles.favoriteImage} 
                                     style={{ 
@@ -75,14 +85,18 @@ const FavoritesPage = () => {
                                             : 'url(/assets/apartment-placeholder.jpg)'
                                     }}
                                 >
-                                    {!favorite.is_active && (
+                                    {console.log(listing)}
+                                    {listing && !listing.is_active && (
                                         <div className={styles.inactiveOverlay}>
                                             This listing is no longer active
                                         </div>
                                     )}
                                     {isEditing && (
                                         <button 
-                                            onClick={() => removeFavorite(favorite.listing_id)}
+                                            onClick={(e) => {
+                                                e.stopPropagation();
+                                                removeFavorite(favorite.listing_id);
+                                            }}
                                             className={styles.removeButton}
                                         >
                                             X

@@ -35,16 +35,15 @@ async def get_all_listings(
     
     try:
         if filter_viewed:
-            one_day_ago = datetime.now() - timedelta(days=1)
+            one_week_ago = datetime.now() - timedelta(days=7)
             
-            # Extract the firebase_uid from current_user
             user_id = current_user.firebase_uid
             
             viewed_stmt = (
                 select(ViewHistoryModel.listing_id)
                 .where(and_(
-                    ViewHistoryModel.user_id == user_id,  # Use extracted user_id
-                    ViewHistoryModel.viewed_at >= one_day_ago
+                    ViewHistoryModel.user_id == user_id,  
+                    ViewHistoryModel.viewed_at >= one_week_ago
                 ))
             )
             
@@ -271,20 +270,20 @@ async def clear_view_history(
         )
 
 @router.get(
-    "/{listing_id}",
+    "/{order_id}",
     response_model=ListingSchema,
     summary="Get listing by ID"
 )
 async def get_listing_by_id(
-    listing_id: int,
+    order_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     """Get a specific listing by ID"""
-    logger.info(f"Fetching listing with ID: {listing_id}")
+    logger.info(f"Fetching listing with ID: {order_id}")
     
     stmt = (
         select(ListingModel)
-        .where(ListingModel.order_id == listing_id)
+        .where(ListingModel.order_id == order_id)
         .options(
             selectinload(ListingModel.neighborhood),
             selectinload(ListingModel.property_condition),
@@ -300,7 +299,7 @@ async def get_listing_by_id(
         if not listing:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Listing with ID {listing_id} not found"
+                detail=f"Listing with ID {order_id} not found"
             )
             
         return listing
@@ -308,7 +307,7 @@ async def get_listing_by_id(
     except Exception as e:
         if isinstance(e, HTTPException):
             raise e
-        logger.error(f"Database error while fetching listing {listing_id}: {e}", exc_info=True)
+        logger.error(f"Database error while fetching listing {order_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while retrieving the listing"

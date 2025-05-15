@@ -321,7 +321,9 @@ def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags
         listing_tuples = [[l.get(col) for col in listing_cols] for l in listings_to_insert_update]
         cols_sql = ", ".join(listing_cols)
         placeholders = ", ".join(["%s"] * len(listing_cols))
-        update_set_sql = ", ".join([f"{col} = EXCLUDED.{col}" for col in listing_cols if col != 'order_id']) + ", updated_at = NOW(), is_active = TRUE" 
+        update_set_sql = ", ".join(
+            [f"{col} = EXCLUDED.{col}" for col in listing_cols if col not in ('order_id', 'is_active')]
+        ) + ", updated_at = NOW(), is_active = TRUE"
         sql_listings = f"""
             INSERT INTO listings ({cols_sql}) VALUES ({placeholders})
             ON CONFLICT (order_id) DO UPDATE SET {update_set_sql}

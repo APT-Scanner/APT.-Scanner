@@ -11,13 +11,15 @@ import time
 api_username = os.getenv('SCRAPER_API_USERNAME')
 api_password = os.getenv('SCRAPER_API_PASSWORD')
 scraper = Yad2Scraper(api_username, api_password)
-scraper.set_hash_id('K8ZXlI0K9KoJKzwo7O4rZ')
+scraper.set_hash_id('NXsB9628jXiJlH_9GNWJa')
 neighborhoods_to_fetch = []
 
 with open('backend/data/sources/yad2_hood_mapping.json', 'r', encoding='utf-8') as file:
     hood_mapping = json.load(file)
     for hood in hood_mapping:
         neighborhoods_to_fetch.append(hood['hoodId'])
+        if hood['hoodId'] == 1483:
+            break
 
 for hood_id in neighborhoods_to_fetch:
     direct_params = {

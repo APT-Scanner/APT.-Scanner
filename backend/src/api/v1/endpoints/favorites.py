@@ -5,11 +5,14 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import and_
 from typing import List
 import logging
-import requests
 from src.models.database import get_db
 from src.models.models import Favorite, Listing
 from src.models.schemas import FavoriteSchema, FavoriteCreateSchema
 from src.middleware.auth import verify_firebase_user
+import sys
+import os
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+from data.scrapers.yad2_scraper import is_listing_still_alive
 
 logger = logging.getLogger(__name__)
 router = APIRouter()
@@ -53,13 +56,7 @@ async def add_favorites(
 
     return new_favorite
 
-def is_listing_still_alive(token: str):
-    url = f"https://www.yad2.co.il/realestate/item/{token}"
-    try:
-        res = requests.head(url, timeout=5)
-        return res.status_code == 200
-    except:
-        return False
+
 
 @router.get(
     "/",
@@ -85,7 +82,7 @@ async def get_favorites(
     result = await db.execute(stmt)
     favorites = result.scalars().all()
     for favorite in favorites:
-        if not is_listing_still_alive(favorite.listing.order_id):
+        if not is_listing_still_alive(favorite.listing.token):
             favorite.listing.is_active = False
             await db.commit()
             await db.refresh(favorite.listing)

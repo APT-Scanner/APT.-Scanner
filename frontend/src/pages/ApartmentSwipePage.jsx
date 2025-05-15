@@ -15,7 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
 
-const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) => {
+export const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-200, 0, 200], [-25, 0, 25], { clamp: false });
@@ -242,7 +242,7 @@ const ApartmentSwipePage = () => {
         }
     );
 
-    const expandedPanelHeight = windowHeight - 120; 
+    const expandedPanelHeight = windowHeight - 130; 
     const collapsedPanelHeight = 120; 
 
     const loading = apartmentsLoading || viewHistoryLoading;
@@ -251,7 +251,7 @@ const ApartmentSwipePage = () => {
         navigate('/filter');
     };
 
-    if (loading && apartments.length === 0) return <LoadingSpinner />;
+    if (loading && apartments.length === 0 && fetchedApartments.length === 0) return <LoadingSpinner />;
     if (useApartmentsError) return <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>;
 
     return (
@@ -261,6 +261,9 @@ const ApartmentSwipePage = () => {
                 <button className={styles.menuButton} >
                     <Menu size={28} color="#333" />
                 </button>
+                <div className={styles.logo}>
+                    <img src={logo} alt="APT.Scanner logo" style={{ maxWidth: '80%', height: 'auto' }} />
+                </div>
                 <button 
                     className={styles.filterButton}
                     onClick={handleNavigateToFilter}
@@ -271,11 +274,7 @@ const ApartmentSwipePage = () => {
             </div>
 
             <div className={`${styles.pageContainer} ${detailsExpanded ? styles.detailsActive : ''}`}>
-                {apartmentsLoading && <LoadingSpinner />}
                 {useApartmentsError && <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>}
-                <div className={styles.topBar}>
-                    <img src={logo} alt="APT.Scanner logo" className={styles.logo} />
-                </div>
                 
                 <div className={styles.cardStackContainer}>
                     <AnimatePresence mode="popLayout">
@@ -287,6 +286,11 @@ const ApartmentSwipePage = () => {
                             />
                         )}
                     </AnimatePresence>
+                    {loading && apartments.length > 0 && (
+                        <div className={styles.inlineLoadingIndicator}>
+                            <Loader size={24} className={styles.spinnerIcon} />
+                        </div>
+                    )}
                     {!loading && !currentApartment && (
                         <div className={`${styles.message} ${styles.noMoreApartmentsMessage}`}>
                             There are no more apartments to swipe right now...
