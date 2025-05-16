@@ -8,7 +8,13 @@ from datetime import datetime, timedelta
 from sqlalchemy import and_, delete
 
 from src.models.database import get_db
-from src.models.models import Listing as ListingModel, Neighborhood as NeighborhoodModel, ViewHistory as ViewHistoryModel
+from src.models.models import (
+    Listing as ListingModel, 
+    Neighborhood as NeighborhoodModel, 
+    ViewHistory as ViewHistoryModel,
+    Tag,
+    listing_tags_association
+)
 from src.models.schemas import ListingSchema, ViewHistoryCreate, ViewHistorySchema
 from src.middleware.auth import get_current_user
 
@@ -20,23 +26,67 @@ router = APIRouter()
     "/all",
     response_model=List[ListingSchema],
     summary="Get all listings",
-    description="Retrieves all listings from the database."
+    description="Retrieves all listings from the database with optional filtering."
 )
 async def get_all_listings(
     db: AsyncSession = Depends(get_db), 
     limit: int = 20,
     current_user = Depends(get_current_user),
-    filter_viewed: bool = True
+    filter_viewed: bool = True,
+    type: str = None,
+    city: str = None,
+    neighborhood: str = None,
+    price_min: float = 500,
+    price_max: float = 15000,
+    rooms_min: float = 1,
+    rooms_max: float = 8,
+    size_min: int = 10,
+    size_max: int = 500,
+    options: str = None
 ):
     """
-    Retrieves all listings from the database, optionally filtering out recently viewed listings.
+    Retrieves all listings from the database with optional filtering.
     """
-    logger.info(f"Fetching all listings with limit: {limit}")
+    logger.info(f"Fetching listings with filters: type={type}, city={city}, neighborhood={neighborhood}, price={price_min}-{price_max}, rooms={rooms_min}-{rooms_max}, size={size_min}-{size_max}, options={options}")
     
     try:
+        query = select(ListingModel)
+        
+        query = query.where(ListingModel.is_active == True)
+        
+        #if type:
+        #    query = query.where(ListingModel.ad_type.ilike(f"%{type}%"))
+        
+        if city:
+            query = query.where(ListingModel.city.ilike(f"%{city}%"))
+            
+        if neighborhood:
+            query = query.where(ListingModel.neighborhood_text.ilike(f"%{neighborhood}%"))
+            
+        query = query.where(ListingModel.price >= price_min)
+        query = query.where(ListingModel.price <= price_max)
+        
+        query = query.where(ListingModel.rooms_count >= rooms_min)
+        query = query.where(ListingModel.rooms_count <= rooms_max)
+        
+        query = query.where(ListingModel.square_meter >= size_min)
+        query = query.where(ListingModel.square_meter <= size_max)
+        
+        if options:
+            options_list = options.split(',')
+            for option in options_list:
+                query = query.join(
+                    listing_tags_association,
+                    ListingModel.order_id == listing_tags_association.c.listing_id
+                ).join(
+                    Tag,
+                    Tag.tag_id == listing_tags_association.c.tag_id
+                ).where(
+                    Tag.tag_name.ilike(f"%{option}%")
+                )
+        
         if filter_viewed:
             one_week_ago = datetime.now() - timedelta(days=7)
-            
             user_id = current_user.firebase_uid
             
             viewed_stmt = (
@@ -50,35 +100,24 @@ async def get_all_listings(
             result = await db.execute(viewed_stmt)
             recently_viewed_ids = [row[0] for row in result.all()]
             
-            stmt = (
-                select(ListingModel)
-                .where(~ListingModel.order_id.in_(recently_viewed_ids) if recently_viewed_ids else True)
-                .options(
-                    selectinload(ListingModel.neighborhood),
-                    selectinload(ListingModel.property_condition), 
-                    selectinload(ListingModel.images), 
-                    selectinload(ListingModel.tags) 
-                )
-                .limit(limit)
-            )
-        else:
-            stmt = (
-                select(ListingModel)
-                .options(
-                    selectinload(ListingModel.neighborhood),
-                    selectinload(ListingModel.property_condition), 
-                    selectinload(ListingModel.images), 
-                    selectinload(ListingModel.tags) 
-                )
-                .limit(limit)
-            )
-
-        result = await db.execute(stmt)
+            if recently_viewed_ids:
+                query = query.where(~ListingModel.order_id.in_(recently_viewed_ids))
+        
+        query = query.options(
+            selectinload(ListingModel.neighborhood),
+            selectinload(ListingModel.property_condition), 
+            selectinload(ListingModel.images), 
+            selectinload(ListingModel.tags) 
+        ).limit(limit)
+        
+        result = await db.execute(query)
         listings = result.scalars().all()
+        
+        logger.info(f"Found {len(listings)} listings matching the filters")
         return listings
 
     except Exception as e:
-        logger.error(f"Database error while fetching all listings: {e}", exc_info=True)
+        logger.error(f"Database error while fetching filtered listings: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while retrieving listings."

@@ -54,6 +54,7 @@ const FavoritesApartmentDetails = () => {
                         <AnimatedApartmentCard
                             key={apartment.order_id}
                             apartment={apartment}
+                            disableSwipe={true}
                         />
                     )}
                 </AnimatePresence>

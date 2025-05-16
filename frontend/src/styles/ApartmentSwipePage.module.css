@@ -2,14 +2,19 @@
   display: flex;
   flex-direction: column;
   align-items: center;
-  height: 90vh;
+  height: 100vh;
   width: 100vw;
   background-color: #ffffff;
   padding: 20px;
   box-sizing: border-box;
-  overflow: hidden;
+  min-height: 100vh;
   transition: transform 0.4s ease-out;
 }
+
+body, html {
+  overflow: hidden;
+}
+
 
 .pageContainer.detailsActive {
   transform: translateY(-60px);
@@ -24,6 +29,7 @@
 .logo {
   display: flex;
   width: 70%;
+  max-width: 300px;
   justify-content: center;
   flex-shrink: 0; 
   transition: opacity 0.3s ease;
@@ -83,12 +89,11 @@
 }
 
 .buttonsContainer {
-  position: absolute;
-  bottom: -5px;
+  position: fixed;
+  bottom: 14vh;
   width: 100vw;
   display: flex;
   justify-content: center;
-  z-index: 200;
   padding: 10px 0;
   gap: 110px;
   transition: opacity 0.3s ease, transform 0.3s ease;
@@ -221,15 +226,17 @@
 }
 
 .cardStackContainer {
-  position: relative;
+  position: fixed;
+  top: 0;
   width: 80vw;
-  max-width: 380px;
-  height: 35vh;
+  max-width: 580px;
+  height: 80vh;
+  max-height: 60%;
   margin-top: 120px;
+  margin-bottom: 10vh;
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-bottom: 200px;
   transition: opacity 0.3s ease, transform 0.3s ease;
 }
 
@@ -419,3 +426,86 @@
     padding-top: 60px;
     background-color: #ffffff;
 }
+
+/* Full-screen button styling */
+.fullscreenButton {
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  background-color: rgba(0, 0, 0, 0.6);
+  border-radius: 50%;
+  width: 60px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  border: none;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.fullscreenButton:hover {
+  background-color: rgba(0, 0, 0, 0.8);
+}
+
+/* Full-screen overlay styling */
+.fullscreenOverlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: #000;
+  z-index: 1000;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+.fullscreenImage {
+  max-width: 100%;
+  max-height: 85vh;
+  object-fit: contain;
+}
+
+.fullscreenControls {
+  position: absolute;
+  bottom: 20px;
+  display: flex;
+  gap: 20px;
+  align-items: center;
+}
+
+.fullscreenCounter {
+  color: white;
+  font-size: 1rem;
+}
+
+.fullscreenButton.close {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  background-color: rgba(0, 0, 0, 0.6);
+}
+
+.fullscreenNavButton {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-radius: 50%;
+  width: 60px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  border: none;
+  color: white;
+  transition: background-color 0.2s ease;
+}
+
+.fullscreenNavButton:hover {
+  background-color: rgba(255, 255, 255, 0.3);
+}
+

@@ -3,9 +3,10 @@ import { motion, AnimatePresence, useMotionValue, useTransform, animate } from '
 import { useDrag } from '@use-gesture/react';
 import { useApartments } from '../hooks/useApartments';
 import { useViewHistory } from '../hooks/useViewHistory';
+import { useFilters } from '../hooks/useFilters';
 import styles from '../styles/ApartmentSwipePage.module.css';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
-import { Heart, X, ChevronUp, ChevronDown, Image as ImageIcon, Loader, Filter, Menu } from 'lucide-react';
+import { Heart, X, ChevronUp, ChevronDown, Image as ImageIcon, Loader, Filter, Menu, Maximize, Minimize, ChevronLeft, ChevronRight } from 'lucide-react';
 import logo from "../assets/logo-swipe-screen.jpeg";
 import HomeIcon from '../assets/home_pressed.svg';
 import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
@@ -15,8 +16,9 @@ import { useNavigate } from 'react-router-dom';
 import PropTypes from 'prop-types';
 
 
-export const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete }, ref) => {
+export const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete, disableSwipe = false }, ref) => {
     const [currentImageIndex, setCurrentImageIndex] = useState(0);
+    const [isFullscreen, setIsFullscreen] = useState(false);
     const x = useMotionValue(0);
     const rotate = useTransform(x, [-200, 0, 200], [-25, 0, 25], { clamp: false });
     const gestureBind = useDrag(
@@ -31,7 +33,9 @@ export const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete },
                         stiffness: 400,
                         damping: 40,
                         onComplete: () => {
-                            onSwipeComplete(swipeDirection, apartment.order_id);
+                            if (onSwipeComplete) {
+                                onSwipeComplete(swipeDirection, apartment.order_id);
+                            }
                         },
                     });
                 } else {
@@ -70,42 +74,144 @@ export const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete },
         
         setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
     };
+    
+    const toggleFullscreen = (e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        setIsFullscreen(prev => !prev);
+        
+        // Prevent body scroll when in fullscreen
+        if (!isFullscreen) {
+            document.body.style.overflow = 'hidden';
+        } else {
+            document.body.style.overflow = '';
+        }
+    };
+    
+    const nextImage = () => {
+        setCurrentImageIndex((prevIndex) => (prevIndex + 1) % images.length);
+    };
+    
+    const prevImage = () => {
+        setCurrentImageIndex((prevIndex) => (prevIndex - 1 + images.length) % images.length);
+    };
+    
+    // Clean up overflow style when component unmounts or when exiting fullscreen
+    useEffect(() => {
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, []);
+    
+    // Handle keyboard navigation in fullscreen mode
+    useEffect(() => {
+        const handleKeyDown = (e) => {
+            if (!isFullscreen) return;
+            
+            if (e.key === 'Escape') {
+                setIsFullscreen(false);
+                document.body.style.overflow = '';
+            } else if (e.key === 'ArrowRight') {
+                nextImage();
+            } else if (e.key === 'ArrowLeft') {
+                prevImage();
+            }
+        };
+        
+        window.addEventListener('keydown', handleKeyDown);
+        return () => {
+            window.removeEventListener('keydown', handleKeyDown);
+        };
+    }, [isFullscreen, images.length]);
+    
     return (
-        <motion.div
-            ref={ref}
-            {...gestureBind()}
-            className={styles.animatedCardWrapper}
-            style={{
-                x,
-                rotate,
-                touchAction: 'none',
-            }}
-            initial={{ scale: 0.9, opacity: 0, y: 30 }}
-            animate={{ scale: 1, opacity: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 25, duration: 0.3 } }}
-            exit={{
-                x: x.get() > 0 ? 300 : (x.get() < 0 ? -300 : 0),
-                opacity: 0,
-                scale: 0.8,
-                transition: { duration: 0.3, ease: "easeIn" }
-            }}
-        >
-            <div 
-                style={{ backgroundImage: `url(${images[currentImageIndex]})` }} 
-                className={styles.cardContentVisual}
-                onClick={handleImageClick}
+        <>
+            <motion.div
+                ref={ref}
+                {...(disableSwipe ? {} : gestureBind())}
+                className={styles.animatedCardWrapper}
+                style={{
+                    x: disableSwipe ? 0 : x,
+                    rotate: disableSwipe ? 0 : rotate,
+                    touchAction: 'none',
+                }}
+                initial={{ scale: 0.9, opacity: 0, y: 30 }}
+                animate={{ scale: 1, opacity: 1, y: 0, transition: { type: 'spring', stiffness: 400, damping: 25, duration: 0.3 } }}
+                exit={{
+                    x: disableSwipe ? 0 : (x.get() > 0 ? 300 : (x.get() < 0 ? -300 : 0)),
+                    opacity: 0,
+                    scale: 0.8,
+                    transition: { duration: 0.3, ease: "easeIn" }
+                }}
             >
-                {images.length > 1 && (
-                    <div className={styles.imageCounter}>
-                        <ImageIcon size={14} />
-                        <span>{currentImageIndex + 1}/{images.length}</span>
+                <div 
+                    style={{ backgroundImage: `url(${images[currentImageIndex]})` }} 
+                    className={styles.cardContentVisual}
+                    onClick={handleImageClick}
+                >
+                    <button 
+                        className={styles.fullscreenButton}
+                        onClick={toggleFullscreen}
+                        aria-label="View full-screen"
+                    >
+                        <Maximize size={20} stroke="white" fill="white" />
+                    </button>
+                    
+                    {images.length > 1 && (
+                        <div className={styles.imageCounter}>
+                            <ImageIcon size={14} />
+                            <span>{currentImageIndex + 1}/{images.length}</span>
+                        </div>
+                    )}
+                    <div className={styles.cardInfo}>
+                        <h3>{`${apartment.street}, ${apartment.city}`}</h3>
+                        <p>{Math.floor(apartment.price)}₪/month</p>
                     </div>
-                )}
-                <div className={styles.cardInfo}>
-                    <h3>{`${apartment.street}, ${apartment.city}`}</h3>
-                    <p>{Math.floor(apartment.price)}₪/month</p>
                 </div>
-            </div>
-        </motion.div>
+            </motion.div>
+            
+            {/* Fullscreen Gallery Modal */}
+            {isFullscreen && (
+                <div className={styles.fullscreenOverlay}>
+                    <button 
+                        className={`${styles.fullscreenButton} ${styles.close}`}
+                        onClick={toggleFullscreen}
+                        aria-label="Close full-screen"
+                    >
+                        <X size={24} />
+                    </button>
+                    
+                    <img 
+                        src={images[currentImageIndex]} 
+                        alt={`${apartment.street}, ${apartment.city}`} 
+                        className={styles.fullscreenImage}
+                        onClick={handleImageClick}
+                    />
+                    
+                    <div className={styles.fullscreenControls}>
+                        <button 
+                            className={styles.fullscreenNavButton}
+                            onClick={prevImage}
+                            aria-label="Previous image"
+                        >
+                            <ChevronLeft size={24} />
+                        </button>
+                        
+                        <div className={styles.fullscreenCounter}>
+                            {currentImageIndex + 1} / {images.length}
+                        </div>
+                        
+                        <button 
+                            className={styles.fullscreenNavButton}
+                            onClick={nextImage}
+                            aria-label="Next image"
+                        >
+                            <ChevronRight size={24} />
+                        </button>
+                    </div>
+                </div>
+            )}
+        </>
     );
 });
 
@@ -114,7 +220,14 @@ AnimatedApartmentCard.displayName = 'AnimatedApartmentCard';
 
 AnimatedApartmentCard.propTypes = {
     apartment: PropTypes.object.isRequired,
-    onSwipeComplete: PropTypes.func.isRequired,
+    onSwipeComplete: function(props, propName, componentName) {
+        if (!props.disableSwipe && (props[propName] === undefined)) {
+            return new Error(
+                `The prop ${propName} is required when disableSwipe is false in ${componentName}.`
+            );
+        }
+    },
+    disableSwipe: PropTypes.bool,
 };
 
 const LoadingSpinner = () => (
@@ -127,7 +240,17 @@ const LoadingSpinner = () => (
 );
 
 const ApartmentSwipePage = () => {
-    const { apartments: fetchedApartments, loading: apartmentsLoading, error: useApartmentsError } = useApartments({ filterViewed: true });
+    const { getFilterQueryParams } = useFilters();
+    
+    const filterParams = useMemo(() => getFilterQueryParams(), [getFilterQueryParams]);
+    
+    const [refreshTrigger, setRefreshTrigger] = useState(0);
+    
+    const { apartments: fetchedApartments, loading: apartmentsLoading, error: useApartmentsError } = useApartments({ 
+        filterViewed: true,
+        filterParams,
+        refreshTrigger,
+    });
     
     const { recordView, filterViewedApartments, loading: viewHistoryLoading } = useViewHistory();
     
@@ -242,7 +365,7 @@ const ApartmentSwipePage = () => {
         }
     );
 
-    const expandedPanelHeight = windowHeight - 130; 
+    const expandedPanelHeight = windowHeight - 80; 
     const collapsedPanelHeight = 120; 
 
     const loading = apartmentsLoading || viewHistoryLoading;
@@ -250,6 +373,20 @@ const ApartmentSwipePage = () => {
     const handleNavigateToFilter = () => {
         navigate('/filter');
     };
+
+    useEffect(() => {
+        const handleVisibilityChange = () => {
+            if (document.visibilityState === 'visible') {
+                setRefreshTrigger(prev => prev + 1);
+            }
+        };
+        
+        document.addEventListener('visibilitychange', handleVisibilityChange);
+        
+        return () => {
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        };
+    }, []);
 
     if (loading && apartments.length === 0 && fetchedApartments.length === 0) return <LoadingSpinner />;
     if (useApartmentsError) return <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>;

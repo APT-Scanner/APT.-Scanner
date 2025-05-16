@@ -48,17 +48,30 @@
 
 .cardContainer{
     position: relative;
-    width: 80vw;
-    max-width: 380px;
-    height: 35vh;
-    min-height: 35vh;
+    width: 90vw;
+    max-width: 450px;
+    height: 45vh;
+    min-height: 300px;
     display: flex;
     justify-content: center;
     align-items: center;
-    margin-top: 100px;
+    margin-top: 80px;
     padding-bottom: 20px;
     margin-bottom: 10px; 
     transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Override any swipe-related styling for the AnimatedApartmentCard */
+.cardContainer :global(.animatedCardWrapper) {
+    width: 100%;
+    height: 100%;
+    cursor: default !important;
+}
+
+/* Make sure the card image is centered and properly sized */
+.cardContainer :global(.cardContentVisual) {
+    width: 100%;
+    height: 100%;
 }
 
 .detailsContainer {

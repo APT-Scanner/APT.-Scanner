@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import styles from '../styles/FilterPage.module.css';
 import { ArrowLeft } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
-
+import { useFilters } from '../hooks/useFilters';
 import shelterIcon from '../assets/icons/image 12.png'; 
 import elevatorIcon from '../assets/icons/image 11.png';
 import parkingIcon from '../assets/icons/image 10.png';
@@ -16,10 +16,9 @@ import roommatesIcon from '../assets/icons/image 33.png';
 import petFriendlyIcon from '../assets/icons/image 32.png';
 import furnishedIcon from '../assets/icons/image 31.png';
 
-const cities = ['Tel Aviv', 'Jerusalem', 'Haifa', 'Beersheba'];
+const cities = ['תל אביב יפו'];
 const neighborhoods = {
-    'Tel Aviv': ['Florentin', 'Neve Tzedek', 'Jaffa', 'Old North'],
-    'Jerusalem': ['Rehavia', 'Nachlaot', 'Baka', 'German Colony'],
+    'תל אביב יפו': ['פלנטין', 'נווה צדק', 'יהודה ושבע', 'צורן'],
 };
 
 const moreOptionsConfig = [
@@ -47,25 +46,26 @@ const MIN_SIZE = 10;
 const MAX_SIZE = 500;
 
 const FilterPage = () => {
-    const [filterType, setFilterType] = useState('rent'); 
-    const [selectedCity, setSelectedCity] = useState('');
-    const [selectedNeighborhood, setSelectedNeighborhood] = useState('');
+    const { filters, updateFilter } = useFilters();
+    const [filterType, setFilterType] = useState(filters.type); 
+    const [selectedCity, setSelectedCity] = useState(filters.city);
+    const [selectedNeighborhood, setSelectedNeighborhood] = useState(filters.neighborhood);
     const navigate = useNavigate();
     
     // Price filter state
-    const [priceMin, setPriceMin] = useState(MIN_PRICE);
-    const [priceMax, setPriceMax] = useState(MAX_PRICE);
+    const [priceMin, setPriceMin] = useState(filters.priceMin);
+    const [priceMax, setPriceMax] = useState(filters.priceMax);
     
     // Rooms filter state
-    const [roomsMin, setRoomsMin] = useState(MIN_ROOMS);
-    const [roomsMax, setRoomsMax] = useState(MAX_ROOMS);
+    const [roomsMin, setRoomsMin] = useState(filters.roomsMin);
+    const [roomsMax, setRoomsMax] = useState(filters.roomsMax);
     
     // Size filter state
-    const [sizeMin, setSizeMin] = useState(MIN_SIZE);
-    const [sizeMax, setSizeMax] = useState(MAX_SIZE);
+    const [sizeMin, setSizeMin] = useState(filters.sizeMin);
+    const [sizeMax, setSizeMax] = useState(filters.sizeMax);
     
     // More options state
-    const [selectedOptions, setSelectedOptions] = useState([]);
+    const [selectedOptions, setSelectedOptions] = useState(filters.options || []);
 
     // Refs for slider interaction
     const priceSliderRef = useRef(null);
@@ -77,14 +77,13 @@ const FilterPage = () => {
 
     // Refs for size slider interaction
     const sizeSliderRef = useRef(null);
-    const draggingSizeHandleRef = useRef(null); // For size slider: 'min' or 'max'
+    const draggingSizeHandleRef = useRef(null); 
 
     const handleBack = () => {
         navigate(-1); 
     };
 
     const handleApplyFilters = () => {
-        // TODO: Implement filter application logic
         console.log("Apply filters with:", {
             filterType,
             selectedCity,
@@ -94,6 +93,20 @@ const FilterPage = () => {
             sizeRange: [sizeMin, sizeMax],
             selectedOptions
         });
+
+        updateFilter({
+            type: filterType,
+            city: selectedCity,
+            neighborhood: selectedNeighborhood,
+            priceMin,
+            priceMax,
+            roomsMin,
+            roomsMax,
+            sizeMin,
+            sizeMax,
+            options: selectedOptions
+        });
+        
         navigate(-1); 
     };
 
@@ -106,6 +119,11 @@ const FilterPage = () => {
     };
 
     const handlePriceMouseDown = (handleType) => (event) => {
+        // Prevent default behavior to stop page scrolling on mobile
+        if (event.type === 'touchstart') {
+            event.preventDefault();
+        }
+        
         draggingHandleRef.current = handleType;
         if (event.target instanceof HTMLElement) {
             event.target.classList.add(styles.active);
@@ -123,6 +141,11 @@ const FilterPage = () => {
 
     const handleMouseMove = useCallback((event) => {
         if (!draggingHandleRef.current || !priceSliderRef.current) return;
+
+        // Prevent default behavior for touch events
+        if (event.type === 'touchmove') {
+            event.preventDefault();
+        }
 
         const sliderRect = priceSliderRef.current.getBoundingClientRect();
         let offsetX = event.clientX - sliderRect.left;
@@ -163,6 +186,11 @@ const FilterPage = () => {
 
     // Rooms Slider Handlers
     const handleRoomsMouseDown = (handleType) => (event) => {
+        // Prevent default behavior to stop page scrolling on mobile
+        if (event.type === 'touchstart') {
+            event.preventDefault();
+        }
+        
         draggingRoomsHandleRef.current = handleType;
         if (event.target instanceof HTMLElement) {
             event.target.classList.add(styles.active);
@@ -180,6 +208,11 @@ const FilterPage = () => {
 
     const handleRoomsMouseMove = useCallback((event) => {
         if (!draggingRoomsHandleRef.current || !roomsSliderRef.current) return;
+
+        // Prevent default behavior for touch events
+        if (event.type === 'touchmove') {
+            event.preventDefault();
+        }
 
         const sliderRect = roomsSliderRef.current.getBoundingClientRect();
         let offsetX = event.clientX - sliderRect.left;
@@ -219,6 +252,11 @@ const FilterPage = () => {
 
     // Size Slider Handlers
     const handleSizeMouseDown = (handleType) => (event) => {
+        // Prevent default behavior to stop page scrolling on mobile
+        if (event.type === 'touchstart') {
+            event.preventDefault();
+        }
+        
         draggingSizeHandleRef.current = handleType;
         if (event.target instanceof HTMLElement) {
             event.target.classList.add(styles.active);
@@ -236,6 +274,11 @@ const FilterPage = () => {
 
     const handleSizeMouseMove = useCallback((event) => {
         if (!draggingSizeHandleRef.current || !sizeSliderRef.current) return;
+
+        // Prevent default behavior for touch events
+        if (event.type === 'touchmove') {
+            event.preventDefault();
+        }
 
         const sliderRect = sizeSliderRef.current.getBoundingClientRect();
         let offsetX = event.clientX - sliderRect.left;
@@ -272,6 +315,26 @@ const FilterPage = () => {
             document.removeEventListener('touchend', handleSizeMouseUp);
         };
     }, [handleSizeMouseMove, handleSizeMouseUp]);
+
+    useEffect(() => {
+        // Function to prevent default touch behavior on sliders
+        const preventDefaultForSliders = (event) => {
+            if (
+                draggingHandleRef.current || 
+                draggingRoomsHandleRef.current || 
+                draggingSizeHandleRef.current
+            ) {
+                event.preventDefault();
+            }
+        };
+
+        // Add the event listener with capture to ensure it's triggered before scroll
+        document.addEventListener('touchmove', preventDefaultForSliders, { passive: false });
+
+        return () => {
+            document.removeEventListener('touchmove', preventDefaultForSliders);
+        };
+    }, []);
 
     return (
         <div className={styles.filterPage}>

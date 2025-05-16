@@ -2,7 +2,7 @@
 
 .filterPage {
     max-width: 100%;
-    padding: 40px;
+    padding: 40px 20px;
     background-color: #fff;
     height: 100vh;
     overflow-y: auto;
@@ -58,6 +58,8 @@
 
 .filterSection {
     margin-bottom: 30px;
+    width: 100%;
+    box-sizing: border-box;
 }
 
 .sectionTitle {
@@ -111,6 +113,7 @@
     background: #e0e0e0;
     border-radius: 3px;
     margin: 40px 0 25px 0;
+    touch-action: none;
 }
 
 .rangeTrack {
@@ -145,6 +148,9 @@
     transform: translate(-50%, -50%);
     cursor: pointer;
     z-index: 2;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
 }
 
 .rangeHandle.active {
@@ -168,21 +174,28 @@
     grid-template-columns: repeat(3, 1fr);
     gap: 10px;
     margin-top: 15px;
+    width: 100%;
+    max-width: 100%;
 }
 
 .optionButton {
-    padding: 12px 10px;
+    padding: 12px 8px;
     background-color: #fff;
     border: 1px solid #ddd;
     border-radius: 20px;
     display: flex;
+    flex-direction: column;
     align-items: center;
     justify-content: center;
     gap: 8px;
     cursor: pointer;
-    font-size: 14px;
+    font-size: 13px;
     color: #333;
     transition: all 0.2s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    min-width: 0;
 }
 
 .optionIcon {

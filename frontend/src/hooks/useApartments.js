@@ -1,4 +1,4 @@
-import {useState, useEffect} from 'react';
+import {useState, useEffect, useRef} from 'react';
 import { useAuth } from './useAuth';
 import { BACKEND_URL } from '../config/constants';
 
@@ -8,8 +8,16 @@ export const useApartments = (options = {}) => {
     const [error, setError] = useState(null);
     const { idToken, loading: authLoading } = useAuth();
     
+    // Create a ref to store the current filterParams string representation
+    // to avoid unnecessary re-fetches
+    const lastFilterParamsRef = useRef('');
+    
     // Default options
-    const { filterViewed = true } = options;
+    const { 
+        filterViewed = true,
+        filterParams = null,
+        refreshTrigger = 0  // Can be incremented to force a refresh
+    } = options;
 
     useEffect(() => {
         if (authLoading) {
@@ -22,14 +30,47 @@ export const useApartments = (options = {}) => {
              setApartments([]);
              return;
          }
+        
+        // Convert filterParams to string for comparison
+        let currentFilterParamsString = '';
+        try {
+            if (filterParams) {
+                currentFilterParamsString = filterParams.toString();
+            }
+        } catch (e) {
+            console.error("Error converting filterParams to string:", e);
+        }
+        
+        // Don't refetch if filter params haven't changed and it's not forced via refreshTrigger
+        if (
+            lastFilterParamsRef.current === currentFilterParamsString && 
+            lastFilterParamsRef.current !== '' &&
+            refreshTrigger === 0
+        ) {
+            return;
+        }
+        
+        // Store the current filter params for future comparison
+        lastFilterParamsRef.current = currentFilterParamsString;
 
         const fetchApartments = async () => {
             setLoading(true);
             setError(null);
             try {
-                // Add filter_viewed query parameter
+                // Base URL
                 const url = new URL(`${BACKEND_URL}/listings/all`);
+                
+                // Add filter_viewed query parameter
                 url.searchParams.append('filter_viewed', filterViewed);
+                
+                // Add any additional filter parameters from useFilters
+                if (filterParams) {
+                    filterParams.forEach((value, key) => {
+                        url.searchParams.append(key, value);
+                    });
+                }
+                
+                console.log("Fetching apartments with URL:", url.toString());
                 
                 const response = await fetch(url.toString(), {
                     method: 'GET',
@@ -54,7 +95,7 @@ export const useApartments = (options = {}) => {
             }
         };
         fetchApartments();
-    }, [idToken, authLoading, filterViewed]);
+    }, [idToken, authLoading, filterViewed, filterParams, refreshTrigger]);
     
     return { apartments, loading, error };    
 };
