@@ -131,7 +131,7 @@ body, html {
   background-color: #a0e3e2;
 }
 
-.loadingContainer, .errorContainer {
+.errorContainer {
   display: flex; 
   justify-content: center; 
   align-items: center;
@@ -142,36 +142,7 @@ body, html {
   padding: 20px;
   width: 100vw;
   margin: auto;
-}
-
-.errorContainer {
   color: #d32f2f;
-}
-
-.loadingContainer {
-  color: #333;
-}
-
-.spinner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 16px;
-}
-
-.spinnerIcon {
-  animation: spin 1.5s linear infinite;
-  color: #aeaff7;
-}
-
-@keyframes spin {
-  0% {
-    transform: rotate(0deg);
-  }
-  100% {
-    transform: rotate(360deg);
-  }
 }
 
 .swipe .swiper-slide-shadow-cards,

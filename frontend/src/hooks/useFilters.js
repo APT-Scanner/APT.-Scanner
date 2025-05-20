@@ -31,7 +31,7 @@ const defaultFilters = {
     // Save filters to localStorage whenever they change
     useEffect(() => {
         try {
-            localStorage.setItem('apartmentFilters', JSON.stringify(filters));
+        localStorage.setItem('apartmentFilters', JSON.stringify(filters));
             // Invalidate cached params when filters change
             filterParamsRef.current = null;
         } catch (error) {
@@ -76,7 +76,7 @@ const defaultFilters = {
 
         // Cache the params
         filterParamsRef.current = queryParams;
-        
+
         return queryParams;
     }, [filters]);
     

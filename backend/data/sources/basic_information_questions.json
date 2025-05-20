@@ -1,0 +1,108 @@
+[
+    {
+        "id": "housing_purpose",
+        "category": "Basic Information",
+        "text": "What's your primary purpose for finding an apartment?",
+        "type": "multiple-choice",
+        "options": [
+        "Family home",
+        "Student housing",
+        "Work relocation",
+        "Other"
+        ],
+        "required": true,
+        "branches": {
+        "Family home": ["children_ages", "safety_priority"],
+        "Student housing": ["learning_space_nearby"]
+        }
+    },
+    {
+        "id": "points_of_interest",
+        "category": "Basic Information",
+        "text": "If you have points of interest, add them below.",
+        "type": "text",
+        "required": false,
+        "on_unanswered": {
+            "id": "preferred_location",
+            "category": "Basic Information",
+            "text": "Do you have a preferred city or area?",
+            "type": "text",
+            "required": false
+        },
+        "on_answered": {
+            "id": "commute_pref",
+            "category": "Lifestyle",
+            "text": "How do you prefer to commute on daily basis?",
+            "type": "single-choice",
+            "options": [
+                "Public transport",
+                "Walking",
+                "Bicycle / scooter",
+                "Private car"
+            ],
+            "on_answered": {
+                "id": "commute_time",
+                "category": "Lifestyle",
+                "text": "What is the maximum commute time you are willing to accept?",
+                "type": "slider",
+                "config": {
+                    "min": 5,
+                    "max": 120,
+                    "step": 5,
+                    "unit": "minutes"
+                }
+            }
+        }
+    },
+    {
+        "id": "budget_range",
+        "category": "Basic Information",
+        "text": "What's your monthly budget for rent?",
+        "type": "slider",
+        "config": {
+        "min": 2000,
+        "max": 20000,
+        "step": 500,
+        "unit": "₪"
+        },
+        "required": true
+    },
+    {
+        "id": "move_in_date",
+        "category": "Basic Information",
+        "text": "When do you plan to move in?",
+        "type": "single-choice",
+        "options": [
+        "Immediately",
+        "Flexible"
+        ],
+        "required": true
+    },
+    {
+        "id": "accessibility_needs",
+        "category": "Basic Information",
+        "text": "Do you or anyone in your household have accessibility needs?",
+        "type": "single-choice",
+        "options": [
+        "No",
+        "Wheelchair access",
+        "Elevator required",
+        "Ground floor only"
+        ],
+        "required": true
+    },
+    {
+        "id": "pet_ownership",
+        "category": "Basic Information",
+        "text": "Do you have pets or plan to have pets?",
+        "type": "single-choice",
+        "options": [
+        "Yes",
+        "No"
+        ],
+        "required": false,
+        "branches": {
+        "Yes": ["pet_friendly_neighborhood"]
+        }
+    }
+]

@@ -1,21 +1,14 @@
 import React from 'react';
 import styles from '../styles/FavoritesApartmentDetails.module.css';
-import { useParams } from 'react-router-dom';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useApartment } from '../hooks/useApartment';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
-import { Loader, ArrowLeft } from 'lucide-react';
+import { ArrowLeft } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import {AnimatedApartmentCard} from './ApartmentSwipePage';
+import AnimatedApartmentCard from '../components/animatedApartmentCard';
 import logo from "../assets/logo-swipe-screen.jpeg";
-import { useNavigate } from 'react-router-dom';
-const LoadingSpinner = () => (
-  <div className={styles.loadingContainer}>
-    <div className={styles.spinner}>
-      <Loader size={40} className={styles.spinnerIcon} />
-      <p>Loading apartment details...</p>
-    </div>
-  </div>
-);
+import { LoadingSpinner } from '../components/loadingSpinner';
+
 
 const FavoritesApartmentDetails = () => {
     const { token } = useParams();

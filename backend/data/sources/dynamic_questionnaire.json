@@ -1,0 +1,166 @@
+[
+    {
+        "id": "children_ages",
+        "category": "Family Information",
+        "text": "Do you have children who will live in the apartment?",
+        "type": "multiple-choice",
+        "options": [
+        "No children",
+        "Infants (0-2 years)",
+        "Young children (3-6 years)",
+        "School-age children (7-12 years)",
+        "Teenagers (13-18 years)",
+        "Adult children (18+ years)"
+        ],
+        "branches": {
+        "Infants (0-2 years)": ["child_education_facilities_nearby", "family_activities_nearby"],
+        "Young children (3-6 years)": ["child_education_facilities_nearby", "family_activities_nearby"],
+        "School-age children (7-12 years)": ["child_education_facilities_nearby", "high_school_nearby", "family_activities_nearby"],
+        "Teenagers (13-18 years)": ["high_school_nearby", "family_activities_nearby"],
+        "Adult children (18+ years)": ["learning_space_nearby"]
+        }
+    },
+    {
+        "id": "child_education_facilities_nearby",
+        "category": "Family Information",
+        "text": "Do you want to be close to kindergartens or schools?",
+        "type": "single-choice",
+        "options": [
+        "Walking distance",
+        "Short drive or public transport ride",
+        "No preference"
+        ],
+        "branches": {
+        "Walking distance": ["safety_priority"],
+        "Short drive or public transport ride": ["safety_priority"]
+        }
+    },
+    {
+        "id": "high_school_nearby",
+        "category": "Family Information",
+        "text": "Do you want to be close to high schools?",
+        "type": "single-choice",
+        "options": [
+        "Walking distance",
+        "Short drive or public transport ride",
+        "No preference"
+        ],
+        "branches": {
+        "Walking distance": ["safety_priority", "learning_space_nearby"],
+        "Short drive or public transport ride": ["safety_priority", "learning_space_nearby"]
+        }
+    },
+    {
+        "id": "learning_space_nearby",
+        "category": "Student Housing",
+        "text": "Is an area with nearby cafes/co-working spaces important to you?",
+        "type": "single-choice",
+        "options": [
+          "Very important",
+          "Somewhat important",
+          "Not important"
+        ]
+    },
+    {
+        "id": "favorite_shop_type",
+        "category": "Location and Convenience",
+        "text": "Which type of shops would you like close to your home?",
+        "type": "multiple-choice",
+        "options": [
+          "Supermarket",
+          "Bakery",
+          "Pharmacy",
+          "Shopping center",
+          "Convenience store",
+          "No preference"
+        ]
+    },
+    {
+        "id": "proximity_to_green_spaces",
+        "category": "Location and Convenience",
+        "text": "How close would you like to be to green spaces (Parks/Gardens)?",
+        "type": "single-choice",
+        "options": [
+          "Walking distance",
+          "Short drive or public transport ride",
+          "No preference"
+        ]
+    },
+    {
+        "id": "proximity_to_gym",
+        "category": "Location and Convenience",
+        "text": "How close would you like to be to fitness centers and gyms?",
+        "type": "single-choice",
+        "options": [
+          "Walking distance",
+          "Short drive or public transport ride",
+          "No preference"
+        ]
+    },
+    {
+        "id": "pet_friendly_neighborhood",
+        "category": "Pet Owners",
+        "text": "Is it important for the neighborhood to be pet-friendly (dog parks, walking paths)?",
+        "type": "single-choice",
+        "options": [
+          "Yes, very important",
+          "Somewhat important",
+          "Not important"
+        ]
+    },
+    {
+        "id": "family_activities_nearby",
+        "category": "Family Information",
+        "text": "How important is proximity to family-friendly places (playgrounds, community centers, etc.)?",
+        "type": "single-choice",
+        "options": [
+          "Very important",
+          "Somewhat important",
+          "Not important"
+        ]
+    },
+    {
+        "id": "nightlife_proximity",
+        "category": "Young Adults Lifestyle",
+        "text": "Do you want to live near bars, cafes, and restaurants?",
+        "type": "single-choice",
+        "options": [
+          "Yes, I want to be in the center of the action",
+          "Close but not too close",
+          "Not important"
+        ]
+    },
+    {
+        "id": "safety_priority",
+        "category": "Location and Convenience",
+        "text": "How important is a low crime and safe neighborhood to you?",
+        "type": "single-choice",
+        "options": [
+          "Very important",
+          "Somewhat important",
+          "Not a concern"
+        ]
+    },
+    {
+        "id": "medical_center_importance",
+        "category": "Location and Convenience",
+        "text": "How important is proximity to medical centers?",
+        "type": "single-choice",
+        "options": [
+            "Not important",
+            "Somewhat",
+            "Very"
+        ]
+    },
+    {
+        "id": "proximity_beach_importance",
+        "category": "Location and Convenience",
+        "text": "Is proximity to the beach important to you?",
+        "type": "single-choice",
+        "options": [
+            "Not important",
+            "Somewhat",
+            "Very"
+        ]
+    }
+]
