@@ -1,10 +1,10 @@
 [
-    {
-      "category": "Lifestyle and Daily Habits",
-      "id": "pace_of_life",
-      "text": "How would you describe your preferred pace of life?",
-      "type": "single-choice",
-      "options": [
+  {
+    "category": "Lifestyle and Daily Habits",
+    "id": "pace_of_life",
+    "text": "How would you describe your preferred pace of life?",
+    "type": "single-choice",
+    "options": [
         "Relaxed and quiet",
         "Balanced – not too quiet, not too noisy",
         "Energetic and vibrant – in the heart of the action"

@@ -98,6 +98,7 @@ class ListingSchema(BaseModel):
     latitude: Optional[float] = None
     created_at: datetime
     updated_at: datetime
+    is_active: bool
 
     neighborhood: Optional[NeighborhoodSchema] = None
     property_condition: Optional[PropertyConditionSchema] = None
@@ -135,9 +136,10 @@ class QuestionModel(BaseModel):
     id: str
     text: str
     type: str
-    options: Optional[List[str]] = None
+    options: Optional[List[Any]] = None
     config: Optional[dict[str,Any]] = None
     conditional: Optional[dict[str,Any]] = None
+    display_type: Optional[str] = None
 
 class FavoriteCreateSchema(BaseModel):
     listing_id: int

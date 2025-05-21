@@ -1,26 +1,32 @@
 .pageWrapper {
-    display: grid;
-    grid-template-rows: auto 1fr auto auto; 
+    display: flex;
+    flex-direction: column;
     background-color: #f0f0f0; 
     box-sizing: border-box;    
     color: #000000;
-    height: 100vh;
+    min-height: 100vh;
     width: 100vw;
-    overflow: hidden;
+    position: relative;
 }
 
 body, html {
     margin: 0;
     padding: 0;
-    overflow: auto; 
+    overflow-x: hidden;
+    overflow-y: auto;  
 }
 
 .header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
     padding: 20px 16px;
     display: flex;
     justify-content: space-between;
     align-items: center;
     border-bottom: 1px solid #f0f0f0;
+    background-color: #f0f0f0;
+    width: auto;
 }
 
 .header h1 {
@@ -40,6 +46,7 @@ body, html {
     padding: 16px;
     font-size: 18px;
     font-weight: 500;
+    width: 100%;
 }
 
 .favoritesGrid {
@@ -47,18 +54,19 @@ body, html {
     grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     padding: 0 16px 100px;
-    overflow-y: auto;
-    align-self: start; 
-    height: 100vh;
-    grid-template-rows: auto auto 1fr auto;
+    overflow-y: visible;
+    width: 100%;
+    box-sizing: border-box;
+    max-width: 1200px;
+    margin: 0 auto;
 }
-
 
 .favoriteCard {
     border-radius: 16px;
     overflow: hidden;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
     position: relative;
+    max-width: 100%;
 }
 
 .favoriteImage {
@@ -66,6 +74,25 @@ body, html {
     background-size: cover;
     background-position: center;
     position: relative;
+    max-height: 300px;
+}
+
+.inactiveOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.2em;
+    font-weight: bold;
+    z-index: 2;
+    text-align: center;
+    pointer-events: none;
 }
 
 .removeButton {
@@ -92,12 +119,13 @@ body, html {
 .editButtonContainer {
     position: fixed;
     bottom: 80px;
-    left: 0;
+    left: -1vh;
     right: 0;
     display: flex;
     justify-content: center;
     padding: 16px;
     z-index: 90;
+    pointer-events: none; /* Make container transparent to clicks */
 }
 
 .editButton {
@@ -109,6 +137,7 @@ body, html {
     font-weight: 500;
     color: #333;
     box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    pointer-events: auto; /* Make button clickable */
 }
 
 .bottomBar {
@@ -191,4 +220,90 @@ body, html {
     margin: 4px 0 0 0;
     font-size: 14px;
     color: #666;
+}
+
+.mainContent {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding-bottom: 20px;
+    width: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+}
+
+.loadingOverlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.3);
+    color: #fff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    font-weight: bold;
+    z-index: 2;
+}
+
+/* Media queries for responsive grid based on screen size */
+@media screen and (min-width: 768px) {
+    .favoritesGrid {
+        grid-template-columns: repeat(3, 1fr);
+        gap: 20px;
+    }
+}
+
+@media screen and (min-width: 1024px) {
+    .favoritesGrid {
+        grid-template-columns: repeat(4, 1fr);
+        gap: 24px;
+    }
+}
+
+@media screen and (min-width: 1440px) {
+    .favoritesGrid {
+        grid-template-columns: repeat(5, 1fr);
+        max-width: 1400px;
+    }
+}
+
+/* Additional styling for larger screens */
+@media screen and (min-width: 1200px) {
+    .editButtonContainer {
+        max-width: 1200px;
+        margin: 0 auto;
+        left: 50%;
+        transform: translateX(-50%);
+    }
+    
+    .bottomBar {
+        left: 50%;
+        transform: translateX(-50%);
+        border-radius: 20px 20px 0 0;
+    }
+    
+    .favoriteCard {
+        transition: transform 0.2s ease, box-shadow 0.2s ease;
+    }
+    
+    .favoriteCard:hover {
+        transform: translateY(-5px);
+        box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+    }
+}
+
+/* Limit the card image size on very large screens */
+@media screen and (min-width: 1800px) {
+    .favoritesGrid {
+        grid-template-columns: repeat(6, 1fr);
+        max-width: 1800px;
+    }
+    
+    .favoriteImage {
+        max-height: 250px;
+    }
 }

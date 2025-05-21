@@ -1,0 +1,239 @@
+/* Styles for FilterPage.jsx */
+
+.filterPage {
+    max-width: 100%;
+    padding: 40px 20px;
+    background-color: #fff;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    box-sizing: border-box;
+}
+
+
+.header {
+    display: flex;
+    align-items: center;
+    margin-bottom: 30px;
+    color: #000;;
+}
+
+.backButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #000;
+    padding: 8px;
+    margin-right: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.typeToggle {
+    display: flex;
+    justify-content: center;
+    gap: 10px;
+    margin-bottom: 30px;
+}
+
+.toggleButton {
+    padding: 12px 30px;
+    border-radius: 20px;
+    border: none;
+    font-size: 16px;
+    font-weight: 500;
+    background-color: #e6e3f0;
+    color: #333;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+.toggleButton.active {
+    background-color: #aeaff7;
+    color: #fff;
+}
+
+.filterSection {
+    margin-bottom: 30px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+.sectionTitle {
+    text-align: center;
+    font-size: 16px;
+    color: #333;
+    margin-bottom: 20px;
+    font-weight: 500;
+}
+
+.dropdown {
+    width: 100%;
+    padding: 12px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    margin-bottom: 10px;
+    background-color: #fff;
+    font-size: 14px;
+    color: #333;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%23333' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    background-size: 16px;
+}
+
+/* Range slider styling */
+.rangeContainer {
+    margin: 30px 0;
+}
+
+.rangeInputsContainer {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 10px;
+}
+
+.rangeInput {
+    width: 80px;
+    padding: 8px 10px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    text-align: center;
+    font-size: 14px;
+}
+
+.rangeSlider {
+    width: 100%;
+    height: 6px;
+    position: relative;
+    background: #e0e0e0;
+    border-radius: 3px;
+    margin: 40px 0 25px 0;
+    touch-action: none;
+}
+
+.rangeTrack {
+    height: 100%;
+    background: #aeaff7;
+    border-radius: 3px;
+    position: absolute;
+}
+
+.rangeLabels {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 20px;
+    color: #666;
+    font-size: 12px;
+}
+
+.sizeSpecificLabels {
+    display: block;
+    position: relative;
+    height: 20px;
+}
+
+.rangeHandle {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: white;
+    border: 2px solid #aeaff7;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+    cursor: pointer;
+    z-index: 2;
+    touch-action: none;
+    -webkit-user-select: none;
+    user-select: none;
+}
+
+.rangeHandle.active {
+    border-color: #8586d8;
+    transform: translate(-50%, -50%) scale(1.1);
+}
+
+.rangeDot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #e0e0e0;
+    position: absolute;
+    top: 50%;
+    transform: translate(-50%, -50%);
+}
+
+/* More options grid */
+.moreOptionsGrid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 10px;
+    margin-top: 15px;
+    width: 100%;
+    max-width: 100%;
+}
+
+.optionButton {
+    padding: 12px 8px;
+    background-color: #fff;
+    border: 1px solid #ddd;
+    border-radius: 20px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    cursor: pointer;
+    font-size: 13px;
+    color: #333;
+    transition: all 0.2s ease;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    word-wrap: break-word;
+    min-width: 0;
+}
+
+.optionIcon {
+    width: 20px;
+    height: 20px;
+    object-fit: contain;
+}
+
+.optionButton.selected {
+    background-color: #f5f5ff;
+    border-color: #aeaff7;
+    color: #7677c1;
+}
+
+.optionButton:hover {
+    border-color: #aeaff7;
+}
+
+/* Apply Button */
+.applyButton {
+    background-color: #3f1651;
+    color: white;
+    border: none;
+    border-radius: 10px;
+    padding: 16px;
+    font-size: 18px;
+    font-weight: 500;
+    cursor: pointer;
+    width: 100%;
+    margin-top: auto;
+    margin-bottom: 20px;
+    transition: background-color 0.2s ease;
+}
+
+.applyButton:hover {
+    background-color: #331344;
+}
+
+.applyButton:active {
+    background-color: #270f36;
+} 

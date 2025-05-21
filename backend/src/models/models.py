@@ -2,17 +2,17 @@
 from sqlalchemy import (
     Column, Integer, String, Float, Boolean, ForeignKey, Enum as SQLEnum,
     DECIMAL, TEXT, BIGINT, TIMESTAMP, Table,
-    DateTime
+    DateTime  
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB
 from datetime import datetime
 from decimal import Decimal
-from typing import Optional, List
+from typing import Optional, List, Dict, Any
 from enum import Enum as PyEnum
 from .database import Base 
-from pydantic import BaseModel, Field
+
 
 
 # Define the association table for the Many-to-Many relationship
@@ -94,7 +94,7 @@ class Neighborhood(Base):
 class Listing(Base):
     __tablename__ = "listings"
 
-    order_id: Mapped[int] = mapped_column(BIGINT, primary_key=True) # Use BIGINT
+    order_id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
     token: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
 
     # Foreign keys
@@ -107,7 +107,7 @@ class Listing(Base):
     ad_type: Mapped[Optional[str]] = mapped_column(String(20))
     price: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(10, 2))
     property_type: Mapped[Optional[str]] = mapped_column(String(50))
-    rooms_count: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(3, 1)) # Allows 2.5 etc.
+    rooms_count: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(3, 1))
     square_meter: Mapped[Optional[int]] = mapped_column(Integer)
     cover_image_url: Mapped[Optional[str]] = mapped_column(TEXT)
     video_url: Mapped[Optional[str]] = mapped_column(TEXT)
@@ -121,7 +121,8 @@ class Listing(Base):
     longitude: Mapped[Optional[float]] = mapped_column(Float)
     latitude: Mapped[Optional[float]] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()) # Or rely only on DB trigger
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()) 
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
 
     # Many-to-One relationships
     neighborhood: Mapped[Optional["Neighborhood"]] = relationship(back_populates="listings")
@@ -170,13 +171,12 @@ class ParkingImportance(str, PyEnum):
     PREFERABLE = "preferable"
     NOT_IMPORTANT = "not_important"
 
-# הגדירו Enums נוספים לשאר הבחירות בהתאם לצורך
-class ImportanceScale(str, PyEnum): # דוגמה לסקאלה משותפת
+class ImportanceScale(str, PyEnum):
     NOT_IMPORTANT = "not_important"
     SOMEWHAT = "somewhat"
     VERY = "very"
 
-class YesNoPref(str, PyEnum): # דוגמה לכן/לא/אין העדפה
+class YesNoPref(str, PyEnum): 
     YES = "yes"
     NO = "no"
     NO_PREFERENCE = "no_preference"
@@ -250,3 +250,43 @@ class ViewHistory(Base):
     
     def __repr__(self):
         return f"<ViewHistory(user_id={self.user_id}, listing_id={self.listing_id}, viewed_at={self.viewed_at})>"
+
+
+class QuestionnaireState(Base):
+    """
+    Temporary storage for in-progress questionnaire states. 
+    This stores the current state of a user's questionnaire including 
+    their current position, answers, and remaining questions.
+    """
+    __tablename__ = "questionnaire_states"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    # Store serialized JSON data
+    queue: Mapped[str] = mapped_column(TEXT, nullable=False, default="[]")  # JSON list of question IDs
+    answers: Mapped[str] = mapped_column(TEXT, nullable=False, default="{}")  # JSON dict of answers
+    answered_questions: Mapped[str] = mapped_column(TEXT, nullable=False, default="[]")  # JSON list of answered question IDs
+    questionnaire_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # For tracking schema changes
+    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+
+class CompletedQuestionnaire(Base):
+    """
+    Permanent storage for completed questionnaires.
+    Once a user completes a questionnaire, the final answers are stored here
+    and the temporary state is deleted.
+    """
+    __tablename__ = "completed_questionnaires"
+    
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    user_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    # Store the final answers
+    answers: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)  # Store as JSONB for querying
+    questionnaire_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    
+    # Track metrics about the questionnaire
+    question_count: Mapped[int] = mapped_column(Integer, nullable=False)
+    
+    def __repr__(self):
+        return f"<CompletedQuestionnaire(id={self.id}, user_id={self.user_id}, submitted_at={self.submitted_at})>"

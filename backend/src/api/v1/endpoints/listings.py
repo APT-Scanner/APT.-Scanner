@@ -8,7 +8,13 @@ from datetime import datetime, timedelta
 from sqlalchemy import and_, delete
 
 from src.models.database import get_db
-from src.models.models import Listing as ListingModel, Neighborhood as NeighborhoodModel, ViewHistory as ViewHistoryModel
+from src.models.models import (
+    Listing as ListingModel, 
+    Neighborhood as NeighborhoodModel, 
+    ViewHistory as ViewHistoryModel,
+    Tag,
+    listing_tags_association
+)
 from src.models.schemas import ListingSchema, ViewHistoryCreate, ViewHistorySchema
 from src.middleware.auth import get_current_user
 
@@ -20,66 +26,98 @@ router = APIRouter()
     "/all",
     response_model=List[ListingSchema],
     summary="Get all listings",
-    description="Retrieves all listings from the database."
+    description="Retrieves all listings from the database with optional filtering."
 )
 async def get_all_listings(
     db: AsyncSession = Depends(get_db), 
     limit: int = 20,
     current_user = Depends(get_current_user),
-    filter_viewed: bool = True
+    filter_viewed: bool = True,
+    type: str = None,
+    city: str = None,
+    neighborhood: str = None,
+    price_min: float = 500,
+    price_max: float = 15000,
+    rooms_min: float = 1,
+    rooms_max: float = 8,
+    size_min: int = 10,
+    size_max: int = 500,
+    options: str = None
 ):
     """
-    Retrieves all listings from the database, optionally filtering out recently viewed listings.
+    Retrieves all listings from the database with optional filtering.
     """
-    logger.info(f"Fetching all listings with limit: {limit}")
+    logger.info(f"Fetching listings with filters: type={type}, city={city}, neighborhood={neighborhood}, price={price_min}-{price_max}, rooms={rooms_min}-{rooms_max}, size={size_min}-{size_max}, options={options}")
     
     try:
-        if filter_viewed:
-            one_day_ago = datetime.now() - timedelta(days=1)
+        query = select(ListingModel)
+        
+        query = query.where(ListingModel.is_active == True)
+        
+        #if type:
+        #    query = query.where(ListingModel.ad_type.ilike(f"%{type}%"))
+        
+        if city:
+            query = query.where(ListingModel.city.ilike(f"%{city}%"))
             
-            # Extract the firebase_uid from current_user
+        if neighborhood:
+            query = query.where(ListingModel.neighborhood_text.ilike(f"%{neighborhood}%"))
+            
+        query = query.where(ListingModel.price >= price_min)
+        query = query.where(ListingModel.price <= price_max)
+        
+        query = query.where(ListingModel.rooms_count >= rooms_min)
+        query = query.where(ListingModel.rooms_count <= rooms_max)
+        
+        query = query.where(ListingModel.square_meter >= size_min)
+        query = query.where(ListingModel.square_meter <= size_max)
+        
+        if options:
+            options_list = options.split(',')
+            for option in options_list:
+                query = query.join(
+                    listing_tags_association,
+                    ListingModel.order_id == listing_tags_association.c.listing_id
+                ).join(
+                    Tag,
+                    Tag.tag_id == listing_tags_association.c.tag_id
+                ).where(
+                    Tag.tag_name.ilike(f"%{option}%")
+                )
+        
+        if filter_viewed:
+            one_week_ago = datetime.now() - timedelta(days=7)
             user_id = current_user.firebase_uid
             
             viewed_stmt = (
                 select(ViewHistoryModel.listing_id)
                 .where(and_(
-                    ViewHistoryModel.user_id == user_id,  # Use extracted user_id
-                    ViewHistoryModel.viewed_at >= one_day_ago
+                    ViewHistoryModel.user_id == user_id,  
+                    ViewHistoryModel.viewed_at >= one_week_ago
                 ))
             )
             
             result = await db.execute(viewed_stmt)
             recently_viewed_ids = [row[0] for row in result.all()]
             
-            stmt = (
-                select(ListingModel)
-                .where(~ListingModel.order_id.in_(recently_viewed_ids) if recently_viewed_ids else True)
-                .options(
-                    selectinload(ListingModel.neighborhood),
-                    selectinload(ListingModel.property_condition), 
-                    selectinload(ListingModel.images), 
-                    selectinload(ListingModel.tags) 
-                )
-                .limit(limit)
-            )
-        else:
-            stmt = (
-                select(ListingModel)
-                .options(
-                    selectinload(ListingModel.neighborhood),
-                    selectinload(ListingModel.property_condition), 
-                    selectinload(ListingModel.images), 
-                    selectinload(ListingModel.tags) 
-                )
-                .limit(limit)
-            )
-
-        result = await db.execute(stmt)
+            if recently_viewed_ids:
+                query = query.where(~ListingModel.order_id.in_(recently_viewed_ids))
+        
+        query = query.options(
+            selectinload(ListingModel.neighborhood),
+            selectinload(ListingModel.property_condition), 
+            selectinload(ListingModel.images), 
+            selectinload(ListingModel.tags) 
+        ).limit(limit)
+        
+        result = await db.execute(query)
         listings = result.scalars().all()
+        
+        logger.info(f"Found {len(listings)} listings matching the filters")
         return listings
 
     except Exception as e:
-        logger.error(f"Database error while fetching all listings: {e}", exc_info=True)
+        logger.error(f"Database error while fetching filtered listings: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while retrieving listings."
@@ -149,7 +187,6 @@ async def record_listing_view(
     logger.info(f"Recording view for listing ID: {view_data.listing_id} by user {current_user}")
     
     try:
-        # First check if the listing exists
         stmt = select(ListingModel).where(ListingModel.order_id == view_data.listing_id)
         result = await db.execute(stmt)
         listing = result.scalar_one_or_none()
@@ -160,15 +197,13 @@ async def record_listing_view(
                 detail=f"Listing with ID {view_data.listing_id} not found"
             )
             
-        # Extract user_id from current_user
         user_id = current_user.firebase_uid
         
-        # Check if there's already a recent view record (to prevent duplicates)
         one_day_ago = datetime.now() - timedelta(days=1)
         existing_view_stmt = (
             select(ViewHistoryModel)
             .where(and_(
-                ViewHistoryModel.user_id == user_id,  # Use extracted user_id
+                ViewHistoryModel.user_id == user_id,  
                 ViewHistoryModel.listing_id == view_data.listing_id,
                 ViewHistoryModel.viewed_at >= one_day_ago
             ))
@@ -178,14 +213,12 @@ async def record_listing_view(
         existing_view = existing_result.scalar_one_or_none()
         
         if existing_view:
-            # Update the timestamp on the existing view
             existing_view.viewed_at = datetime.now()
             await db.commit()
             return existing_view
         
-        # Create a new view record
         new_view = ViewHistoryModel(
-            user_id=user_id,  # Use extracted user_id
+            user_id=user_id,  
             listing_id=view_data.listing_id
         )
         
@@ -221,12 +254,11 @@ async def get_view_history(
     logger.info(f"Fetching view history for user: {current_user}")
     
     try:
-        # Extract user_id from current_user
         user_id = current_user.firebase_uid
         
         stmt = (
             select(ViewHistoryModel)
-            .where(ViewHistoryModel.user_id == user_id)  # Use extracted user_id
+            .where(ViewHistoryModel.user_id == user_id)  
             .order_by(ViewHistoryModel.viewed_at.desc())
             .limit(limit)
         )
@@ -259,12 +291,11 @@ async def clear_view_history(
     logger.info(f"Clearing view history for user: {current_user}")
     
     try:
-        # Extract user_id from current_user
         user_id = current_user.firebase_uid
         
         stmt = (
             delete(ViewHistoryModel)
-            .where(ViewHistoryModel.user_id == user_id)  # Use extracted user_id
+            .where(ViewHistoryModel.user_id == user_id) 
         )
         
         await db.execute(stmt)
@@ -278,20 +309,20 @@ async def clear_view_history(
         )
 
 @router.get(
-    "/{listing_id}",
+    "/{order_id}",
     response_model=ListingSchema,
     summary="Get listing by ID"
 )
 async def get_listing_by_id(
-    listing_id: int,
+    order_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     """Get a specific listing by ID"""
-    logger.info(f"Fetching listing with ID: {listing_id}")
+    logger.info(f"Fetching listing with ID: {order_id}")
     
     stmt = (
         select(ListingModel)
-        .where(ListingModel.order_id == listing_id)
+        .where(ListingModel.order_id == order_id)
         .options(
             selectinload(ListingModel.neighborhood),
             selectinload(ListingModel.property_condition),
@@ -307,7 +338,7 @@ async def get_listing_by_id(
         if not listing:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Listing with ID {listing_id} not found"
+                detail=f"Listing with ID {order_id} not found"
             )
             
         return listing
@@ -315,7 +346,7 @@ async def get_listing_by_id(
     except Exception as e:
         if isinstance(e, HTTPException):
             raise e
-        logger.error(f"Database error while fetching listing {listing_id}: {e}", exc_info=True)
+        logger.error(f"Database error while fetching listing {order_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while retrieving the listing"

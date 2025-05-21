@@ -1,0 +1,146 @@
+.pageWrapper {
+    max-width: 100%;
+    background-color: #fff;
+    height: 100vh;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    width: 100vw;
+    box-sizing: border-box;
+    align-items: center;
+    min-width: 380px;
+    min-height: 100vh;
+}
+
+.header {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 15px;
+    width: 100%;
+    box-sizing: border-box;
+    position: fixed;
+    top: 0;
+    left: 0;
+    z-index: 100;
+    background-color: white;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+.backButton {
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #000;
+    padding: 8px;
+    position: absolute;
+    left: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.logo{
+    max-width: 180px;
+    width: 50%;
+    margin: 0 auto;
+}
+
+.cardContainer{
+    position: relative;
+    width: 90vw;
+    max-width: 450px;
+    height: 45vh;
+    min-height: 300px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-top: 80px;
+    padding-bottom: 20px;
+    margin-bottom: 10px; 
+    transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+/* Override any swipe-related styling for the AnimatedApartmentCard */
+.cardContainer :global(.animatedCardWrapper) {
+    width: 100%;
+    height: 100%;
+    cursor: default !important;
+}
+
+/* Make sure the card image is centered and properly sized */
+.cardContainer :global(.cardContentVisual) {
+    width: 100%;
+    height: 100%;
+}
+
+.detailsContainer {
+    text-align: left;
+    width: 100%;
+    max-width: 600px;
+    padding: 0 15px;
+    box-sizing: border-box;
+}
+
+.detailsContainer h3,
+.detailsContainer p,
+.detailsContainer span,
+.detailsContainer div {
+    text-align: left;
+}
+
+/* Target specific classes from ApartmentDetailSheet */
+.detailsContainer [class*="content"] {
+    text-align: left;
+}
+
+.detailsContainer [class*="section"] {
+    text-align: left;
+}
+
+.detailsContainer [class*="sectionTitle"] {
+    text-align: left;
+}
+
+.detailsContainer [class*="address"] {
+    text-align: left;
+    justify-content: flex-start;
+}
+
+.loadingContainer, .errorContainer {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+    text-align: center;
+    font-size: 18px;
+    color: #333;
+    background-color: #f5f5f5;
+    width: 100vw;
+}
+
+.errorContainer {
+    color: #d32f2f;
+}
+
+.spinner {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 16px;
+}
+
+.spinnerIcon {
+    animation: spin 1.5s linear infinite;
+    color: #aeaff7;
+}
+
+@keyframes spin {
+    0% {
+        transform: rotate(0deg);
+    }
+    100% {
+        transform: rotate(360deg);
+    }
+}

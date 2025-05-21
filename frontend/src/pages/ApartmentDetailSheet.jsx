@@ -5,7 +5,6 @@ import {
     Layers3, 
     BedDouble, 
     MapPin, 
-    Calendar, 
     DollarSign, 
     Home, 
     Briefcase, 
@@ -14,11 +13,7 @@ import {
     User, 
     CheckCircle2, 
     Building, 
-    ParkingCircle,
     Droplets,
-    Wifi,
-    Thermometer,
-    Sofa,
     Map,
     Hash,
     Landmark
@@ -73,6 +68,9 @@ const ApartmentDetailSheet = ({ apartment }) => {
             <div className={styles.content}>
             <div className={styles.header}>
                 <h3 className={styles.sectionTitle}>General Information</h3>
+                <div style={{marginBottom: '10px'}}>
+                    <a href={`https://www.yad2.co.il/realestate/item/${apartment.token}`} target="_blank" rel="noopener noreferrer">Go to Yad2 to see contact details</a>
+                </div>
                 <h3 className={styles.address}>
                     <Landmark size={16} className={styles.headerIcon} />
                     {`City: ${apartment.city || ''}`}
