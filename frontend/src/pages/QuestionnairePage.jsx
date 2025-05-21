@@ -5,7 +5,10 @@ import { useQuestionnaire } from '../hooks/useQuestionnaire';
 import styles from '../styles/QuestionnairePage.module.css';
 import { LoadingSpinner } from '../components/loadingSpinner';
 import ContinuationPrompt from '../components/ContinuationPrompt';
+import RangeSlider from '../components/rangeSlider';
 
+// Add debugging to track state changes
+const DEBUG = true;
 
 const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
 const loadGoogleMapsScript = (callback) => {
@@ -43,31 +46,55 @@ const QuestionnairePage = () => {
     currentStageTotalQuestions, // New: Total for current stage (e.g., 5 for dynamic batch)
     currentStageAnsweredQuestions, // New: Answered in current stage
     isOffline,
-    answerQuestion, 
+    answerQuestion: originalAnswerQuestion,
     submitQuestionnaire,
     retry,
     getNumberOfBasicQuestions 
   } = useQuestionnaire();
   
+  // Wrap answerQuestion to add logging
+  const answerQuestion = useCallback((questionId, answer) => {
+    if (DEBUG) console.log(`ANSWERING QUESTION ${questionId} with:`, answer);
+    originalAnswerQuestion(questionId, answer);
+  }, [originalAnswerQuestion]);
+  
   const [selectedOptions, setSelectedOptions] = useState([]);
-  const [sliderRangeValue, setSliderRangeValue] = useState([0, 100]);
   const [listInputValues, setListInputValues] = useState(['']);
   const [googleMapsReady, setGoogleMapsReady] = useState(false);
-
+  const [priceMin, setPriceMin] = useState(2000);
+  const [priceMax, setPriceMax] = useState(20000);
+  const [textInputValue, setTextInputValue] = useState('');
   // Refs for autocomplete inputs
   const autocompleteRefs = useRef([]);
+  const textInputRef = useRef(null); // Ref for single text input
+  // Track question changes
+  const previousQuestionRef = useRef(null);
   
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
+  // Load Google Maps when needed
   useEffect(() => {
-    if (currentQuestion && currentQuestion.type === 'list-input') {
+    if (currentQuestion && (currentQuestion.type === 'list-input' || currentQuestion.type === 'text')) {
+      if (DEBUG) console.log('Loading Google Maps for:', currentQuestion.type);
       loadGoogleMapsScript(() => {
         setGoogleMapsReady(true);
       });
     }
-  }, [currentQuestion]);
+  }, [currentQuestion?.id]); // Only when the question ID changes
 
+  // Monitor question changes for debugging
+  useEffect(() => {
+    if (currentQuestion && DEBUG) {
+      console.log(`Question change detected:`, {
+        from: previousQuestionRef.current?.id,
+        to: currentQuestion.id,
+        type: currentQuestion.type
+      });
+      previousQuestionRef.current = currentQuestion;
+    }
+  }, [currentQuestion?.id]);
+  
   // Initialize Autocomplete for list inputs
   useEffect(() => {
     if (googleMapsReady && currentQuestion && currentQuestion.type === 'list-input') {
@@ -93,14 +120,42 @@ const QuestionnairePage = () => {
         }
       });
     }
-    // Cleanup function to remove __googleAutocompleteInitialized flag if component unmounts or inputs change
     return () => {
         autocompleteRefs.current.forEach(ref => {
             if (ref) delete ref.__googleAutocompleteInitialized;
         });
     };
-  }, [googleMapsReady, currentQuestion?.type, listInputValues.length]);
+  }, [googleMapsReady, currentQuestion?.id, listInputValues.length]);
 
+  // Initialize Autocomplete for single text input
+  useEffect(() => {
+    if (googleMapsReady && currentQuestion && currentQuestion.type === 'text' && textInputRef.current && !textInputRef.current.__googleAutocompleteInitialized) {
+      const autocompleteOptions = {
+        componentRestrictions: { country: 'IL' },
+        types: ['(regions)'] // Restrict to areas/cities for text type
+      };
+      const autocomplete = new window.google.maps.places.Autocomplete(
+        textInputRef.current,
+        autocompleteOptions
+      );
+      autocomplete.addListener('place_changed', () => {
+        const place = autocomplete.getPlace();
+        if (place && place.formatted_address) {
+          setTextInputValue(place.formatted_address);
+        } else if (place && place.name) {
+          setTextInputValue(place.name);
+        }
+      });
+      textInputRef.current.__googleAutocompleteInitialized = true;
+    }
+    return () => {
+      if (textInputRef.current) {
+        delete textInputRef.current.__googleAutocompleteInitialized;
+      }
+    };
+  }, [googleMapsReady, currentQuestion?.id]);
+
+  // Setup total questions counter
   useEffect(() => {
     if (currentStageTotalQuestions > 0) {
       setTotalQuestions(currentStageTotalQuestions);
@@ -123,13 +178,29 @@ const QuestionnairePage = () => {
     }
   }, [currentStageTotalQuestions, currentStageAnsweredQuestions, getNumberOfBasicQuestions, progress]);
   
+  // Handle question changes
   useEffect(() => {
     if (currentQuestion) {
-      setSelectedOptions([]);
+      if (DEBUG) console.log('Handling question change:', currentQuestion.id, currentQuestion.type);
+      
+      // Don't reset selectedOptions if we already have a valid selection
+      // Only reset when the question ID actually changes
+      const shouldResetOptions = !selectedOptions.length || 
+        !currentQuestion.options || 
+        !currentQuestion.options.includes(selectedOptions[0]);
+        
+      if (shouldResetOptions) {
+        if (DEBUG) console.log('Resetting selected options due to new question');
+        setSelectedOptions([]);
+      } else if (DEBUG) {
+        console.log('Keeping current selection:', selectedOptions);
+      }
+      
       if (currentQuestion.type === 'slider' && currentQuestion.config) {
         const min = currentQuestion.config.min !== undefined ? currentQuestion.config.min : 0;
         const max = currentQuestion.config.max !== undefined ? currentQuestion.config.max : 100;
-        setSliderRangeValue([min, max]);
+        setPriceMin(min);
+        setPriceMax(max);
       }
       if (currentQuestion.type === 'list-input') {
         setListInputValues(['']);
@@ -138,10 +209,14 @@ const QuestionnairePage = () => {
             (_, i) => autocompleteRefs.current[i] || React.createRef()
         );
       }
+      if (currentQuestion.type === 'text') {
+        // Reset text input when the question type is text
+        setTextInputValue('');
+      }
       setSubmissionError(null);
     }
-  }, [currentQuestion]);
-  
+  }, [currentQuestion?.id]); // Only run this effect when the question ID changes, not on every render
+
   useEffect(() => {
     if (isSubmitted) {
       navigate('/dashboard');
@@ -152,16 +227,16 @@ const QuestionnairePage = () => {
     navigate('/get-started'); 
   };
 
+  // Add debug logging for selectedOptions changes
   useEffect(() => {
-    if (currentQuestion) {
-      setSelectedOptions([]);
-    }
-  }, [currentQuestion]);
+    if (DEBUG) console.log('Selected options changed:', selectedOptions);
+  }, [selectedOptions]);
   
   const handleSingleChoiceAnswer = (option) => {
     if (currentQuestion) {
+      if (DEBUG) console.log('Single choice selected:', option);
       setSelectedOptions([option]);
-      answerQuestion(currentQuestion.id, option);
+      // answerQuestion is removed, will be handled by Next button
     }
   };
   
@@ -173,46 +248,19 @@ const QuestionnairePage = () => {
       return newSelection;
     });
   };
-  
-  const handleMultipleChoiceSubmit = () => {
-    if (currentQuestion && selectedOptions.length > 0) {
-      const serializedAnswer = JSON.stringify(selectedOptions);
-      answerQuestion(currentQuestion.id, serializedAnswer);
-      setSubmissionError(null);
-    } else if (selectedOptions.length === 0) {
-         setSubmissionError("Please select at least one option.");
-    }
-  };
-  
-  const handleSliderRangeChange = (index, value) => {
-    setSliderRangeValue(prevRange => {
-      const newRange = [...prevRange];
-      newRange[index] = parseInt(value, 10);
-
-      if (index === 0 && newRange[0] > newRange[1]) {
-        newRange[1] = newRange[0];
-      } else if (index === 1 && newRange[1] < newRange[0]) {
-        newRange[0] = newRange[1];
-      }
-      return newRange;
-    });
-  };
 
   const handleListInputChange = (index, event) => {
     const newListValues = [...listInputValues];
     newListValues[index] = event.target.value;
     setListInputValues(newListValues);
-    // If Google Autocomplete manually updates the input, this might be redundant
-    // but good for direct typing.
   };
 
   const handleAddListInput = () => {
     if (listInputValues.length < 5) {
       setListInputValues([...listInputValues, '']);
-      // Prepare ref for the new input
-       autocompleteRefs.current = [...listInputValues, ''].map(
-            (_, i) => autocompleteRefs.current[i] || React.createRef()
-        );
+      autocompleteRefs.current = [...listInputValues, ''].map(
+          (_, i) => autocompleteRefs.current[i] || React.createRef()
+      );
     }
   };
 
@@ -220,8 +268,11 @@ const QuestionnairePage = () => {
     const newListValues = [...listInputValues];
     newListValues.splice(index, 1);
     setListInputValues(newListValues);
-    // Adjust refs array
     autocompleteRefs.current.splice(index, 1);
+  };
+
+  const handleTextInputChange = (event) => {
+    setTextInputValue(event.target.value);
   };
   
   const handleSubmit = () => {
@@ -232,7 +283,10 @@ const QuestionnairePage = () => {
   const goToNextQuestion = (skip = false) => {
     setSubmissionError(null); 
 
+    if (DEBUG) console.log(`goToNextQuestion called - skip: ${skip}`);
+
     if (skip && currentQuestion) {
+      if (DEBUG) console.log('Skipping question:', currentQuestion.id);
       answerQuestion(currentQuestion.id, null); 
       return;
     }
@@ -257,11 +311,11 @@ const QuestionnairePage = () => {
         currentAnswer = JSON.stringify(selectedOptions);
         break;
       case 'slider':
-        if (sliderRangeValue[0] > sliderRangeValue[1]) {
+        if (priceMin > priceMax) {
           setSubmissionError("Minimum range value cannot be greater than maximum range value.");
           return;
         }
-        currentAnswer = JSON.stringify(sliderRangeValue);
+        currentAnswer = JSON.stringify([priceMin, priceMax]);
         break;
       case 'list-input':
         const filteredListInputs = listInputValues.map(item => item.trim()).filter(item => item !== '');
@@ -271,11 +325,17 @@ const QuestionnairePage = () => {
         }
         currentAnswer = JSON.stringify(filteredListInputs);
         break;
+      case 'text':
+        currentAnswer = textInputValue;
+        break;
       default:
         console.warn("Unsupported question type for goToNextQuestion:", currentQuestion.type);
         return;
     }
+    
+    if (DEBUG) console.log(`Submitting answer for ${currentQuestion.id}:`, currentAnswer);
     answerQuestion(currentQuestion.id, currentAnswer);
+    
     if (currentQuestion.type === 'list-input') {
         setListInputValues(['']); 
         autocompleteRefs.current = [React.createRef()]; // Reset refs for next list-input q
@@ -285,6 +345,21 @@ const QuestionnairePage = () => {
   
   const handleContinuationPrompt = (answer) => {
     let selectedOptionText = "";
+    
+    // Check if this is a completion prompt or a continuation prompt
+    if (currentQuestion.id === "final_completion_prompt") {
+      // Handle the completion prompt options
+      if (answer === "yes") {
+        // First option (View matched apartments)
+        navigate('/apartment-swipe');
+      } else {
+        // Second option (Go to dashboard)
+        navigate('/dashboard');
+      }
+      return;
+    }
+    
+    // Handle regular continuation prompt
     if (answer === "yes") {
       selectedOptionText = "Continue with more questions";
     } else {
@@ -315,7 +390,22 @@ const QuestionnairePage = () => {
     );
   }
   
-  if (isComplete) {
+  if (currentQuestion && currentQuestion.display_type === 'continuation_page') {
+    // Check if this is a completion prompt based on the ID
+    const isCompletion = currentQuestion.id === "final_completion_prompt";
+    
+    return (
+      <ContinuationPrompt
+        text={currentQuestion.text}
+        options={currentQuestion.options}
+        onAnswer={handleContinuationPrompt}
+        isCompletion={isCompletion}
+      />
+    );
+  }
+  
+  if (isComplete && !currentQuestion) {
+    // If there's no completion question but isComplete is true, show default completion screen
     return (
       <div className={styles.completionContainer}>
         <h2>Questionnaire Complete!</h2>
@@ -343,23 +433,15 @@ const QuestionnairePage = () => {
     );
   }
   
-  if (currentQuestion.display_type === 'continuation_page') {
-    return (
-      <ContinuationPrompt
-        text={currentQuestion.text}
-        options={currentQuestion.options}
-        onAnswer={handleContinuationPrompt}
-      />
-    );
-  }
-  
   const currentSelections = Array.isArray(selectedOptions) ? selectedOptions : [];
-  const sliderConfig = currentQuestion.config || { min: 0, max: 100, step: 1, unit: '' };
+  const sliderConfig = currentQuestion.config || { min: 0, max: 100, step: 1, unit: '', labels: [] };
 
-  let showNextButton = currentQuestion.type !== 'single-choice' && currentQuestion.display_type !== 'continuation_page';
+  let showNextButton = currentQuestion.display_type !== 'continuation_page';
   let nextButtonEnabled = true;
 
   if (currentQuestion.type === 'multiple-choice' && selectedOptions.length === 0) {
+      nextButtonEnabled = false;
+  } else if (currentQuestion.type === 'single-choice' && selectedOptions.length === 0) {
       nextButtonEnabled = false;
   } else if (currentQuestion.type === 'list-input') {
       const filteredListInputs = listInputValues.map(item => item.trim()).filter(item => item !== '');
@@ -430,38 +512,35 @@ const QuestionnairePage = () => {
         {currentQuestion.type === 'slider' && (
           <div className={styles.sliderContainer}>
             <div className={styles.sliderGroup}>
-              <label htmlFor="minRange" className={styles.sliderLabel}>Minimum: {sliderRangeValue[0]} {sliderConfig.unit}</label>
-              <input 
-                type="range"
-                id="minRange"
-                min={sliderConfig.min} 
-                max={sliderConfig.max} 
-                step={sliderConfig.step} 
-                value={sliderRangeValue[0]}
-                onChange={(e) => handleSliderRangeChange(0, e.target.value)}
-                className={styles.sliderInput}
-                aria-label={`Minimum range value, current value ${sliderRangeValue[0]}`}
+              <RangeSlider
+                min={sliderConfig.min}
+                max={sliderConfig.max}
+                step={sliderConfig.step}
+                valueMin={priceMin}
+                valueMax={priceMax}
+                onChangeMin={setPriceMin}
+                onChangeMax={setPriceMax}
+                labels={sliderConfig.labels}
               />
-            </div>
-            <div className={styles.sliderGroup}>
-              <label htmlFor="maxRange" className={styles.sliderLabel}>Maximum: {sliderRangeValue[1]} {sliderConfig.unit}</label>
-              <input 
-                type="range"
-                id="maxRange"
-                min={sliderConfig.min} 
-                max={sliderConfig.max} 
-                step={sliderConfig.step} 
-                value={sliderRangeValue[1]}
-                onChange={(e) => handleSliderRangeChange(1, e.target.value)}
-                className={styles.sliderInput}
-                aria-label={`Maximum range value, current value ${sliderRangeValue[1]}`}
-              />
-            </div>
-            <div className={styles.sliderValueDisplay}>
-              Range: {sliderRangeValue[0]} {sliderConfig.unit} - {sliderRangeValue[1]} {sliderConfig.unit}
             </div>
           </div>
         )}
+
+        {currentQuestion.type === 'text' && (
+          <div className={styles.textInputContainer}>
+            <input
+              type="text"
+              ref={textInputRef} // Assign ref for text input
+              value={textInputValue}
+              onChange={(e) => setTextInputValue(e.target.value)}
+              placeholder={currentQuestion.placeholder}
+              className={styles.textInput}
+              disabled={!googleMapsReady && currentQuestion.type === 'text'} // Disable if maps not ready
+            />
+            {!googleMapsReady && currentQuestion.type === 'text' && <p className={styles.mapsLoadingText}>Loading Google Maps...</p>}
+          </div>
+        )}
+        
 
         {currentQuestion.type === 'list-input' && (
           <div className={styles.listInputContainer}>
@@ -505,17 +584,17 @@ const QuestionnairePage = () => {
         <button
           className={styles.nextButton}
           onClick={() => goToNextQuestion()}
-          disabled={!nextButtonEnabled || submissionLoading || (!googleMapsReady && currentQuestion.type === 'list-input')}
+          disabled={!nextButtonEnabled || submissionLoading || (!googleMapsReady && (currentQuestion.type === 'list-input' || currentQuestion.type === 'text'))}
         >
           {submissionLoading ? 'Submitting...' : (currentQuestionIndex < totalQuestions - 1 || currentQuestion.display_type === 'continuation_page' ? 'Next Question' : 'Finish')}
         </button>
       )}
       
-      {!(currentQuestionIndex >= totalQuestions - 1 && totalQuestions > 0) && currentQuestion.type !== 'single-choice' && (
+      {!(currentQuestionIndex >= totalQuestions - 1 && totalQuestions > 0) && (
           <button 
             className={styles.skipLink} 
             onClick={() => goToNextQuestion(true)}
-            disabled={!googleMapsReady && currentQuestion.type === 'list-input'} // Also disable skip if maps not ready for list-input
+            disabled={!googleMapsReady && (currentQuestion.type === 'list-input' || currentQuestion.type === 'text')} // Also disable skip if maps not ready for list-input or text
           >
               SKIP TO NEXT QUESTION &gt;
           </button>

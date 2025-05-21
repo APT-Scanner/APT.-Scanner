@@ -18,6 +18,13 @@
   animation: fadeIn 0.5s ease;
 }
 
+/* Special styling for completion box */
+.completionBox {
+  background-color: #f4f7ff;
+  box-shadow: 0 4px 20px rgba(174, 175, 247, 0.2);
+  border: 1px solid rgba(174, 175, 247, 0.3);
+}
+
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
@@ -48,6 +55,15 @@
   font-size: 32px;
   border-radius: 50%;
   margin: 10px 0;
+}
+
+/* Special styling for completion checkmark */
+.completionCheckmark {
+  background-color: #5cb85c;
+  width: 70px;
+  height: 70px;
+  font-size: 36px;
+  box-shadow: 0 4px 12px rgba(92, 184, 92, 0.3);
 }
 
 .promptText {
@@ -93,6 +109,42 @@
 
 .submitButton:hover {
   background-color: #eaeaea;
+}
+
+/* Buttons for completion prompt */
+.primaryButton {
+  padding: 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  width: 100%;
+  background-color: #5cb85c;
+  color: white;
+}
+
+.primaryButton:hover {
+  background-color: #4cae4c;
+}
+
+.secondaryButton {
+  padding: 16px;
+  border-radius: 10px;
+  font-size: 16px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: none;
+  width: 100%;
+  background-color: #f8f9fa;
+  color: #212529;
+  border: 1px solid #dee2e6;
+}
+
+.secondaryButton:hover {
+  background-color: #e9ecef;
 }
 
 /* Responsive adjustments */

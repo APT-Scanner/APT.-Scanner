@@ -27,7 +27,8 @@
             "category": "Basic Information",
             "text": "Do you have a preferred city or area?",
             "type": "text",
-            "required": false
+            "required": false,
+            "placeholder": "e.g. Tel Aviv, Jerusalem, HaMerkaz, HaZafon, etc."
         },
         "on_answered": {
             "id": "commute_pref",
@@ -49,7 +50,8 @@
                     "min": 5,
                     "max": 120,
                     "step": 5,
-                    "unit": "minutes"
+                    "unit": "minutes",
+                    "labels": [5, 120]
                 }
             }
         }

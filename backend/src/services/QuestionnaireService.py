@@ -8,25 +8,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import delete
 import time
-
 from ..models.models import QuestionnaireState, CompletedQuestionnaire
 from ..utils.cache.redis_client import (
     get_cache, set_cache, delete_cache, get_questionnaire_cache_key
 )
+from ..config.constant import CONTINUATION_PROMPT_ID
 
 logger = logging.getLogger(__name__)
-
-CONTINUATION_PROMPT_ID = "system_continuation_prompt"
-
-# Simplified continuation prompt definition to match standard question structure
-CONTINUATION_PROMPT_QUESTION = {
-    "id": CONTINUATION_PROMPT_ID,
-    "text": "You've completed the initial questions! Would you like to continue with more questions to help us better understand your needs, or submit your responses now?",
-    "type": "single-choice",  # Changed to single-choice for standard handling
-    "options": ["Continue with more questions", "Submit my responses now"],
-    "category": "System",
-    "display_type": "continuation_page"  # Special flag for frontend to render this differently
-}
 
 class QuestionnaireService:
     """Service for managing questionnaires and user responses."""
@@ -39,28 +27,43 @@ class QuestionnaireService:
             db_session: SQLAlchemy async session for database access
         """
         self.db_session = db_session
+        self.basic_information_questions = {}
+        self.dynamic_questionnaire = {}
+        self.question_graph = {}
+        self.current_version = 1
+        self.total_questions = 0
         
         # Load question data from files
         try:
+            logger.info("Loading basic information questions...")
             with open('data/sources/basic_information_questions.json', 'r') as f:
-                self.basic_information_questions = {q['id']: q for q in json.load(f)}
+                questions_data = json.load(f)
+                if not questions_data:
+                    logger.error("basic_information_questions.json file is empty")
+                self.basic_information_questions = {q['id']: q for q in questions_data}
+                logger.info(f"Loaded {len(self.basic_information_questions)} basic information questions")
                 
+            logger.info("Loading dynamic questionnaire questions...")
             with open('data/sources/dynamic_questionnaire.json', 'r') as f:
-                self.dynamic_questionnaire = {q['id']: q for q in json.load(f)}
-                
-            # Current questionnaire schema version - increment when structure changes
-            self.current_version = 1
+                questions_data = json.load(f)
+                if not questions_data:
+                    logger.error("dynamic_questionnaire.json file is empty")
+                self.dynamic_questionnaire = {q['id']: q for q in questions_data}
+                logger.info(f"Loaded {len(self.dynamic_questionnaire)} dynamic questions")
             
             # Build the question dependency graph
             self.question_graph = self._build_question_graph()
+            logger.info(f"Built question graph with {len(self.question_graph)} entries")
+        except FileNotFoundError as e:
+            logger.error(f"Question file not found: {e}")
+            self._create_default_questions()
+        except json.JSONDecodeError as e:
+            logger.error(f"Invalid JSON in question file: {e}")
+            self._create_default_questions()
         except Exception as e:
             logger.error(f"Error loading questionnaire data: {e}")
-            # Initialize empty to avoid NoneType errors
-            self.basic_information_questions = {}
-            self.dynamic_questionnaire = {}
-            self.question_graph = {}
-            self.current_version = 1
-
+            self._create_default_questions()
+        
     def _build_question_graph(self) -> Dict[str, Dict[str, Any]]:
         """
         Builds a graph of questions and their dependencies.
@@ -70,32 +73,46 @@ class QuestionnaireService:
         """
         graph = {}
         start_questions = list(self.basic_information_questions.values())
+        self.total_questions = 0  # Reset counter before building
 
         # Process basic information questions first
         for index, question in enumerate(start_questions):
             # For each question, set up next_default to be the next question in sequence
             graph[question['id']] = {
                 "next_default": start_questions[index + 1]['id'] if index < len(start_questions) - 1 else None,
-                "branches": {}
+                "branches": {},
+                "on_answered": {},
+                "on_unanswered": {}
             }
-
+            self.total_questions += 1
             # Add branches if the question has them
             if question.get('branches'):
                 for answer, next_questions_val in question['branches'].items():
                     graph[question['id']]['branches'][answer] = next_questions_val
-
+            
+            if question.get('on_answered'):
+                graph[question['id']]['on_answered'] = question['on_answered']
+                graph[question['on_answered']['id']] = question['on_answered']
+                self.total_questions += 1
+            if question.get('on_unanswered'):
+                graph[question['id']]['on_unanswered'] = question['on_unanswered']
+                graph[question['on_unanswered']['id']] = question['on_unanswered']
+                self.total_questions += 1
         # Process dynamic questionnaire questions
         for q_id, question in self.dynamic_questionnaire.items():
             graph[q_id] = {
                 "next_default": [],
-                "branches": {}
+                "branches": {},
+                "on_answered": {},
+                "on_unanswered": {}
             }
-
+            self.total_questions += 1
             # Add branches for dynamic questions
             if question.get('branches'):
                 for answer, next_questions_val in question['branches'].items():
                     graph[q_id]['branches'][answer] = next_questions_val
         
+        logger.info(f"Total questions count: {self.total_questions}")
         return graph
         
     async def _get_user_state_from_db(self, user_id: str) -> Optional[Dict[str, Any]]:
@@ -258,7 +275,25 @@ class QuestionnaireService:
             New state dictionary
         """
         # Start with basic information questions
-        queue = deque(list(self.basic_information_questions.keys()))
+        if not self.basic_information_questions:
+            logger.error("No basic information questions available to initialize state")
+            # Attempt to reload the questions
+            try:
+                with open('data/sources/basic_information_questions.json', 'r') as f:
+                    self.basic_information_questions = {q['id']: q for q in json.load(f)}
+                logger.info(f"Reloaded {len(self.basic_information_questions)} basic information questions")
+            except Exception as e:
+                logger.error(f"Failed to reload questions: {e}")
+                # Create default questions as last resort
+                self._create_default_questions()
+        
+        # Get all basic question IDs and maintain original order
+        basic_q_ids = []
+        for question in list(self.basic_information_questions.values()):
+            basic_q_ids.append(question['id'])
+            
+        queue = deque(basic_q_ids)
+        logger.info(f"Created initial queue with {len(queue)} questions: {basic_q_ids}")
         
         return {
             'queue': queue,
@@ -307,51 +342,132 @@ class QuestionnaireService:
         # Update state with new answers
         if new_answers:
             for q_id, answer_val in new_answers.items():
+                if q_id == CONTINUATION_PROMPT_ID:
+                    return None, False, True
                 if q_id not in state['answered_questions']:
                     state['answers'][q_id] = answer_val
-                    state['answered_questions'].append(q_id)
-                    
+                    state['answered_questions'].append(q_id)                    
                     # Update queue based on the answer
-                    self._update_queue_based_on_answer(state, q_id, answer_val)
+                    self._update_queue_based_on_answer(state, q_id, answer_val)            
         
         # Save updated state
         await self.update_user_state(user_id, state)
         
-        # Check if we should show the continuation prompt
-        # Show after first 6 questions, then after every 5 additional questions
-        answered_count = len(state['answered_questions'])
-        continuation_prompt_shown_or_answered = CONTINUATION_PROMPT_ID in state['answered_questions'] or \
-                                              CONTINUATION_PROMPT_ID in list(state['queue'])
-        
-        # Count the number of times the continuation prompt has been shown
-        continuation_prompt_times = len([q_id for q_id in state['answered_questions'] if q_id == CONTINUATION_PROMPT_ID])
-        
-        # Calculate the threshold for when to show the next continuation prompt
-        # First at 6 questions, then at 6+5=11, 11+5=16, etc.
-        next_prompt_threshold = 6 + (continuation_prompt_times * 5)
-        
-        # If threshold reached and continuation prompt isn't already in play
-        if answered_count >= next_prompt_threshold and not continuation_prompt_shown_or_answered:
-            logger.debug(f"{answered_count} questions answered for user {user_id}. Adding continuation prompt.")
-            state['queue'].appendleft(CONTINUATION_PROMPT_ID)  # Use appendleft to add to front of queue
-            await self.update_user_state(user_id, state)  # Save state with prompt in queue
+        # Handle special case logic for the next question
+        next_question_data = None
+        last_answered_question = state['answered_questions'][-1] if state['answered_questions'] else None
+        last_answer_val = state['answers'][last_answered_question] if last_answered_question else None
 
-        # Return the next question if available
+        # Handle questions with specific on_answered/on_unanswered conditions
+        if last_answered_question in self.question_graph and self.question_graph[last_answered_question].get('on_answered') != {} and last_answer_val:
+            next_question_data = self.question_graph[last_answered_question].get('on_answered')
+            if state['queue'] and next_question_data and state['queue'][0] != next_question_data['id']:
+                state['queue'].appendleft(next_question_data['id'])
+        elif last_answered_question in self.question_graph and self.question_graph[last_answered_question].get('on_unanswered') != {} and not last_answer_val:
+            next_question_data = self.question_graph[last_answered_question].get('on_unanswered')
+            if state['queue'] and next_question_data and state['queue'][0] != next_question_data['id']:
+                state['queue'].appendleft(next_question_data['id'])
+
+        if next_question_data:
+            await self.update_user_state(user_id, state)
+            return next_question_data, False, False
+        
+        # Return the next question if available in the queue
         if state['queue']:
-            next_q_id = state['queue'][0]
-            next_question_data = None
+            next_q_id = state['queue'].popleft()
+            await self.update_user_state(user_id, state)
             
-            if next_q_id == CONTINUATION_PROMPT_ID:
-                next_question_data = CONTINUATION_PROMPT_QUESTION
-            elif next_q_id in self.basic_information_questions:
+            if next_q_id in self.basic_information_questions:
                 next_question_data = self.basic_information_questions[next_q_id]
             elif next_q_id in self.dynamic_questionnaire:
                 next_question_data = self.dynamic_questionnaire[next_q_id]
-                
-            return next_question_data, False
+            else:
+                for q_id, question_data in self.question_graph.items():
+                    if hasattr(question_data, 'get') and question_data.get('on_unanswered') and question_data['on_unanswered'].get('id') == next_q_id:
+                        next_question_data = question_data['on_unanswered']
+                    elif hasattr(question_data, 'get') and question_data.get('on_answered') and question_data['on_answered'].get('id') == next_q_id:
+                        next_question_data = question_data['on_answered']
+                        
+            return next_question_data, False, False
         
-        # No more questions, questionnaire is complete
-        return None, True
+        # Check if we should add more questions based on answered count
+        answered_count = len(state['answered_questions'])
+        
+        # For the first batch, ensure we have filled the queue with initial questions
+        if answered_count < 10:
+            # Fill queue if it's empty for the first batch
+            if not state['queue']:
+                # Get remaining basic information questions first
+                basic_q_ids = list(self.basic_information_questions.keys())
+                unanswered_basic = [q_id for q_id in basic_q_ids 
+                                  if q_id not in state['answered_questions']]
+                
+                if unanswered_basic:
+                    # Add remaining basic questions to queue (preserving original order)
+                    remaining_basic = []
+                    for q_id in basic_q_ids:
+                        if q_id in unanswered_basic:
+                            remaining_basic.append(q_id)
+                    
+                    state['queue'].extend(remaining_basic)
+                    await self.update_user_state(user_id, state)
+                    
+                    if state['queue']:
+                        return await self.get_next_question(user_id)
+                
+                # If we still need more to reach 10, add dynamic questions
+                if answered_count + len(state['queue']) < 10:
+                    needed_count = 10 - (answered_count + len(state['queue']))
+                    
+                    # Find unanswered dynamic questions
+                    dynamic_q_ids = list(self.dynamic_questionnaire.keys())
+                    unanswered_dynamic = [q_id for q_id in dynamic_q_ids 
+                                        if q_id not in state['answered_questions'] 
+                                        and q_id not in state['queue']]
+                    
+                    # Prioritize questions by category or other criteria (similar to original logic)
+                    location_questions = [q for q in unanswered_dynamic 
+                                        if self.dynamic_questionnaire[q].get('category') == 'Location and Convenience']
+                    
+                    # Add questions up to needed count
+                    questions_to_add = location_questions[:needed_count]
+                    
+                    if questions_to_add:
+                        state['queue'].extend(questions_to_add)
+                        await self.update_user_state(user_id, state)
+                        
+                        if state['queue']:
+                            return await self.get_next_question(user_id)
+        else:
+            # We're beyond 10 questions, check if we need a new batch of 5
+            # Only add new questions if queue is empty (current batch completed)
+            if not state['queue']:
+                # Find all unanswered questions
+                all_q_ids = list(self.basic_information_questions.keys()) + list(self.dynamic_questionnaire.keys())
+                unanswered = [q_id for q_id in all_q_ids 
+                            if q_id not in state['answered_questions']]
+                
+                if unanswered:
+                    # Prefer questions by category or other criteria (similar to original logic)
+                    location_questions = [q for q in unanswered 
+                                        if q in self.dynamic_questionnaire and 
+                                        self.dynamic_questionnaire[q].get('category') == 'Location and Convenience']
+                    other_questions = [q for q in unanswered if q not in location_questions]
+                    
+                    prioritized_questions = location_questions + other_questions
+                    
+                    # Add the next batch of 5 questions
+                    next_batch = prioritized_questions[:5]
+                    
+                    if next_batch:
+                        state['queue'].extend(next_batch)
+                        await self.update_user_state(user_id, state)
+                        
+                        if state['queue']:
+                            return await self.get_next_question(user_id)
+        
+        # If we've reached this point, the questionnaire is complete
+        return None, True, False
     
     def get_basic_questions_length(self) -> int:
         """
@@ -382,42 +498,8 @@ class QuestionnaireService:
                 # If it's not valid JSON, keep it as a string
                 logger.debug(f"Received a string that looks like JSON but isn't: {answer}")
         
-        # Handle the continuation prompt specifically
-        if question_id == CONTINUATION_PROMPT_ID:
-            logger.debug(f"Processing continuation prompt answer. Answer type: {type(answer)}, value: {answer}")
-            
-            # Extract actual answer regardless of format (simplify processing)
-            actual_answer_val = None
-            
-            # Check if it's a string that contains our expected responses
-            if isinstance(answer, str):
-                if "continue" in answer.lower() or answer.lower() == "yes" or answer == "Continue with more questions":
-                    actual_answer_val = "yes"
-                else:
-                    actual_answer_val = "no"
-            # Handle if answer is a list or any other type - default to "no"
-            else:
-                logger.warning(f"Unexpected answer type for continuation prompt: {type(answer)}")
-                actual_answer_val = "no"
-                
-            logger.debug(f"Processed continuation answer: {actual_answer_val}")
-            
-            # If user wants to continue, add more questions
-            if actual_answer_val == "yes":
-                self._add_relevant_dynamic_questions(state, count=5)
-                
-            # Always remove the continuation prompt from the queue 
-            if queue and queue[0] == CONTINUATION_PROMPT_ID:
-                queue.popleft()
-            elif CONTINUATION_PROMPT_ID in queue:
-                # For deque, we need to remove the item safely
-                queue_list_val = list(queue)
-                if CONTINUATION_PROMPT_ID in queue_list_val:
-                    queue_list_val.remove(CONTINUATION_PROMPT_ID)
-                    state['queue'] = deque(queue_list_val)
-                    
-            return  # Exit early as we've handled this special case
-
+        # Handle regular question flow (continuation prompt is now handled in frontend)
+        
         # Remove the answered question from queue if it's at the front
         if queue and queue[0] == question_id:
             queue.popleft()  # Using popleft() for deque instead of pop(0)
@@ -558,14 +640,9 @@ class QuestionnaireService:
         """
         state = await self.get_user_state(user_id)
         
-        # If the queue is not empty, it's not complete, 
-        # unless the only thing in the queue is the continuation prompt AND no decision has been made.
-        # However, if continuation prompt is answered "no" and queue becomes empty, it IS complete.
-        # If continuation prompt is answered "yes" and new questions are added, it is NOT complete until those are done.
-        
         # Simplest check: if queue is empty AND there are answered questions, it implies completion.
-        # The logic in get_next_question and _update_queue_based_on_answer handles the flow
-        # such that an empty queue signifies true completion or a point where user opted out.
+        # The questionnaire is complete when there are no more questions in the queue
+        # and the user has answered at least one question
         return (not state['queue']) and state['answered_questions']
         
     def _get_potential_dynamic_question_ids(self, state: Dict[str, Any]) -> List[str]:
@@ -634,6 +711,3 @@ class QuestionnaireService:
             logger.debug(f"Added {len(questions_to_add_to_queue)} dynamic questions to queue for user.")
         else:
             logger.debug("No relevant dynamic questions found to add to queue.")
-        
-        
-        
