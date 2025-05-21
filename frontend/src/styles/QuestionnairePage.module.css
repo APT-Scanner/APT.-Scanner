@@ -77,7 +77,7 @@ position: relative;
 }
 
 .progressBarContainer {
-  display: flex; gap: 4px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%);
+  display: flex; gap: 4px; position: absolute; left: 50%; top: 50%; transform: translate(-50%, -50%); max-width: 55vw;
 }
 
 .progressDot {
@@ -259,30 +259,99 @@ position: relative;
 }
 .sliderInput::-webkit-slider-thumb { 
   appearance: none; 
-  margin-top: -6px; 
-  height: 20px;
-  width: 20px;
-  background: #aeaff7;
-  border-radius: 50%;
-  border: 2px solid white; 
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  width: 20px; 
+  height: 20px; 
+  background: #aeaff7; 
+  border-radius: 50%; 
+  cursor: pointer; 
+  border: 2px solid white;
+  box-shadow: 0 0 3px rgba(0,0,0,0.2);
 }
 .sliderInput::-moz-range-thumb { 
+  width: 18px; 
   height: 18px; 
-  width: 18px;
-  background: #aeaff7;
-  border-radius: 50%;
+  background: #aeaff7; 
+  border-radius: 50%; 
+  cursor: pointer; 
   border: 2px solid white;
-  box-shadow: 0 1px 3px rgba(0,0,0,0.2);
+  box-shadow: 0 0 3px rgba(0,0,0,0.2);
 }
-
 
 .sliderValueDisplay {
   font-size: 16px;
+  color: #333;
   font-weight: 500;
-  color: #371b34;
-  background-color: #e8e8fa; 
-  padding: 5px 12px;
+  padding: 5px 10px;
+  background-color: #e9e9f7;
   border-radius: 5px;
+}
+
+/* Styles for list-input */
+.listInputContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  background-color: #ffffff;
+  padding: 15px;
+  border: 1.5px solid #d0d0d0;
+  border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.listItem {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.listInput {
+  flex-grow: 1;
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  font-size: 16px;
+  box-sizing: border-box;
+  background-color: #f0f0f0;
+  color: black;
+}
+
+.addListItemButton,
+.removeListItemButton {
+  padding: 8px 12px;
+  border-radius: 6px;
+  border: none;
+  cursor: pointer;
+  font-size: 14px;
+  font-weight: 500;
+  transition: background-color 0.2s ease;
+}
+
+.addListItemButton {
+  background-color: #e0e0f7; /* Light purple */
+  color: #371b34; /* Dark purple text */
+  align-self: flex-start; /* Align to the left */
+}
+
+.addListItemButton:hover {
+  background-color: #d0d0f0;
+}
+
+.removeListItemButton {
+  background-color: #f7e0e0; /* Light red */
+  color: #d32f2f; /* Dark red text */
+  line-height: 1; /* Adjust for better vertical alignment of '×' */
+  padding: 6px 10px; /* Slightly smaller padding */
+  font-size: 18px; /* Make '×' larger */
+}
+
+.removeListItemButton:hover {
+  background-color: #f0d0d0;
+}
+
+.mapsLoadingText {
+  font-size: 0.9em;
+  color: #666;
+  text-align: center;
+  padding-top: 10px;
 }
 

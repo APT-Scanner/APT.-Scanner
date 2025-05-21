@@ -1,10 +1,32 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IoMdArrowBack } from 'react-icons/io';
 import { useQuestionnaire } from '../hooks/useQuestionnaire';
 import styles from '../styles/QuestionnairePage.module.css';
 import { LoadingSpinner } from '../components/loadingSpinner';
 import ContinuationPrompt from '../components/ContinuationPrompt';
+
+
+const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+const loadGoogleMapsScript = (callback) => {
+  if (window.google && window.google.maps && window.google.maps.places) {
+    callback();
+    return;
+  }
+  const existingScript = document.getElementById('googleMapsScript');
+  if (existingScript) {
+    existingScript.addEventListener('load', callback);
+    return;
+  }
+  const script = document.createElement('script');
+  // Add a callback parameter to handle errors more gracefully
+  script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=Function.prototype`;
+  script.id = 'googleMapsScript';
+  script.async = true;
+  script.defer = true;
+  document.body.appendChild(script);
+  script.onload = () => callback();
+};
 
 const QuestionnairePage = () => {
   const navigate = useNavigate();
@@ -28,10 +50,56 @@ const QuestionnairePage = () => {
   } = useQuestionnaire();
   
   const [selectedOptions, setSelectedOptions] = useState([]);
-  const [sliderValue, setSliderValue] = useState(50);
+  const [sliderRangeValue, setSliderRangeValue] = useState([0, 100]);
+  const [listInputValues, setListInputValues] = useState(['']);
+  const [googleMapsReady, setGoogleMapsReady] = useState(false);
+
+  // Refs for autocomplete inputs
+  const autocompleteRefs = useRef([]);
   
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
+
+  useEffect(() => {
+    if (currentQuestion && currentQuestion.type === 'list-input') {
+      loadGoogleMapsScript(() => {
+        setGoogleMapsReady(true);
+      });
+    }
+  }, [currentQuestion]);
+
+  // Initialize Autocomplete for list inputs
+  useEffect(() => {
+    if (googleMapsReady && currentQuestion && currentQuestion.type === 'list-input') {
+      listInputValues.forEach((_, index) => {
+        if (autocompleteRefs.current[index] && !autocompleteRefs.current[index].__googleAutocompleteInitialized) {
+          const autocomplete = new window.google.maps.places.Autocomplete(
+            autocompleteRefs.current[index],
+            { types: ['geocode', 'establishment'], componentRestrictions: { country: 'IL' } }
+          );
+          autocomplete.addListener('place_changed', () => {
+            const place = autocomplete.getPlace();
+            if (place && place.formatted_address) {
+              const newListValues = [...listInputValues];
+              newListValues[index] = place.formatted_address;
+              setListInputValues(newListValues);
+            } else if (place && place.name) {
+                const newListValues = [...listInputValues];
+                newListValues[index] = place.name;
+                setListInputValues(newListValues);
+            }
+          });
+          autocompleteRefs.current[index].__googleAutocompleteInitialized = true;
+        }
+      });
+    }
+    // Cleanup function to remove __googleAutocompleteInitialized flag if component unmounts or inputs change
+    return () => {
+        autocompleteRefs.current.forEach(ref => {
+            if (ref) delete ref.__googleAutocompleteInitialized;
+        });
+    };
+  }, [googleMapsReady, currentQuestion?.type, listInputValues.length]);
 
   useEffect(() => {
     if (currentStageTotalQuestions > 0) {
@@ -57,10 +125,18 @@ const QuestionnairePage = () => {
   
   useEffect(() => {
     if (currentQuestion) {
-      if (currentQuestion.type === 'multiple-choice') {
-        setSelectedOptions([]);
-      } else if (currentQuestion.type === 'slider' && currentQuestion.config) {
-        setSliderValue(currentQuestion.config.initial || currentQuestion.config.min || 0);
+      setSelectedOptions([]);
+      if (currentQuestion.type === 'slider' && currentQuestion.config) {
+        const min = currentQuestion.config.min !== undefined ? currentQuestion.config.min : 0;
+        const max = currentQuestion.config.max !== undefined ? currentQuestion.config.max : 100;
+        setSliderRangeValue([min, max]);
+      }
+      if (currentQuestion.type === 'list-input') {
+        setListInputValues(['']);
+        // Ensure refs array is ready for the inputs
+        autocompleteRefs.current = listInputValues.map(
+            (_, i) => autocompleteRefs.current[i] || React.createRef()
+        );
       }
       setSubmissionError(null);
     }
@@ -75,6 +151,12 @@ const QuestionnairePage = () => {
   const handleBack = () => {
     navigate('/get-started'); 
   };
+
+  useEffect(() => {
+    if (currentQuestion) {
+      setSelectedOptions([]);
+    }
+  }, [currentQuestion]);
   
   const handleSingleChoiceAnswer = (option) => {
     if (currentQuestion) {
@@ -102,8 +184,44 @@ const QuestionnairePage = () => {
     }
   };
   
-  const handleSliderChange = (e) => {
-    setSliderValue(parseInt(e.target.value, 10));
+  const handleSliderRangeChange = (index, value) => {
+    setSliderRangeValue(prevRange => {
+      const newRange = [...prevRange];
+      newRange[index] = parseInt(value, 10);
+
+      if (index === 0 && newRange[0] > newRange[1]) {
+        newRange[1] = newRange[0];
+      } else if (index === 1 && newRange[1] < newRange[0]) {
+        newRange[0] = newRange[1];
+      }
+      return newRange;
+    });
+  };
+
+  const handleListInputChange = (index, event) => {
+    const newListValues = [...listInputValues];
+    newListValues[index] = event.target.value;
+    setListInputValues(newListValues);
+    // If Google Autocomplete manually updates the input, this might be redundant
+    // but good for direct typing.
+  };
+
+  const handleAddListInput = () => {
+    if (listInputValues.length < 5) {
+      setListInputValues([...listInputValues, '']);
+      // Prepare ref for the new input
+       autocompleteRefs.current = [...listInputValues, ''].map(
+            (_, i) => autocompleteRefs.current[i] || React.createRef()
+        );
+    }
+  };
+
+  const handleRemoveListInput = (index) => {
+    const newListValues = [...listInputValues];
+    newListValues.splice(index, 1);
+    setListInputValues(newListValues);
+    // Adjust refs array
+    autocompleteRefs.current.splice(index, 1);
   };
   
   const handleSubmit = () => {
@@ -121,31 +239,48 @@ const QuestionnairePage = () => {
     
     if (!currentQuestion) return;
     
+    let currentAnswer = null;
+
     switch (currentQuestion.type) {
       case 'single-choice':
         if (!selectedOptions.length) {
           setSubmissionError("Please select an option to continue.");
           return;
         }
-        if (selectedOptions.length > 0) {
-            answerQuestion(currentQuestion.id, selectedOptions[0]);
-        }
+        currentAnswer = selectedOptions[0];
         break;
       case 'multiple-choice':
         if (selectedOptions.length === 0) {
           setSubmissionError("Please select at least one option.");
           return;
         }
-        const serializedAnswer = JSON.stringify(selectedOptions);
-        answerQuestion(currentQuestion.id, serializedAnswer);
+        currentAnswer = JSON.stringify(selectedOptions);
         break;
       case 'slider':
-        answerQuestion(currentQuestion.id, sliderValue);
+        if (sliderRangeValue[0] > sliderRangeValue[1]) {
+          setSubmissionError("Minimum range value cannot be greater than maximum range value.");
+          return;
+        }
+        currentAnswer = JSON.stringify(sliderRangeValue);
+        break;
+      case 'list-input':
+        const filteredListInputs = listInputValues.map(item => item.trim()).filter(item => item !== '');
+        if (filteredListInputs.length === 0) {
+          setSubmissionError("Please add at least one item to the list or skip.");
+          return;
+        }
+        currentAnswer = JSON.stringify(filteredListInputs);
         break;
       default:
         console.warn("Unsupported question type for goToNextQuestion:", currentQuestion.type);
         return;
     }
+    answerQuestion(currentQuestion.id, currentAnswer);
+    if (currentQuestion.type === 'list-input') {
+        setListInputValues(['']); 
+        autocompleteRefs.current = [React.createRef()]; // Reset refs for next list-input q
+    }
+    setSelectedOptions([]);
   };
   
   const handleContinuationPrompt = (answer) => {
@@ -221,15 +356,15 @@ const QuestionnairePage = () => {
   const currentSelections = Array.isArray(selectedOptions) ? selectedOptions : [];
   const sliderConfig = currentQuestion.config || { min: 0, max: 100, step: 1, unit: '' };
 
-  let showNextButton = false;
-  let nextButtonEnabled = false;
+  let showNextButton = currentQuestion.type !== 'single-choice' && currentQuestion.display_type !== 'continuation_page';
+  let nextButtonEnabled = true;
 
-  if (currentQuestion.type === 'multiple-choice' || currentQuestion.type === 'slider') {
-      showNextButton = true;
-      if (currentQuestion.type === 'multiple-choice' && selectedOptions.length > 0) {
-          nextButtonEnabled = true;
-      } else if (currentQuestion.type === 'slider') {
-          nextButtonEnabled = true; 
+  if (currentQuestion.type === 'multiple-choice' && selectedOptions.length === 0) {
+      nextButtonEnabled = false;
+  } else if (currentQuestion.type === 'list-input') {
+      const filteredListInputs = listInputValues.map(item => item.trim()).filter(item => item !== '');
+      if (filteredListInputs.length === 0) {
+          nextButtonEnabled = false;
       }
   }
 
@@ -294,18 +429,74 @@ const QuestionnairePage = () => {
           
         {currentQuestion.type === 'slider' && (
           <div className={styles.sliderContainer}>
-            <input 
-              type="range"
-              min={sliderConfig.min} 
-              max={sliderConfig.max} 
-              step={sliderConfig.step} 
-              value={sliderValue}
-              onChange={handleSliderChange}
-              className={styles.sliderInput}
-            />
-            <div className={styles.sliderValueDisplay}>
-              {sliderValue} {sliderConfig.unit} 
+            <div className={styles.sliderGroup}>
+              <label htmlFor="minRange" className={styles.sliderLabel}>Minimum: {sliderRangeValue[0]} {sliderConfig.unit}</label>
+              <input 
+                type="range"
+                id="minRange"
+                min={sliderConfig.min} 
+                max={sliderConfig.max} 
+                step={sliderConfig.step} 
+                value={sliderRangeValue[0]}
+                onChange={(e) => handleSliderRangeChange(0, e.target.value)}
+                className={styles.sliderInput}
+                aria-label={`Minimum range value, current value ${sliderRangeValue[0]}`}
+              />
             </div>
+            <div className={styles.sliderGroup}>
+              <label htmlFor="maxRange" className={styles.sliderLabel}>Maximum: {sliderRangeValue[1]} {sliderConfig.unit}</label>
+              <input 
+                type="range"
+                id="maxRange"
+                min={sliderConfig.min} 
+                max={sliderConfig.max} 
+                step={sliderConfig.step} 
+                value={sliderRangeValue[1]}
+                onChange={(e) => handleSliderRangeChange(1, e.target.value)}
+                className={styles.sliderInput}
+                aria-label={`Maximum range value, current value ${sliderRangeValue[1]}`}
+              />
+            </div>
+            <div className={styles.sliderValueDisplay}>
+              Range: {sliderRangeValue[0]} {sliderConfig.unit} - {sliderRangeValue[1]} {sliderConfig.unit}
+            </div>
+          </div>
+        )}
+
+        {currentQuestion.type === 'list-input' && (
+          <div className={styles.listInputContainer}>
+            {listInputValues.map((value, index) => (
+              <div key={index} className={styles.listItem}>
+                <input
+                  type="text"
+                  ref={el => autocompleteRefs.current[index] = el} // Assign ref
+                  value={value} // Controlled component
+                  onChange={(e) => handleListInputChange(index, e)}
+                  placeholder={index === 0 ? 'eg. your office, university...' : ''}
+                  className={styles.listInput}
+                  disabled={!googleMapsReady && currentQuestion.type === 'list-input'} // Disable if maps not ready
+                />
+                {listInputValues.length > 1 && (
+                  <button 
+                    onClick={() => handleRemoveListInput(index)} 
+                    className={styles.removeListItemButton}
+                    aria-label={`Remove item ${index + 1}`}
+                  >
+                    &times;
+                  </button>
+                )}
+              </div>
+            ))}
+            {listInputValues.length < 5 && (
+              <button 
+                onClick={handleAddListInput} 
+                className={styles.addListItemButton}
+                disabled={!googleMapsReady && currentQuestion.type === 'list-input'}
+              >
+                + Add Item
+              </button>
+            )}
+            {!googleMapsReady && currentQuestion.type === 'list-input' && <p className={styles.mapsLoadingText}>Loading Google Maps...</p>}
           </div>
         )}
       </div>
@@ -314,14 +505,18 @@ const QuestionnairePage = () => {
         <button
           className={styles.nextButton}
           onClick={() => goToNextQuestion()}
-          disabled={!nextButtonEnabled || submissionLoading}
+          disabled={!nextButtonEnabled || submissionLoading || (!googleMapsReady && currentQuestion.type === 'list-input')}
         >
-          {submissionLoading ? 'Submitting...' : (currentQuestionIndex < totalQuestions - 1 ? 'Next Question' : 'Finish')}
+          {submissionLoading ? 'Submitting...' : (currentQuestionIndex < totalQuestions - 1 || currentQuestion.display_type === 'continuation_page' ? 'Next Question' : 'Finish')}
         </button>
       )}
       
-      {!(currentQuestionIndex >= totalQuestions - 1 && totalQuestions > 0) && (
-          <button className={styles.skipLink} onClick={() => goToNextQuestion(true)}>
+      {!(currentQuestionIndex >= totalQuestions - 1 && totalQuestions > 0) && currentQuestion.type !== 'single-choice' && (
+          <button 
+            className={styles.skipLink} 
+            onClick={() => goToNextQuestion(true)}
+            disabled={!googleMapsReady && currentQuestion.type === 'list-input'} // Also disable skip if maps not ready for list-input
+          >
               SKIP TO NEXT QUESTION &gt;
           </button>
       )}

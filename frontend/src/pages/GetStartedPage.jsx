@@ -20,8 +20,10 @@ const GetStartedPage = () => {
                         APT. Scanner uses questions to find your perfect neighborhood match.
                     </p>
                     <p className={styles.description}>
-                        Answer 5 questions to get started.
-                        <br />you can always answer more later.</p>
+                        Answer 6 essential questions to begin.
+                        <br />
+                        Then, you’ll get the option to go deeper with personalized ones.
+                    </p>
                     <img src={houseIllustration} alt="House Illustration" className={styles.illustration} />
                     <button className={styles.getStartedButton} onClick={handleGetStarted}>Get Started</button>
             </div>

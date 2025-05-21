@@ -15,6 +15,7 @@ import renovatedIcon from '../assets/icons/image 28.png';
 import roommatesIcon from '../assets/icons/image 33.png';
 import petFriendlyIcon from '../assets/icons/image 32.png';
 import furnishedIcon from '../assets/icons/image 31.png';
+import RangeSlider from '../components/rangeSlider'; 
 
 const cities = ['תל אביב יפו'];
 const neighborhoods = {
@@ -68,15 +69,12 @@ const FilterPage = () => {
     const [selectedOptions, setSelectedOptions] = useState(filters.options || []);
 
     // Refs for slider interaction
-    const priceSliderRef = useRef(null);
     const draggingHandleRef = useRef(null); // 'min' or 'max'
 
     // Refs for rooms slider interaction
-    const roomsSliderRef = useRef(null);
     const draggingRoomsHandleRef = useRef(null); // For rooms slider: 'min' or 'max'
 
     // Refs for size slider interaction
-    const sizeSliderRef = useRef(null);
     const draggingSizeHandleRef = useRef(null); 
 
     const handleBack = () => {
@@ -117,204 +115,6 @@ const FilterPage = () => {
                 : [...prev, optionId]
         );
     };
-
-    const handlePriceMouseDown = (handleType) => (event) => {
-        // Prevent default behavior to stop page scrolling on mobile
-        if (event.type === 'touchstart') {
-            event.preventDefault();
-        }
-        
-        draggingHandleRef.current = handleType;
-        if (event.target instanceof HTMLElement) {
-            event.target.classList.add(styles.active);
-        }
-    };
-
-    const handleMouseUp = useCallback(() => {
-        if (draggingHandleRef.current) {
-            document.querySelectorAll(`.${styles.rangeHandle}.${styles.active}`).forEach(handle => {
-                handle.classList.remove(styles.active);
-            });
-            draggingHandleRef.current = null;
-        }
-    }, []); 
-
-    const handleMouseMove = useCallback((event) => {
-        if (!draggingHandleRef.current || !priceSliderRef.current) return;
-
-        // Prevent default behavior for touch events
-        if (event.type === 'touchmove') {
-            event.preventDefault();
-        }
-
-        const sliderRect = priceSliderRef.current.getBoundingClientRect();
-        let offsetX = event.clientX - sliderRect.left;
-        const sliderWidth = sliderRect.width;
-
-        if (event.touches && event.touches.length > 0) {
-            offsetX = event.touches[0].clientX - sliderRect.left;
-        }
-
-        let percentage = (offsetX / sliderWidth) * 100;
-        percentage = Math.max(0, Math.min(100, percentage));
-
-        let newValue = MIN_PRICE + (percentage / 100) * (MAX_PRICE - MIN_PRICE);
-        // Snap to nearest 100 or any other step you prefer
-        const step = 100;
-        newValue = Math.round(newValue / step) * step;
-
-        if (draggingHandleRef.current === 'min') {
-            setPriceMin(prevMin => Math.max(MIN_PRICE, Math.min(newValue, priceMax - step)));
-        } else if (draggingHandleRef.current === 'max') {
-            setPriceMax(prevMax => Math.min(MAX_PRICE, Math.max(newValue, priceMin + step)));
-        }
-    }, [priceMin, priceMax, setPriceMin, setPriceMax]); 
-
-    useEffect(() => {
-        document.addEventListener('mousemove', handleMouseMove);
-        document.addEventListener('touchmove', handleMouseMove, { passive: false }); 
-        document.addEventListener('mouseup', handleMouseUp);
-        document.addEventListener('touchend', handleMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('touchmove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.removeEventListener('touchend', handleMouseUp);
-        };
-    }, [handleMouseMove, handleMouseUp]); 
-
-    // Rooms Slider Handlers
-    const handleRoomsMouseDown = (handleType) => (event) => {
-        // Prevent default behavior to stop page scrolling on mobile
-        if (event.type === 'touchstart') {
-            event.preventDefault();
-        }
-        
-        draggingRoomsHandleRef.current = handleType;
-        if (event.target instanceof HTMLElement) {
-            event.target.classList.add(styles.active);
-        }
-    };
-
-    const handleRoomsMouseUp = useCallback(() => {
-        if (draggingRoomsHandleRef.current) {
-            document.querySelectorAll(`.${styles.rangeHandle}.${styles.active}`).forEach(handle => {
-                handle.classList.remove(styles.active);
-            });
-            draggingRoomsHandleRef.current = null;
-        }
-    }, []);
-
-    const handleRoomsMouseMove = useCallback((event) => {
-        if (!draggingRoomsHandleRef.current || !roomsSliderRef.current) return;
-
-        // Prevent default behavior for touch events
-        if (event.type === 'touchmove') {
-            event.preventDefault();
-        }
-
-        const sliderRect = roomsSliderRef.current.getBoundingClientRect();
-        let offsetX = event.clientX - sliderRect.left;
-        const sliderWidth = sliderRect.width;
-
-        if (event.touches && event.touches.length > 0) {
-            offsetX = event.touches[0].clientX - sliderRect.left;
-        }
-
-        let percentage = (offsetX / sliderWidth) * 100;
-        percentage = Math.max(0, Math.min(100, percentage));
-
-        const step = 1;
-        let newValue = MIN_ROOMS + (percentage / 100) * (MAX_ROOMS - MIN_ROOMS);
-        newValue = Math.round(newValue / step) * step;
-
-        if (draggingRoomsHandleRef.current === 'min') {
-            setRoomsMin(prevMin => Math.max(MIN_ROOMS, Math.min(newValue, roomsMax - step)));
-        } else if (draggingRoomsHandleRef.current === 'max') {
-            setRoomsMax(prevMax => Math.min(MAX_ROOMS, Math.max(newValue, roomsMin + step)));
-        }
-    }, [roomsMin, roomsMax, setRoomsMin, setRoomsMax]);
-
-    useEffect(() => {
-        document.addEventListener('mousemove', handleRoomsMouseMove);
-        document.addEventListener('touchmove', handleRoomsMouseMove, { passive: false });
-        document.addEventListener('mouseup', handleRoomsMouseUp);
-        document.addEventListener('touchend', handleRoomsMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleRoomsMouseMove);
-            document.removeEventListener('touchmove', handleRoomsMouseMove);
-            document.removeEventListener('mouseup', handleRoomsMouseUp);
-            document.removeEventListener('touchend', handleRoomsMouseUp);
-        };
-    }, [handleRoomsMouseMove, handleRoomsMouseUp]);
-
-    // Size Slider Handlers
-    const handleSizeMouseDown = (handleType) => (event) => {
-        // Prevent default behavior to stop page scrolling on mobile
-        if (event.type === 'touchstart') {
-            event.preventDefault();
-        }
-        
-        draggingSizeHandleRef.current = handleType;
-        if (event.target instanceof HTMLElement) {
-            event.target.classList.add(styles.active);
-        }
-    };
-
-    const handleSizeMouseUp = useCallback(() => {
-        if (draggingSizeHandleRef.current) {
-            document.querySelectorAll(`.${styles.rangeHandle}.${styles.active}`).forEach(handle => {
-                handle.classList.remove(styles.active);
-            });
-            draggingSizeHandleRef.current = null;
-        }
-    }, []);
-
-    const handleSizeMouseMove = useCallback((event) => {
-        if (!draggingSizeHandleRef.current || !sizeSliderRef.current) return;
-
-        // Prevent default behavior for touch events
-        if (event.type === 'touchmove') {
-            event.preventDefault();
-        }
-
-        const sliderRect = sizeSliderRef.current.getBoundingClientRect();
-        let offsetX = event.clientX - sliderRect.left;
-        const sliderWidth = sliderRect.width;
-
-        if (event.touches && event.touches.length > 0) {
-            offsetX = event.touches[0].clientX - sliderRect.left;
-        }
-
-        let percentage = (offsetX / sliderWidth) * 100;
-        percentage = Math.max(0, Math.min(100, percentage));
-
-        const step = 10; // Step for size slider
-        let newValue = MIN_SIZE + (percentage / 100) * (MAX_SIZE - MIN_SIZE);
-        newValue = Math.round(newValue / step) * step;
-
-        if (draggingSizeHandleRef.current === 'min') {
-            setSizeMin(prevMin => Math.max(MIN_SIZE, Math.min(newValue, sizeMax - step)));
-        } else if (draggingSizeHandleRef.current === 'max') {
-            setSizeMax(prevMax => Math.min(MAX_SIZE, Math.max(newValue, sizeMin + step)));
-        }
-    }, [sizeMin, sizeMax, setSizeMin, setSizeMax]);
-
-    useEffect(() => {
-        document.addEventListener('mousemove', handleSizeMouseMove);
-        document.addEventListener('touchmove', handleSizeMouseMove, { passive: false });
-        document.addEventListener('mouseup', handleSizeMouseUp);
-        document.addEventListener('touchend', handleSizeMouseUp);
-
-        return () => {
-            document.removeEventListener('mousemove', handleSizeMouseMove);
-            document.removeEventListener('touchmove', handleSizeMouseMove);
-            document.removeEventListener('mouseup', handleSizeMouseUp);
-            document.removeEventListener('touchend', handleSizeMouseUp);
-        };
-    }, [handleSizeMouseMove, handleSizeMouseUp]);
 
     useEffect(() => {
         // Function to prevent default touch behavior on sliders
@@ -385,174 +185,43 @@ const FilterPage = () => {
 
             <div className={styles.filterSection}>
                 <h3 className={styles.sectionTitle}>-Price-</h3>
-                <div className={styles.rangeInputsContainer}>
-                    <input 
-                        type="number" 
-                        className={styles.rangeInput} 
-                        value={priceMin}
-                        onChange={(e) => setPriceMin(Math.max(MIN_PRICE, Math.min(parseInt(e.target.value) || MIN_PRICE, priceMax -100)))}
-                        placeholder="Min"
-                        step="100"
-                    />
-                    <input 
-                        type="number" 
-                        className={styles.rangeInput} 
-                        value={priceMax}
-                        onChange={(e) => setPriceMax(Math.min(MAX_PRICE, Math.max(parseInt(e.target.value) || MAX_PRICE, priceMin + 100)))}
-                        placeholder="Max"
-                        step="100"
-                    />
-                </div>
-                <div className={styles.rangeSlider} ref={priceSliderRef}>
-                    <div 
-                        className={styles.rangeTrack} 
-                        style={{ 
-                            left: `${((priceMin - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}%`, 
-                            width: `${((priceMax - priceMin) / (MAX_PRICE - MIN_PRICE)) * 100}%` 
-                        }}
-                    ></div>
-                    <div className={styles.rangeDot} style={{ left: '0%' }}></div>
-                    <div className={styles.rangeDot} style={{ left: '25%' }}></div>
-                    <div className={styles.rangeDot} style={{ left: '50%' }}></div>
-                    <div className={styles.rangeDot} style={{ left: '75%' }}></div>
-                    <div className={styles.rangeDot} style={{ left: '100%' }}></div>
-                    
-                    <div 
-                        className={styles.rangeHandle} 
-                        style={{ left: `${((priceMin - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}%` }}
-                        onMouseDown={handlePriceMouseDown('min')}
-                        onTouchStart={handlePriceMouseDown('min')} // For touch devices
-                    ></div>
-                    <div 
-                        className={styles.rangeHandle} 
-                        style={{ left: `${((priceMax - MIN_PRICE) / (MAX_PRICE - MIN_PRICE)) * 100}%` }}
-                        onMouseDown={handlePriceMouseDown('max')}
-                        onTouchStart={handlePriceMouseDown('max')} // For touch devices
-                    ></div>
-                </div>
-                <div className={styles.rangeLabels}>
-                    <span>500</span>
-                    <span>5,000</span>
-                    <span>10,000</span>
-                    <span>15,000</span>
-                </div>
+                <RangeSlider
+                    min={MIN_PRICE}
+                    max={MAX_PRICE}
+                    step={100}
+                    valueMin={priceMin}
+                    valueMax={priceMax}
+                    onChangeMin={setPriceMin}
+                    onChangeMax={setPriceMax}
+                    labels={[500, 5000, 10000, 15000]}
+                />
             </div>
-
             <div className={styles.filterSection}>
                 <h3 className={styles.sectionTitle}>-Rooms-</h3>
-                <div className={styles.rangeInputsContainer}>
-                    <input 
-                        type="number" 
-                        className={styles.rangeInput} 
-                        value={roomsMin} 
-                        onChange={(e) => setRoomsMin(Math.max(MIN_ROOMS, Math.min(parseInt(e.target.value) || MIN_ROOMS, roomsMax - 1)))}
-                        placeholder="Min"
-                        step="1"
-                    />
-                    <input 
-                        type="number" 
-                        className={styles.rangeInput} 
-                        value={roomsMax}
-                        onChange={(e) => setRoomsMax(Math.min(MAX_ROOMS, Math.max(parseInt(e.target.value) || MAX_ROOMS, roomsMin + 1)))}
-                        placeholder="Max"
-                        step="1"
-                    />
-                </div>
-                <div className={styles.rangeSlider} ref={roomsSliderRef}>
-                    <div 
-                        className={styles.rangeTrack} 
-                        style={{ 
-                            left: `${((roomsMin - MIN_ROOMS) / (MAX_ROOMS - MIN_ROOMS)) * 100}%`, 
-                            width: `${((roomsMax - roomsMin) / (MAX_ROOMS - MIN_ROOMS)) * 100}%` 
-                        }}
-                    ></div>
-                    {[1, 2, 3, 4, 5, 6, 7, 8].map((num) => (
-                        <div 
-                            key={num} 
-                            className={styles.rangeDot} 
-                            style={{ left: `${((num - MIN_ROOMS) / (MAX_ROOMS - MIN_ROOMS)) * 100}%` }}
-                        ></div>
-                    ))}
-                    
-                    <div 
-                        className={styles.rangeHandle} 
-                        style={{ left: `${((roomsMin - MIN_ROOMS) / (MAX_ROOMS - MIN_ROOMS)) * 100}%` }}
-                        onMouseDown={handleRoomsMouseDown('min')}
-                        onTouchStart={handleRoomsMouseDown('min')}
-                    ></div>
-                    <div 
-                        className={styles.rangeHandle} 
-                        style={{ left: `${((roomsMax - MIN_ROOMS) / (MAX_ROOMS - MIN_ROOMS)) * 100}%` }}
-                        onMouseDown={handleRoomsMouseDown('max')}
-                        onTouchStart={handleRoomsMouseDown('max')}
-                    ></div>
-                </div>
-                <div className={styles.rangeLabels}>
-                    <span>1</span>
-                    <span>2</span>
-                    <span>3</span>
-                    <span>4</span>
-                    <span>5</span>
-                    <span>6</span>
-                    <span>7</span>
-                    <span>8</span>
-                </div>
+                <RangeSlider
+                    min={MIN_ROOMS}
+                    max={MAX_ROOMS}
+                    step={1}
+                    valueMin={roomsMin}
+                    valueMax={roomsMax}
+                    onChangeMin={setRoomsMin}
+                    onChangeMax={setRoomsMax}
+                    labels={[1, 2, 3, 4, 5, 6, 7, 8]}
+                />
             </div>
-
             <div className={styles.filterSection}>
                 <h3 className={styles.sectionTitle}>-Size in m²-</h3>
-                <div className={styles.rangeInputsContainer}>
-                    <input 
-                        type="number" 
-                        className={styles.rangeInput} 
-                        value={sizeMin} 
-                        onChange={(e) => setSizeMin(Math.max(MIN_SIZE, Math.min(parseInt(e.target.value) || MIN_SIZE, sizeMax - 10)))}
-                        placeholder="Min"
-                        step="10"
-                    />
-                    <input 
-                        type="number" 
-                        className={styles.rangeInput} 
-                        value={sizeMax}
-                        onChange={(e) => setSizeMax(Math.min(MAX_SIZE, Math.max(parseInt(e.target.value) || MAX_SIZE, sizeMin + 10)))}
-                        placeholder="Max"
-                        step="10"
-                    />
-                </div>
-                <div className={styles.rangeSlider} ref={sizeSliderRef}>
-                    <div 
-                        className={styles.rangeTrack} 
-                        style={{ 
-                            left: `${((sizeMin - MIN_SIZE) / (MAX_SIZE - MIN_SIZE)) * 100}%`, 
-                            width: `${((sizeMax - sizeMin) / (MAX_SIZE - MIN_SIZE)) * 100}%` 
-                        }}
-                    ></div>
-                    <div className={styles.rangeDot} style={{ left: '0%' }}></div>
-                    <div className={styles.rangeDot} style={{ left: '18.37%' }}></div>
-                    <div className={styles.rangeDot} style={{ left: '59.18%' }}></div>
-                    <div className={styles.rangeDot} style={{ left: '100%' }}></div>
-                    
-                    <div 
-                        className={styles.rangeHandle} 
-                        style={{ left: `${((sizeMin - MIN_SIZE) / (MAX_SIZE - MIN_SIZE)) * 100}%` }}
-                        onMouseDown={handleSizeMouseDown('min')}
-                        onTouchStart={handleSizeMouseDown('min')}
-                    ></div>
-                    <div 
-                        className={styles.rangeHandle} 
-                        style={{ left: `${((sizeMax - MIN_SIZE) / (MAX_SIZE - MIN_SIZE)) * 100}%` }}
-                        onMouseDown={handleSizeMouseDown('max')}
-                        onTouchStart={handleSizeMouseDown('max')}
-                    ></div>
-                </div>
-                <div className={`${styles.rangeLabels} ${styles.sizeSpecificLabels}`}>
-                    <span style={{ position: 'absolute', left: '0%', transform: 'translateX(0%)' }}>10</span>
-                    <span style={{ position: 'absolute', left: '18.37%', transform: 'translateX(-50%)' }}>100</span>
-                    <span style={{ position: 'absolute', left: '59.18%', transform: 'translateX(-50%)' }}>300</span>
-                    <span style={{ position: 'absolute', left: '100%', transform: 'translateX(-100%)' }}>500</span>
-                </div>
+                <RangeSlider
+                    min={MIN_SIZE}
+                    max={MAX_SIZE}
+                    step={10}
+                    valueMin={sizeMin}
+                    valueMax={sizeMax}
+                    onChangeMin={setSizeMin}
+                    onChangeMax={setSizeMax}
+                    labels={[100, 200, 300, 400, 500]}
+                />
             </div>
-
             <div className={styles.filterSection}>
                 <h3 className={styles.sectionTitle}>-More options-</h3>
                 <div className={styles.moreOptionsGrid}>

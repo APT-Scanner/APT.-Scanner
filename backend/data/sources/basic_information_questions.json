@@ -20,7 +20,7 @@
         "id": "points_of_interest",
         "category": "Basic Information",
         "text": "If you have points of interest, add them below.",
-        "type": "text",
+        "type": "list-input",
         "required": false,
         "on_unanswered": {
             "id": "preferred_location",
