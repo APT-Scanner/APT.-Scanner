@@ -1,6 +1,19 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
-import { BACKEND_URL } from '../config/constants';
+import { BACKEND_URL, CONTINUATION_PROMPT_ID } from '../config/constants';
+
+// Add debugging flag
+const DEBUG = true;
+
+// Continuation prompt configuration
+const CONTINUATION_PROMPT_QUESTION = {
+  id: CONTINUATION_PROMPT_ID,
+  text: "You've completed the initial questions! Would you like to continue with more questions to help us better understand your needs, or submit your responses now?",
+  type: "single-choice",
+  options: ["Continue with more questions", "Submit my responses now"],
+  category: "System",
+  display_type: "continuation_page"  // Special flag for frontend to render this differently
+};
 
 /**
  * Custom hook for managing questionnaire state and API interactions.
@@ -33,6 +46,12 @@ export const useQuestionnaire = () => {
   
   // Network status
   const [isOffline, setIsOffline] = useState(false);
+  
+  // Track if this is the first load
+  const isInitialMount = useRef(true);
+  
+  // Track if continuation prompt has been shown
+  const continuationPromptShown = useRef(false);
   
   // Get auth token and user info
   const { idToken, user, loading: authLoading } = useAuth();
@@ -116,6 +135,12 @@ export const useQuestionnaire = () => {
         setAnsweredQuestions(cachedAnsweredQuestions);
         setProgress(cachedAnsweredQuestions.length);
       }
+      
+      // Load continuation prompt state
+      const cachedContinuationShown = getFromLocalStorage('continuation-shown');
+      if (cachedContinuationShown) {
+        continuationPromptShown.current = cachedContinuationShown;
+      }
     }
   }, [user, getFromLocalStorage]);
 
@@ -136,6 +161,8 @@ export const useQuestionnaire = () => {
         return;
       }
       
+      if (DEBUG) console.log("Starting/resuming questionnaire");
+      
       const response = await fetch(`${BACKEND_URL}/questionnaire/start`, {
         method: 'GET',
         headers: {
@@ -153,7 +180,20 @@ export const useQuestionnaire = () => {
 
       const data = await response.json();
       
-      setCurrentQuestion(data.question);
+      if (DEBUG) console.log("Questionnaire started, data:", data);
+      
+      // Check if we need to show a continuation prompt
+      if (data.show_continuation_prompt) {
+        if (DEBUG) console.log("Backend requested showing continuation prompt on start");
+        // Show our custom continuation prompt
+        setCurrentQuestion(CONTINUATION_PROMPT_QUESTION);
+        continuationPromptShown.current = true;
+        saveToLocalStorage('continuation-shown', true);
+      } else {
+        // Normal flow - show the question from the backend
+        setCurrentQuestion(data.question);
+      }
+      
       setIsComplete(data.is_complete);
       setProgress(data.progress || 0);
       setCurrentStageTotalQuestions(data.current_stage_total_questions || 0);
@@ -164,6 +204,8 @@ export const useQuestionnaire = () => {
         setAnswers({});
         removeFromLocalStorage('answers');
         removeFromLocalStorage('answered-questions');
+        removeFromLocalStorage('continuation-shown');
+        continuationPromptShown.current = false;
       }
     } catch (err) {
       console.error('Error starting questionnaire:', err);
@@ -171,7 +213,7 @@ export const useQuestionnaire = () => {
     } finally {
       setLoading(false);
     }
-  }, [idToken, authLoading, isOffline, answeredQuestions, removeFromLocalStorage]);
+  }, [idToken, authLoading, isOffline, removeFromLocalStorage, saveToLocalStorage]);
   
   /**
    * Initialize the questionnaire on component mount or when user changes
@@ -207,6 +249,32 @@ export const useQuestionnaire = () => {
     setError(null);
     
     try {
+      // Debug the new answers being submitted
+      if (DEBUG) {
+        console.log("fetchNextQuestion called with:", {
+          newAnswers,
+          questionId: Object.keys(newAnswers)[0],
+          answerValue: Object.values(newAnswers)[0]
+        });
+      }
+      
+      // Process continuation prompt answers here to handle the user's choice locally
+      const questionId = Object.keys(newAnswers)[0];
+      if (questionId === CONTINUATION_PROMPT_ID) {
+        const answer = newAnswers[questionId];
+        if (DEBUG) console.log(`Processing continuation prompt answer: ${answer}`);
+        
+        // If user chose to submit, mark as complete
+        if (answer === "Submit my responses now") {
+          setIsComplete(true);
+          setLoading(false);
+          return;
+        }
+        // Otherwise, just continue to fetch the next question (we'll proceed below)
+        continuationPromptShown.current = true;
+        saveToLocalStorage('continuation-shown', true);
+      }
+      
       // Update local state immediately for better UX
       const updatedAnswers = { ...answers, ...newAnswers };
       setAnswers(updatedAnswers);
@@ -244,8 +312,6 @@ export const useQuestionnaire = () => {
       const data = await response.json();
       
       // Add the current question ID to answered questions
-      const questionId = Object.keys(newAnswers)[0];
-      // Important change: track the question even if it's skipped (answer is null)
       if (questionId && !answeredQuestions.includes(questionId)) {
         const updatedAnsweredQuestions = [...answeredQuestions, questionId];
         setAnsweredQuestions(updatedAnsweredQuestions);
@@ -253,33 +319,47 @@ export const useQuestionnaire = () => {
         // Store answered questions in localStorage
         saveToLocalStorage('answered-questions', updatedAnsweredQuestions);
         
-        // Calculate progress locally (this is the key change)
-        // We'll increment the progress counter for each answered question
+        // Calculate progress locally
         const newProgress = updatedAnsweredQuestions.length;
         setProgress(newProgress);
         
-        console.log("Updated progress:", {
-          questionId,
-          updatedAnsweredQuestions,
-          newProgress,
-          answer: newAnswers[questionId]
-        });
+        if (DEBUG) {
+          console.log("Updated progress:", {
+            questionId,
+            updatedAnsweredQuestions,
+            newProgress,
+            answer: newAnswers[questionId]
+          });
+        }
       }
       
       // Log the progress update
-      console.log("API Response:", {
-        questionId: data.question?.id,
-        apiProgress: data.progress,
-        localProgress: answeredQuestions.length + 1,
-        isComplete: data.is_complete,
-        skippedQuestion: newAnswers[questionId] === null
-      });
+      if (DEBUG) {
+        console.log("API Response:", {
+          questionId: data.question?.id,
+          apiProgress: data.progress,
+          localProgress: answeredQuestions.length + 1,
+          isComplete: data.is_complete,
+          skippedQuestion: newAnswers[questionId] === null,
+          showContinuationPrompt: data.show_continuation_prompt
+        });
+      }
       
-      setCurrentQuestion(data.question);
-      setIsComplete(data.is_complete);
-      setProgress(data.progress || 0);
-      setCurrentStageTotalQuestions(data.current_stage_total_questions || 0);
-      setCurrentStageAnsweredQuestions(data.current_stage_answered_questions || 0);
+      // Check if the backend wants us to show a continuation prompt
+      if (data.show_continuation_prompt) {
+        if (DEBUG) console.log("Backend requested showing continuation prompt after", answeredQuestions.length, "questions");
+        // Show our custom continuation prompt
+        setCurrentQuestion(CONTINUATION_PROMPT_QUESTION);
+        continuationPromptShown.current = true;
+        saveToLocalStorage('continuation-shown', true);
+      } else {
+        // Normal flow - show the question from the backend
+        setCurrentQuestion(data.question);
+        setIsComplete(data.is_complete);
+        setProgress(data.progress || 0);
+        setCurrentStageTotalQuestions(data.current_stage_total_questions || 0);
+        setCurrentStageAnsweredQuestions(data.current_stage_answered_questions || 0);
+      }
       
     } catch (err) {
       console.error('Error fetching next question:', err);
@@ -293,6 +373,20 @@ export const useQuestionnaire = () => {
    * Handle answering a question
    */
   const answerQuestion = useCallback((questionId, answer) => {
+    // Guard against empty or unexpected values to prevent auto-advancing
+    if (!questionId) {
+      if (DEBUG) console.warn("answerQuestion called with no questionId");
+      return;
+    }
+    
+    // Prevent answering with empty arrays which can happen with improper state management
+    if (Array.isArray(answer) && answer.length === 0) {
+      if (DEBUG) console.warn(`Prevented submission of empty array for question ${questionId}`);
+      return;
+    }
+    
+    if (DEBUG) console.log(`answerQuestion called: ${questionId} with answer:`, answer);
+    
     // Create an object with the new answer
     const newAnswer = { [questionId]: answer };
     
@@ -340,6 +434,8 @@ export const useQuestionnaire = () => {
       removeFromLocalStorage('answers');
       removeFromLocalStorage('answered-questions');
       removeFromLocalStorage('pending-submit');
+      removeFromLocalStorage('continuation-shown');
+      continuationPromptShown.current = false;
       
     } catch (err) {
       console.error('Error submitting questionnaire:', err);

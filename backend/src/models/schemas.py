@@ -140,6 +140,7 @@ class QuestionModel(BaseModel):
     config: Optional[dict[str,Any]] = None
     conditional: Optional[dict[str,Any]] = None
     display_type: Optional[str] = None
+    placeholder: Optional[str] = None
 
 class FavoriteCreateSchema(BaseModel):
     listing_id: int

@@ -229,12 +229,18 @@ position: relative;
   padding: 15px 0; 
   display: flex;
   flex-direction: column;
-  align-items: center;
   gap: 15px; 
   background-color: #ffffff; 
   border: 1.5px solid #d0d0d0;
   border-radius: 10px;
   box-shadow: 0 1px 2px rgba(0,0,0,0.05);
+}
+
+.sliderGroup {
+  display: flex;
+  flex-direction: column;
+  width: 80%;
+  margin: 0 auto;
 }
 
 .sliderInput {
@@ -355,3 +361,17 @@ position: relative;
   padding-top: 10px;
 }
 
+.textInputContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.textInput {
+  width: 85%; 
+  padding: 10px 12px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  background-color: #f0f0f0;
+  color: black;
+}

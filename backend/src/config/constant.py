@@ -1,0 +1,1 @@
+CONTINUATION_PROMPT_ID = "system_continuation_prompt"

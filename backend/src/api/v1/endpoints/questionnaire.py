@@ -4,11 +4,13 @@ import logging
 from typing import Dict, Any, Optional, List, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from fastapi.responses import JSONResponse
 
 from src.middleware.auth import verify_firebase_user, get_current_user
 from src.models.schemas import QuestionModel
 from src.models.database import get_db
-from src.services.QuestionnaireService import QuestionnaireService, CONTINUATION_PROMPT_ID
+from src.services.QuestionnaireService import QuestionnaireService
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -26,6 +28,7 @@ class NextQuestionResponse(BaseModel):
     progress: Optional[float] = None  # Percentage of completion
     current_stage_total_questions: Optional[int] = None # New field for UI
     current_stage_answered_questions: Optional[int] = None # New field for UI
+    show_continuation_prompt: bool = False # Indicate when to show continuation prompt
 
 async def _calculate_questionnaire_progress(
     user_state: Optional[Dict[str, Any]],
@@ -35,133 +38,91 @@ async def _calculate_questionnaire_progress(
         return 0.0
 
     answered_questions = user_state.get('answered_questions', [])
-    queue = user_state.get('queue', [])
-    current_question_id = queue[0] if queue else None
-    answers = user_state.get('answers', {})
-
-    total_basic_q_count = questionnaire_service.get_basic_questions_length()
-    num_answered_basic = sum(1 for qid in answered_questions if qid in questionnaire_service.basic_information_questions)
-
-    # Stage 1: Basic Questions
-    if num_answered_basic < total_basic_q_count:
-        if total_basic_q_count == 0: # Avoid division by zero if no basic questions
-            return 0.0 
-        return round((num_answered_basic / total_basic_q_count) * 100, 1)
-
-    # Check if continuation prompt was answered "yes"
-    continuation_answered_yes = answers.get(CONTINUATION_PROMPT_ID) == "Continue with more questions" or answers.get(CONTINUATION_PROMPT_ID) == "yes"
     
-    # Stage 2: Continuation Prompt itself is the current question
-    if current_question_id == CONTINUATION_PROMPT_ID:
-        # Progress can be considered 100% of basic, or a step beyond basic.
-        # Let's show it as if basic is done, and this is an extra step.
-        # For frontend to show "X of Y", Y needs to be stable for this stage.
-        # We can consider total_basic_q_count + 1 (for the prompt itself) as the "total" for this phase.
-        # The number "answered" is num_answered_basic.
-        # This will make the progress bar display X of (total_basic_q_count + 1).
-        # The percentage should reflect being at this prompt step.
-        denominator = total_basic_q_count + 1 # basic questions + continuation prompt
-        if denominator == 0: return 100.0 # Should not happen if prompt is active
-        return round((num_answered_basic / denominator) * 100, 1)
+    # Count the number of answered questions
+    num_answered = len(answered_questions)
+    
+    # Calculate the target batch size based on how many questions have been answered
+    # Initial batch is 10, then we add 5 more for each subsequent batch
+    if num_answered <= 10:
+        # First batch: 10 questions
+        target_batch_size = 10
+    else:
+        # Calculate which batch we're in after the first batch
+        additional_batches = (num_answered - 10 + 4) // 5  # Using integer division with ceiling
+        target_batch_size = 10 + (additional_batches * 5)
+    
+    # Get total available questions count (answered + in queue + potential future questions)
+    total_questions = len(questionnaire_service.basic_information_questions) + len(questionnaire_service.dynamic_questionnaire)
+    
+    # Limit the target batch size to the total number of available questions
+    target_batch_size = min(target_batch_size, total_questions)
+    
+    # If the user has answered all questions, progress is 100%
+    if num_answered >= total_questions:
+        return 100.0
+    
+    # Calculate progress based on the current batch target
+    if target_batch_size > 0:
+        progress = (num_answered / target_batch_size) * 100
+        return round(min(progress, 100.0), 1)
+    
+    return 100.0
 
-    # Stage 3: Dynamic Questions (after continuation prompt was answered "yes")
-    # This stage is active if the continuation prompt was answered "yes"
-    # AND there are dynamic questions in the queue.
-    if continuation_answered_yes and queue:
-        # Filter out non-dynamic questions from the queue to count only dynamic ones for this stage
-        dynamic_questions_in_queue = [qid for qid in queue if qid in questionnaire_service.dynamic_questionnaire]
+# New function to check if continuation prompt should be shown
+def should_show_continuation_prompt(
+    user_state: Optional[Dict[str, Any]]
+) -> bool:
+    """
+    Determine if a continuation prompt should be shown based on question counts.
+    """
+    if not user_state:
+        return False
         
-        # Count how many dynamic questions were *added* in the current batch (e.g., 5)
-        # This requires knowing how many dynamic questions are expected in this batch.
-        # Let's assume for now it's always a batch of 5.
-        # A more robust way would be to get this from QuestionnaireService or state.
-        current_batch_total = 5 # Number of dynamic questions per batch
-        
-        # Count how many *dynamic* questions from *this batch* have been answered.
-        # This is tricky because `answered_questions` is cumulative.
-        # We need to identify dynamic questions answered *after* the last continuation prompt.
-        
-        # Find the index of the last answered continuation prompt
-        last_continuation_prompt_index = -1
-        for i in range(len(answered_questions) - 1, -1, -1):
-            if answered_questions[i] == CONTINUATION_PROMPT_ID:
-                last_continuation_prompt_index = i
-                break
-        
-        # Count dynamic questions answered since the last continuation prompt
-        answered_dynamic_in_current_batch = 0
-        if last_continuation_prompt_index != -1:
-            for i in range(last_continuation_prompt_index + 1, len(answered_questions)):
-                if answered_questions[i] in questionnaire_service.dynamic_questionnaire:
-                    answered_dynamic_in_current_batch += 1
-        
-        # If no continuation prompt was answered yet (e.g. first batch of dynamic Qs is not via prompt, though current logic is via prompt)
-        # This part might need adjustment based on how initial dynamic Qs are added if not via prompt
-        # For now, this path assumes a continuation prompt preceded this dynamic batch.
+    answered_questions = user_state.get('answered_questions', [])
+    num_answered = len(answered_questions)
+    
+    # Show continuation prompt exactly at 10, 15, 20, etc. questions
+    # BUT only when the queue is empty (meaning the current batch is completed)
+    if num_answered == 10 or (num_answered > 10 and (num_answered - 10) % 5 == 0):
+        return True
+    
+    return False
 
-        # The progress is (answered_dynamic_in_current_batch / current_batch_total)
-        # The frontend will need to know current_batch_total is 5 (or whatever it is)
-        # And answered_dynamic_in_current_batch is the "current" number for "X of 5"
-        if current_batch_total == 0: return 100.0 # Avoid division by zero
-        
-        # To make the progress bar show X of 5, we calculate percentage of this batch
-        # We also need to communicate "current_batch_total" and "answered_dynamic_in_current_batch" to frontend
-        # The `progress` field in `NextQuestionResponse` is a single float.
-        # We might need to adjust `NextQuestionResponse` or how frontend interprets progress.
-        
-        # For now, let's return a progress value that implies this sub-stage.
-        # A simple way is to add a large offset to basic completion.
-        # E.g., 100% (basic) + (answered_in_batch / batch_total * 10-20% of overall questionnaire)
-        # This approach is complex for the single float.
-        
-        # Simpler: Return progress within the current batch of 5.
-        # Frontend needs to be aware it's in a "dynamic batch" stage.
-        # This could be indicated by a new field in NextQuestionResponse or by convention
-        # if currentQuestion.category == "Dynamic" (or similar).
-        
-        # Let's try to make the frontend logic simpler by having the backend calculate the total number of questions for the current view.
-        # If in basic stage, total = total_basic_q_count
-        # If in continuation prompt, total = total_basic_q_count + 1
-        # If in dynamic stage after "yes", total = 5 (for the current batch)
-        # The number of "completed" for the progress bar would be num_answered_basic, num_answered_basic, or answered_dynamic_in_current_batch.
-        
-        # The `progress` field is a float. We might need to encode stage information differently.
-        # For now, focusing on the percentage for the dynamic batch:
-        progress_within_batch = (answered_dynamic_in_current_batch / current_batch_total) * 100
-        
-        # To distinguish this from basic question progress, let's assume basic is 0-80%,
-        # continuation prompt is ~80-85%, dynamic questions are 85-100%.
-        # This requires careful thought on overall progress representation.
-        
-        # Let's keep it simple: if in a dynamic batch, progress is for that batch.
-        # The frontend will need an update to display "X of 5" instead of "X of total_overall_questions".
-        # This means NextQuestionResponse needs to carry more info than just a single progress float.
-        
-        # For now, the user wants "1 of 5" type display.
-        # This implies the `progress` returned to frontend should be based on the batch.
-        # And frontend needs to know the "total" for this stage is 5.
+def should_show_final_prompt(
+    user_state: Optional[Dict[str, Any]],
+    questionnaire_service: QuestionnaireService
+) -> bool:
+    """
+    Determine if the final completion prompt should be shown.
+    This is different from just is_complete - it specifically checks
+    if we should show the special completion page.
+    """
+    if not user_state:
+        return False
+    
+    # Check if there are any questions left
+    answered_questions = user_state.get('answered_questions', [])
+    queue = user_state.get('queue', [])
+    
+    # All basic info questions and dynamic questions
+    all_question_ids = list(questionnaire_service.basic_information_questions.keys()) + list(questionnaire_service.dynamic_questionnaire.keys())
+    
+    # Check if all questions have been answered
+    all_answered = all(q_id in answered_questions for q_id in all_question_ids)
+    
+    # Queue is empty and all questions answered
+    return not queue and all_answered
 
-        return round(progress_within_batch, 1)
-
-
-    # Stage 4: Completed (queue is empty)
-    if not queue:
-        # If continuation was answered "yes" but no dynamic questions were added (or all done)
-        if continuation_answered_yes:
-            return 100.0 
-        # If continuation was answered "no" or skipped, and basic are done.
-        if num_answered_basic == total_basic_q_count:
-            return 100.0
-        # Fallback if somehow here without basic done (should be caught by stage 1)
-        return 0.0 if not answered_questions else 100.0
-
-
-    # Fallback for any other unhandled state (should ideally not be reached if logic is complete)
-    logger.warning(f"Unhandled state in progress calculation: {user_state}")
-    effective_total_questions = len(answered_questions) + len(queue)
-    if effective_total_questions == 0:
-        return 0.0
-    return round((len(answered_questions) / effective_total_questions) * 100, 1)
+# Create constants for completion prompt
+COMPLETION_PROMPT = {
+    "id": "final_completion_prompt",
+    "text": "Congratulations! You've completed all the questions. Your preferences have been saved and we're ready to find the perfect apartments for you.",
+    "type": "single-choice",
+    "options": ["View matched apartments", "Go to dashboard"],
+    "category": "System",
+    "display_type": "continuation_page"  # Reuse the same display type
+}
 
 @router.get("/start",
             response_model=NextQuestionResponse,
@@ -182,9 +143,59 @@ async def start_questionnaire(
             
         questionnaire_service = QuestionnaireService(db)
         
-        next_question, is_complete = await questionnaire_service.get_next_question(user_id)
-        
         user_state = await questionnaire_service.get_user_state(user_id)
+        
+        # Check if we should show the completion prompt
+        show_final = should_show_final_prompt(user_state, questionnaire_service)
+        if show_final:
+            progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
+            current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
+            
+            logger.info(f"Showing final completion prompt for user {user_id}")
+            
+            return NextQuestionResponse(
+                question=COMPLETION_PROMPT,
+                is_complete=True,
+                progress=100.0,
+                current_stage_total_questions=current_stage_total,
+                current_stage_answered_questions=current_stage_answered,
+                show_continuation_prompt=False
+            )
+        
+        # Check if we should show the continuation prompt
+        show_prompt = should_show_continuation_prompt(user_state)
+        
+        # If we need to show a continuation prompt, return a special response
+        if show_prompt and not show_final:
+            progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
+            current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
+            
+            logger.info(f"Showing continuation prompt for user {user_id}")
+            
+            # Return response with continuation prompt flag
+            return NextQuestionResponse(
+                question=None,  # No question, just the prompt
+                is_complete=False,
+                progress=progress,
+                current_stage_total_questions=current_stage_total,
+                current_stage_answered_questions=current_stage_answered,
+                show_continuation_prompt=True
+            )
+        
+        # Normal flow - get the next question
+        next_question, is_complete, _ = await questionnaire_service.get_next_question(user_id)
+        
+        # If complete but no more questions, show completion prompt
+        if is_complete:
+            return NextQuestionResponse(
+                question=COMPLETION_PROMPT,
+                is_complete=True,
+                progress=100.0,
+                current_stage_total_questions=0,
+                current_stage_answered_questions=0,
+                show_continuation_prompt=False
+            )
+        
         progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
         current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
         
@@ -193,7 +204,8 @@ async def start_questionnaire(
             is_complete=is_complete,
             progress=progress,
             current_stage_total_questions=current_stage_total,
-            current_stage_answered_questions=current_stage_answered
+            current_stage_answered_questions=current_stage_answered,
+            show_continuation_prompt=False
         )
     except Exception as e:
         logger.error(f"Error starting questionnaire: {e}")
@@ -222,12 +234,91 @@ async def get_next_question_endpoint(
             
         questionnaire_service = QuestionnaireService(db)
         
-        next_question, is_complete = await questionnaire_service.get_next_question(
-            user_id, 
-            request.answers
-        )
+        is_user_chose_to_continue = False
+        # Process answers if provided
+        if request.answers:
+            next_question, is_complete, is_user_chose_to_continue = await questionnaire_service.get_next_question(
+                user_id, 
+                request.answers
+            )
         
+        # Get updated state after applying answers
         user_state = await questionnaire_service.get_user_state(user_id)
+        
+        # Check if we should show the completion prompt
+        show_final = should_show_final_prompt(user_state, questionnaire_service)
+        if show_final:
+            progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
+            current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
+            
+            logger.info(f"Showing final completion prompt for user {user_id}")
+            
+            return NextQuestionResponse(
+                question=COMPLETION_PROMPT,
+                is_complete=True,
+                progress=100.0,
+                current_stage_total_questions=current_stage_total,
+                current_stage_answered_questions=current_stage_answered,
+                show_continuation_prompt=False
+            )
+        
+        # Check if we should show the continuation prompt
+        show_prompt = should_show_continuation_prompt(user_state)
+        
+        # If we need to show a continuation prompt, return a special response
+        if show_prompt and not is_user_chose_to_continue:
+            progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
+            current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
+            
+            logger.info(f"Showing continuation prompt for user {user_id}")
+            
+            # Return response with continuation prompt flag
+            return NextQuestionResponse(
+                question=None,  # No question, just the prompt
+                is_complete=False,
+                progress=progress,
+                current_stage_total_questions=current_stage_total,
+                current_stage_answered_questions=current_stage_answered,
+                show_continuation_prompt=True
+            )
+        
+        # If we already have next_question from processing answers, use it
+        if 'next_question' in locals() and next_question:
+            progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
+            current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
+            
+            if is_complete:
+                return NextQuestionResponse(
+                    question=COMPLETION_PROMPT,
+                    is_complete=True,
+                    progress=100.0,
+                    current_stage_total_questions=0,
+                    current_stage_answered_questions=0,
+                    show_continuation_prompt=False
+                )
+            
+            return NextQuestionResponse(
+                question=next_question,
+                is_complete=is_complete,
+                progress=progress,
+                current_stage_total_questions=current_stage_total,
+                current_stage_answered_questions=current_stage_answered,
+                show_continuation_prompt=False
+            )
+        
+        # Normal flow - get the next question
+        next_question, is_complete, _ = await questionnaire_service.get_next_question(user_id)
+        
+        if is_complete:
+            return NextQuestionResponse(
+                question=COMPLETION_PROMPT,
+                is_complete=True,
+                progress=100.0,
+                current_stage_total_questions=0,
+                current_stage_answered_questions=0,
+                show_continuation_prompt=False
+            )
+        
         progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
         current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
         
@@ -236,7 +327,8 @@ async def get_next_question_endpoint(
             is_complete=is_complete,
             progress=progress,
             current_stage_total_questions=current_stage_total,
-            current_stage_answered_questions=current_stage_answered
+            current_stage_answered_questions=current_stage_answered,
+            show_continuation_prompt=False
         )
     except Exception as e:
         logger.error(f"Error getting next question: {e}")
@@ -320,13 +412,17 @@ async def get_questionnaire_status(
         # is_complete = await questionnaire_service.is_questionnaire_completed(user_id) # Old way
         is_complete = (progress == 100.0 and not user_state.get('queue')) if progress is not None else False
         
+        # Check if we should show the continuation prompt
+        show_prompt = should_show_continuation_prompt(user_state)
+        
         return {
             "is_complete": is_complete,
             "progress": progress,
             "questions_answered": len(user_state['answered_questions']) if user_state else 0,
             "questions_remaining": len(user_state['queue']) if user_state else 0,
             "current_stage_total_questions": current_stage_total,
-            "current_stage_answered_questions": current_stage_answered
+            "current_stage_answered_questions": current_stage_answered,
+            "show_continuation_prompt": show_prompt
         }
     except Exception as e:
         logger.error(f"Error getting questionnaire status: {e}")
@@ -357,92 +453,37 @@ async def _get_current_stage_counts(
     user_state: Optional[Dict[str, Any]],
     questionnaire_service: QuestionnaireService
 ) -> Tuple[Optional[int], Optional[int]]:
+    """
+    Get the counts for the current question stage.
+    Returns (total_questions_in_stage, answered_questions_in_stage)
+    """
     if not user_state:
         return None, None
 
     answered_questions = user_state.get('answered_questions', [])
-    queue = user_state.get('queue', [])
-    current_question_id = queue[0] if queue else None
-    answers = user_state.get('answers', {})
+    num_answered = len(answered_questions)
     
-    total_basic_q_count = questionnaire_service.get_basic_questions_length()
-    num_answered_basic = sum(1 for qid in answered_questions if qid in questionnaire_service.basic_information_questions)
+    # Get total available questions count
+    total_questions = questionnaire_service.total_questions
 
-    # Stage 1: Basic Questions
-    if num_answered_basic < total_basic_q_count:
-        return total_basic_q_count, num_answered_basic
-
-    continuation_answered_yes = answers.get(CONTINUATION_PROMPT_ID) == "Continue with more questions" or answers.get(CONTINUATION_PROMPT_ID) == "yes"
-
-    # Stage 2: Continuation Prompt
-    if current_question_id == CONTINUATION_PROMPT_ID:
-        return total_basic_q_count + 1, num_answered_basic # Total includes the prompt itself
-
-    # Stage 3: Dynamic Questions
-    if continuation_answered_yes and queue:
-        # Count dynamic questions in the current batch (e.g., 5)
-        current_batch_total = 0
-        dynamic_questions_in_this_batch_in_queue = 0
+    # Calculate the target batch size based on how many questions have been answered
+    # Initial batch is 10, then we add batches of 5
+    if num_answered < 10:
+        # First batch: up to 10 questions
+        current_batch_size = min(10, total_questions)
+        return current_batch_size, num_answered
+    else:
+        # Which batch are we in? (after the first 10-question batch)
+        current_batch_number = ((num_answered - 10) // 5) + 1
         
-        # Identify dynamic questions currently in the queue for this batch
-        # This assumes dynamic questions are added in batches and the queue reflects the current batch
-        for qid in queue:
-            if qid in questionnaire_service.dynamic_questionnaire:
-                dynamic_questions_in_this_batch_in_queue +=1
+        # Calculate the start and end of the current batch
+        batch_start = 10 + ((current_batch_number - 1) * 5)
+        batch_end = min(batch_start + 5, total_questions)
         
-        # Heuristic: Assume batch size is 5 if dynamic questions are present
-        # A more robust method would involve service knowing batch size explicitly
-        current_batch_total = dynamic_questions_in_this_batch_in_queue 
-        if not current_batch_total and any(qid in questionnaire_service.dynamic_questionnaire for qid in queue):
-             current_batch_total = 5 # Fallback if queue doesn't only contain this batch's dynamic q's
-        elif not any(qid in questionnaire_service.dynamic_questionnaire for qid in queue):
-            # This might happen if the queue is empty but we are in "continuation_answered_yes" state
-            # which means we are completed.
-             pass
-
-
-        last_continuation_prompt_index = -1
-        for i in range(len(answered_questions) - 1, -1, -1):
-            if answered_questions[i] == CONTINUATION_PROMPT_ID:
-                last_continuation_prompt_index = i
-                break
+        # How many questions answered in the current batch
+        questions_in_current_batch = min(num_answered - batch_start, 5)
         
-        answered_dynamic_in_current_batch = 0
-        if last_continuation_prompt_index != -1:
-            # Iterate through questions answered *after* the last continuation prompt
-            for i in range(last_continuation_prompt_index + 1, len(answered_questions)):
-                # Only count dynamic questions that are not the continuation prompt itself
-                if answered_questions[i] in questionnaire_service.dynamic_questionnaire and answered_questions[i] != CONTINUATION_PROMPT_ID:
-                    answered_dynamic_in_current_batch += 1
+        # If this batch size is less than 5 (due to running out of questions)
+        current_batch_size = batch_end - batch_start
         
-        # The total for this stage for the UI is the batch size (e.g., 5)
-        # We need to ensure current_batch_total is correctly determined.
-        # If dynamic_questions_in_this_batch_in_queue is 0 but we know we are in this stage,
-        # it means the batch just completed.
-        # If queue has dynamic questions, then total = answered_dynamic_in_current_batch + dynamic_questions_in_this_batch_in_queue
-        
-        # More robust: total number of questions for this dynamic stage is (number of dynamic Qs added for this round)
-        # This is typically 5.
-        # Let's assume fixed batch size of 5 for now.
-        # If dynamic questions were indeed added (check state or a flag)
-        
-        # Number of dynamic questions expected in a batch
-        EXPECTED_DYNAMIC_BATCH_SIZE = 5 
-        
-        # If we are in the dynamic stage (continuation_answered_yes and not yet complete)
-        # The total questions for this stage is EXPECTED_DYNAMIC_BATCH_SIZE
-        # The answered questions for this stage is answered_dynamic_in_current_batch
-        
-        # Check if dynamic questions are actively being processed or just finished
-        has_dynamic_in_queue = any(qid in questionnaire_service.dynamic_questionnaire for qid in queue)
-        
-        if has_dynamic_in_queue or (answered_dynamic_in_current_batch > 0 and answered_dynamic_in_current_batch < EXPECTED_DYNAMIC_BATCH_SIZE) :
-             return EXPECTED_DYNAMIC_BATCH_SIZE, answered_dynamic_in_current_batch
-        # If no dynamic in queue AND answered_dynamic_in_current_batch is 0 or >= batch_size, means this stage is done or not started within this logic path
-
-    # Stage 4: Completed
-    if not queue:
-        return len(answered_questions) if answered_questions else 0, len(answered_questions) if answered_questions else 0 # Show all as answered
-
-    # Fallback
-    return len(answered_questions) + len(queue), len(answered_questions)
+        return current_batch_size, questions_in_current_batch
