@@ -12,8 +12,9 @@
         ],
         "required": true,
         "branches": {
+        "work relocation": ["proximity_beach_importance","proximity_to_gym"],
         "Family home": ["children_ages", "safety_priority"],
-        "Student housing": ["learning_space_nearby"]
+        "Student housing": ["learning_space_nearby","nightlife_proximity","proximity_beach_importance","proximity_to_gym"]
         }
     },
     {
@@ -44,7 +45,7 @@
             "on_answered": {
                 "id": "commute_time",
                 "category": "Lifestyle",
-                "text": "What is the maximum commute time you are willing to accept?",
+                "text": "What is the maximum commute time you are willing to accept (in minutes)?",
                 "type": "slider",
                 "config": {
                     "min": 5,

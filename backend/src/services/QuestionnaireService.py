@@ -32,6 +32,8 @@ class QuestionnaireService:
         self.question_graph = {}
         self.current_version = 1
         self.total_questions = 0
+        self.initial_participating_questions_count = 0
+        self.added_participating_questions_count = 0
         
         # Load question data from files
         try:
@@ -85,11 +87,11 @@ class QuestionnaireService:
                 "on_unanswered": {}
             }
             self.total_questions += 1
+            self.initial_participating_questions_count += 1
             # Add branches if the question has them
             if question.get('branches'):
                 for answer, next_questions_val in question['branches'].items():
                     graph[question['id']]['branches'][answer] = next_questions_val
-            
             if question.get('on_answered'):
                 graph[question['id']]['on_answered'] = question['on_answered']
                 graph[question['on_answered']['id']] = question['on_answered']
@@ -98,6 +100,9 @@ class QuestionnaireService:
                 graph[question['id']]['on_unanswered'] = question['on_unanswered']
                 graph[question['on_unanswered']['id']] = question['on_unanswered']
                 self.total_questions += 1
+            if question.get('on_unanswered') or question.get('on_answered'):
+                self.initial_participating_questions_count += 1
+
         # Process dynamic questionnaire questions
         for q_id, question in self.dynamic_questionnaire.items():
             graph[q_id] = {
@@ -107,6 +112,8 @@ class QuestionnaireService:
                 "on_unanswered": {}
             }
             self.total_questions += 1
+            if question.get('category') == 'Location and Convenience':
+                self.initial_participating_questions_count += 1
             # Add branches for dynamic questions
             if question.get('branches'):
                 for answer, next_questions_val in question['branches'].items():
@@ -142,6 +149,7 @@ class QuestionnaireService:
             state = {
                 'answers': json.loads(state_record.answers),
                 'answered_questions': json.loads(state_record.answered_questions),
+                'participating_questions_count': state_record.participating_questions_count,
                 'version': state_record.questionnaire_version,
                 'created_at': state_record.created_at,
                 'last_updated': state_record.last_updated
@@ -185,6 +193,7 @@ class QuestionnaireService:
                 state_record.queue = json.dumps(queue_list)
                 state_record.answers = json.dumps(state['answers'])
                 state_record.answered_questions = json.dumps(state['answered_questions'])
+                state_record.participating_questions_count += self.added_participating_questions_count
                 state_record.questionnaire_version = self.current_version
                 state_record.last_updated = datetime.utcnow()
             else:
@@ -194,6 +203,7 @@ class QuestionnaireService:
                     queue=json.dumps(queue_list),
                     answers=json.dumps(state['answers']),
                     answered_questions=json.dumps(state['answered_questions']),
+                    participating_questions_count=self.initial_participating_questions_count + self.added_participating_questions_count,
                     questionnaire_version=self.current_version,
                     created_at=datetime.utcnow(),
                     last_updated=datetime.utcnow()
@@ -291,6 +301,7 @@ class QuestionnaireService:
         basic_q_ids = []
         for question in list(self.basic_information_questions.values()):
             basic_q_ids.append(question['id'])
+
             
         queue = deque(basic_q_ids)
         logger.info(f"Created initial queue with {len(queue)} questions: {basic_q_ids}")
@@ -299,6 +310,7 @@ class QuestionnaireService:
             'queue': queue,
             'answers': {},
             'answered_questions': [],
+            'participating_questions_count': self.initial_participating_questions_count,
             'version': self.current_version,
             'start_time': time.time()
         }
@@ -415,7 +427,7 @@ class QuestionnaireService:
                     if state['queue']:
                         return await self.get_next_question(user_id)
                 
-                # If we still need more to reach 10, add dynamic questions
+                # If we still need more to reach 10, add location and convenience questions
                 if answered_count + len(state['queue']) < 10:
                     needed_count = 10 - (answered_count + len(state['queue']))
                     
@@ -452,12 +464,9 @@ class QuestionnaireService:
                     location_questions = [q for q in unanswered 
                                         if q in self.dynamic_questionnaire and 
                                         self.dynamic_questionnaire[q].get('category') == 'Location and Convenience']
-                    other_questions = [q for q in unanswered if q not in location_questions]
-                    
-                    prioritized_questions = location_questions + other_questions
                     
                     # Add the next batch of 5 questions
-                    next_batch = prioritized_questions[:5]
+                    next_batch = location_questions[:5]
                     
                     if next_batch:
                         state['queue'].extend(next_batch)
@@ -539,6 +548,7 @@ class QuestionnaireService:
                 for q_id_val in branch_questions_list:
                     if q_id_val not in answered and q_id_val not in queue:
                         queue.append(q_id_val)
+                        self.added_participating_questions_count += 1
         
         # Process dynamic questions similarly to basic questions
         elif question_id in self.dynamic_questionnaire:
@@ -571,7 +581,8 @@ class QuestionnaireService:
             for q_id_val in next_questions_list:
                 if q_id_val and q_id_val not in answered and q_id_val not in queue:
                     queue.append(q_id_val)
-    
+                    self.added_participating_questions_count += 1
+
     async def save_completed_questionnaire(self, user_id: str) -> bool:
         """
         Save a completed questionnaire to the database.
@@ -588,11 +599,6 @@ class QuestionnaireService:
             
         # Get current state
         state = await self.get_user_state(user_id)
-        
-        # Verify questionnaire is complete
-        if state['queue'] and len(state['queue']) > 0:
-            logger.error(f"Cannot save incomplete questionnaire for user {user_id}")
-            return False
             
         try:
             # Prepare answers in a structured format
@@ -627,23 +633,6 @@ class QuestionnaireService:
             logger.error(f"Error saving completed questionnaire: {e}")
             await self.db_session.rollback()
             return False
-            
-    async def is_questionnaire_completed(self, user_id: str) -> bool:
-        """
-        Check if a user's questionnaire is completed.
-        
-        Args:
-            user_id: The user's unique identifier
-            
-        Returns:
-            True if completed, False otherwise
-        """
-        state = await self.get_user_state(user_id)
-        
-        # Simplest check: if queue is empty AND there are answered questions, it implies completion.
-        # The questionnaire is complete when there are no more questions in the queue
-        # and the user has answered at least one question
-        return (not state['queue']) and state['answered_questions']
         
     def _get_potential_dynamic_question_ids(self, state: Dict[str, Any]) -> List[str]:
         """

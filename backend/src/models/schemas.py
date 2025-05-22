@@ -1,6 +1,6 @@
 """Schemas for the API."""
 from pydantic import BaseModel, Field, conint, confloat, ConfigDict, EmailStr
-from typing import Optional, List, Any
+from typing import Optional, List, Any, Dict
 from datetime import datetime
 from decimal import Decimal 
 from .models import PaceOfLife, ParkingImportance, ImportanceScale, YesNoPref
@@ -163,5 +163,54 @@ class ViewHistorySchema(BaseModel):
     user_id: str
     listing_id: int
     viewed_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# UserFilters schemas
+class UserFiltersBase(BaseModel):
+    type: Optional[str] = Field(None, description="Type of listing (rent or sale)")
+    city: Optional[str] = Field(None, description="City name")
+    neighborhood: Optional[str] = Field(None, description="Neighborhood name")
+    price_min: int = Field(500, description="Minimum price")
+    price_max: int = Field(15000, description="Maximum price")
+    rooms_min: float = Field(1, description="Minimum number of rooms")
+    rooms_max: float = Field(8, description="Maximum number of rooms")
+    size_min: int = Field(10, description="Minimum size in square meters")
+    size_max: int = Field(500, description="Maximum size in square meters")
+    options: Optional[str] = Field(None, description="Comma-separated list of filter options")
+
+class UserFiltersCreate(UserFiltersBase):
+    pass
+
+class UserFiltersUpdate(UserFiltersBase):
+    pass
+
+class UserFiltersSchema(UserFiltersBase):
+    user_id: str
+    created_at: datetime
+    updated_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# QuestionnaireState schema
+class QuestionnaireStateSchema(BaseModel):
+    user_id: str
+    queue: str 
+    answers: str
+    answered_questions: str
+    participating_questions_count: int
+    questionnaire_version: int
+    last_updated: datetime
+    created_at: datetime
+    
+    model_config = ConfigDict(from_attributes=True)
+
+# CompletedQuestionnaire schema
+class CompletedQuestionnaireSchema(BaseModel):
+    user_id: str
+    answers: Dict[str, Any]
+    questionnaire_version: int
+    submitted_at: datetime
+    question_count: int
     
     model_config = ConfigDict(from_attributes=True)

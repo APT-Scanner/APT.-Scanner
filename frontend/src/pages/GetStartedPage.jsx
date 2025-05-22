@@ -20,7 +20,7 @@ const GetStartedPage = () => {
                         APT. Scanner uses questions to find your perfect neighborhood match.
                     </p>
                     <p className={styles.description}>
-                        Answer 6 essential questions to begin.
+                        Answer 10 essential questions to begin.
                         <br />
                         Then, you’ll get the option to go deeper with personalized ones.
                     </p>

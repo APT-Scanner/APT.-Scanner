@@ -59,7 +59,7 @@
 
 /* Special styling for completion checkmark */
 .completionCheckmark {
-  background-color: #5cb85c;
+  background-color: #A0E3E2;
   width: 70px;
   height: 70px;
   font-size: 36px;
@@ -121,12 +121,12 @@
   transition: all 0.2s ease;
   border: none;
   width: 100%;
-  background-color: #5cb85c;
+  background-color: #A0E3E2;
   color: white;
 }
 
 .primaryButton:hover {
-  background-color: #4cae4c;
+  background-color: #A0E3E2;
 }
 
 .secondaryButton {

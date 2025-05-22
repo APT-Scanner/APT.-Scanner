@@ -194,8 +194,7 @@ class User(Base):
 class UserPreferences(Base):
     __tablename__ = "user_preferences"
 
-    id: Mapped[int] = mapped_column(primary_key=True, index=True)
-    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), unique=True, nullable=False, index=True)
+    user_id: Mapped[int] = mapped_column(ForeignKey("users.id"), primary_key=True, unique=True, nullable=False, index=True)
 
     # Section 1: Lifestyle
     pace_of_life: Mapped[Optional[PaceOfLife]] = mapped_column(SQLEnum(PaceOfLife), nullable=True)
@@ -229,24 +228,26 @@ class UserPreferences(Base):
 class Favorite(Base):
     __tablename__ = "favorites"
     
-    id = Column(Integer, primary_key=True, index=True)
-    user_id = Column(String, nullable=False, index=True)
-    listing_id = Column(Integer, ForeignKey("listings.order_id"), nullable=False)
-    created_at = Column(DateTime, default=datetime.now)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), nullable=False, index=True)
+    listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.order_id"), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     
-    listing = relationship("Listing", back_populates="favorited_by")
+    listing: Mapped["Listing"] = relationship("Listing", back_populates="favorited_by")
+    user: Mapped["User"] = relationship("User")
 
 # Add ViewHistory model to track when users viewed apartments
 class ViewHistory(Base):
     __tablename__ = "view_history"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
-    user_id: Mapped[str] = mapped_column(String, nullable=False, index=True)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), nullable=False, index=True)
     listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.order_id"), nullable=False, index=True)
     viewed_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     
-    # Relationship to listing
+    # Relationships
     listing: Mapped["Listing"] = relationship("Listing")
+    user: Mapped["User"] = relationship("User")
     
     def __repr__(self):
         return f"<ViewHistory(user_id={self.user_id}, listing_id={self.listing_id}, viewed_at={self.viewed_at})>"
@@ -260,15 +261,18 @@ class QuestionnaireState(Base):
     """
     __tablename__ = "questionnaire_states"
     
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), primary_key=True, index=True, nullable=False)
     # Store serialized JSON data
     queue: Mapped[str] = mapped_column(TEXT, nullable=False, default="[]")  # JSON list of question IDs
     answers: Mapped[str] = mapped_column(TEXT, nullable=False, default="{}")  # JSON dict of answers
     answered_questions: Mapped[str] = mapped_column(TEXT, nullable=False, default="[]")  # JSON list of answered question IDs
+    participating_questions_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     questionnaire_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # For tracking schema changes
     last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    
+    # Relationship to user
+    user: Mapped["User"] = relationship("User")
 
 class CompletedQuestionnaire(Base):
     """
@@ -278,15 +282,47 @@ class CompletedQuestionnaire(Base):
     """
     __tablename__ = "completed_questionnaires"
     
-    id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    user_id: Mapped[str] = mapped_column(String, index=True, nullable=False)
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), primary_key=True, index=True, nullable=False)
     # Store the final answers
     answers: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)  # Store as JSONB for querying
     questionnaire_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
+    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     # Track metrics about the questionnaire
     question_count: Mapped[int] = mapped_column(Integer, nullable=False)
     
+    # Relationship to user
+    user: Mapped["User"] = relationship("User")
+    
     def __repr__(self):
-        return f"<CompletedQuestionnaire(id={self.id}, user_id={self.user_id}, submitted_at={self.submitted_at})>"
+        return f"<CompletedQuestionnaire(user_id={self.user_id}, submitted_at={self.submitted_at})>"
+
+# Add UserFilters model to store user-specific filters
+class UserFilters(Base):
+    __tablename__ = "user_filters"
+    
+    # Using firebase_uid as primary key to directly link with frontend auth
+    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), primary_key=True, index=True)
+    
+    # Filter properties
+    type: Mapped[Optional[str]] = mapped_column(String, nullable=True, default="rent")
+    city: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    neighborhood: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    price_min: Mapped[int] = mapped_column(Integer, nullable=False, default=500)
+    price_max: Mapped[int] = mapped_column(Integer, nullable=False, default=15000)
+    rooms_min: Mapped[float] = mapped_column(Float, nullable=False, default=1)
+    rooms_max: Mapped[float] = mapped_column(Float, nullable=False, default=8)
+    size_min: Mapped[int] = mapped_column(Integer, nullable=False, default=10)
+    size_max: Mapped[int] = mapped_column(Integer, nullable=False, default=500)
+    options: Mapped[Optional[str]] = mapped_column(String, nullable=True) # Comma-separated list of options
+    
+    # Timestamps
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), 
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+    
+    def __repr__(self):
+        return f"<UserFilters(user_id={self.user_id}, type={self.type})>"
