@@ -8,18 +8,18 @@ APT. Scanner combines advanced AI algorithms with real estate data to deliver pe
 
 ## Tech Stack
 
-- **Frontend**: React.js
+- **Frontend**: React.js, Vite
 - **Backend**: FastAPI (Python)
-- **Database**: PostgreSQL
-- **AI/ML**: Scikit-learn, TensorFlow/PyTorch
-- **APIs & Data Sources**: 
-  - Yad2 web scraping
-  - Gov.il API
-  - Google Maps API
-  - Wikipedia API
+- **Database**: PostgreSQL (with Alembic for migrations)
+- **AI/ML**: (Potentially Scikit-learn, TensorFlow/PyTorch)
+- **APIs & Data Sources**:
+  - GovMap API
+  - Yad2
+  - Google Maps
 - **Authentication**: Firebase
-- **Hosting & Deployment**: AWS or Google Cloud
-- **Real-time interactions**: WebSockets
+- **Caching**: Redis (used in backend services)
+- **Hosting & Deployment**: (To be determined - e.g., AWS, Google Cloud)
+- **Real-time interactions**: (Potentially WebSockets - to be confirmed)
 
 ## Project Structure
 
@@ -29,54 +29,118 @@ The project follows a monorepo architecture with the following main directories:
 APT.-Scanner/
 ├── backend/
 │   ├── src/
-│   │   ├── config/         # Configuration files (e.g., settings.py)
-│   │   ├── models/         # Database models and schemas
-│   │   ├── routes/         # API endpoint route definitions
-│   │   ├── services/       # Business logic and services
-│   │   ├── utils/          # Utility functions and helpers
-│   │   └── main.py         # Entry point for the backend application
-│   ├── scripts/            # Standalone scripts (e.g., data fetching, seeding)
+│   │   ├── api/            # API endpoint definitions (FastAPI routers)
+│   │   ├── config/         # Configuration files (e.g., settings, constants)
+│   │   ├── middleware/     # Custom FastAPI middleware (e.g., authentication)
+│   │   ├── models/         # Database models (SQLAlchemy) and Pydantic schemas
+│   │   ├── services/       # Business logic and core services (e.g., QuestionnaireService)
+│   │   ├── utils/          # Utility functions and helpers (e.g., cache clients)
+│   │   └── main.py         # Entry point for the backend FastAPI application
+│   ├── data/               # Data-related files (e.g., JSON for questionnaires)
+│   │   ├── sources/        # Raw data files (e.g., basic_information_questions.json)
+│   ├── migrations/         # Alembic database migration scripts
+│   ├── scripts/            # Standalone scripts (e.g., govmap-api interaction)
 │   ├── tests/              # Unit and integration tests for the backend
+│   └── logs/               # Log files
 ├── frontend/
 │   ├── public/             # Static assets (e.g., images, icons, index.html)
 │   ├── src/
-│   │   ├── components/     # Reusable React components
-│   │   ├── pages/          # Page-level components
-│   │   ├── services/       # API calls and backend interactions
-│   │   ├── styles/         # Global and component-specific styles
-│   │   └── App.jsx         # Main React component
-│   ├── tests/              # Unit and integration tests for the frontend
-├── shared/
-│   ├── constants/          # Shared constants used across the project
-│   └── utils/              # Shared utility functions used by both frontend and backend   
-├── docs/                   # Documentation files (e.g., API docs, diagrams)
-├── data/                   # Data-related files and scripts
-│   ├── processing/         # Scripts for processing raw data
-│   ├── scrapers/           # Web scraping scripts for data collection
-│   └── sources/            # Raw data files or external data sources
-├── ai/                     # AI/ML-related files
-│   ├── evaluation/         # Scripts and tools for evaluating AI models
-│   ├── models/             # Trained models and model definitions
-│   └── preprocessing/      # Scripts for preprocessing data for AI/ML tasks
-└── .env                    # Environment-specific variables (e.g., API keys)
+│   │   ├── assets/         # Static assets like images, icons
+│   │   ├── components/     # Reusable React components (e.g., LoadingSpinner, ContinuationPrompt)
+│   │   ├── config/         # Frontend configuration (e.g., constants, API URLs)
+│   │   ├── hooks/          # Custom React hooks (e.g., useAuth, useQuestionnaire)
+│   │   ├── pages/          # Page-level components (e.g., QuestionnairePage, LoginPage)
+│   │   ├── services/       # (Likely for API calls, though useQuestionnaire handles some)
+│   │   ├── styles/         # Global and component-specific styles (CSS Modules)
+│   │   ├── App.jsx         # Main React application component, routing setup
+│   │   └── main.jsx        # Entry point for the React application
+│   ├── tests/              # (Placeholder for frontend tests)
+├── shared/                 # (Currently seems unused or content integrated elsewhere)
+│   ├── constants/
+│   └── utils/
+├── docs/                   # Documentation files
+├── ai/                     # AI/ML-related files (structure to be detailed if used)
+│   ├── evaluation/
+│   ├── models/
+│   └── preprocessing/
+├── logs/                   # General project log files
+├── .venv/                  # Python virtual environment
+├── .gitignore
+├── APT-Scanner-Firebase.json # Firebase service account key
+└── requirements.txt        # Python dependencies
 ```
+
+## Key Features Implemented
+
+- **User Authentication**: Firebase integration for user sign-up, login, and session management.
+- **Dynamic Questionnaire**:
+    - Backend service (`QuestionnaireService`) to manage question flow, user state, and answers.
+    - Questions loaded from JSON files (`basic_information_questions.json`, `dynamic_questionnaire.json`).
+    - Question branching logic based on user answers.
+    - Batching of questions (initial 10, then in sets of 5).
+    - Continuation prompts between batches and a final completion prompt.
+    - Progress tracking and display.
+- **Google Places Autocomplete**: Integrated into text input fields for location-based questions.
+- **Caching**: Redis used for caching questionnaire state in the backend.
+- **Database**: PostgreSQL with SQLAlchemy ORM and Alembic for database migrations.
+- **API**: FastAPI backend providing RESTful endpoints for questionnaire management.
+- **Responsive Frontend**: React components with CSS Modules for styling.
+- **Offline Support (Basic)**: Frontend attempts to cache answers locally if the user goes offline.
 
 ## Getting Started
 
 ### Prerequisites
-- Node.js 16+
-- Python 3.8+
-- PostgreSQL 13+
-- Docker (optional)
+- Node.js (Version as per `package.json` or project needs, e.g., 16+)
+- Python (Version as per `requirements.txt` or project needs, e.g., 3.11+)
+- PostgreSQL (e.g., 13+)
+- Redis (for caching)
+- Firebase project setup for authentication.
 
 ### Installation
 
-Detailed installation instructions coming soon.
+1.  **Clone the repository:**
+    ```bash
+    git clone <repository-url>
+    cd APT.-Scanner
+    ```
+
+2.  **Backend Setup:**
+    ```bash
+    cd backend
+    python -m venv .venv
+    source .venv/bin/activate  # On Windows: .venv\Scripts\activate
+    pip install -r ../requirements.txt
+    # Set up .env file with database credentials, Firebase config, etc.
+    # Example .env content:
+    # DATABASE_URL=postgresql+asyncpg://user:password@host:port/dbname
+    # REDIS_HOST=localhost
+    # REDIS_PORT=6379
+    # FIREBASE_CREDENTIALS_PATH=../APT-Scanner-Firebase.json
+    # Run Alembic migrations
+    alembic upgrade head
+    # Start the backend server
+    uvicorn src.main:app --reload
+    ```
+
+3.  **Frontend Setup:**
+    ```bash
+    cd ../frontend
+    npm install
+    # Set up .env file or environment variables for VITE_GOOGLE_MAPS_API_KEY
+    # Example .env.local content:
+    # VITE_GOOGLE_MAPS_API_KEY=your_google_maps_api_key_here
+    npm run dev
+    ```
+
+4.  **Firebase Setup:**
+    - Place your Firebase service account JSON key file (e.g., `APT-Scanner-Firebase.json`) in the root directory or update `FIREBASE_CREDENTIALS_PATH` in the backend environment.
+    - Ensure your Firebase project has Authentication enabled with the necessary sign-in methods.
 
 ## Development
 
-Detailed development guidelines coming soon.
+- Run backend and frontend servers concurrently as described in the setup.
+- Backend API documentation (Swagger UI) is typically available at `/docs` (e.g., `http://localhost:8000/docs`).
 
 ## License
 
-[Insert License Information]
+(To be added)
