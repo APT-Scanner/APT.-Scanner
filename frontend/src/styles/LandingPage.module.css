@@ -1,7 +1,7 @@
 .pageContainer {
   display: grid;
   grid-template-columns: minmax(0, 2000px);
-  justify-content: center;
+  align-items: center;
   min-height: 100vh;         
   background-color: #aeaff7; 
   padding: 80px 20px 20px 20px; 

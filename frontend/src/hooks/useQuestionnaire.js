@@ -47,9 +47,6 @@ export const useQuestionnaire = () => {
   // Network status
   const [isOffline, setIsOffline] = useState(false);
   
-  // Track if this is the first load
-  const isInitialMount = useRef(true);
-  
   // Track if continuation prompt has been shown
   const continuationPromptShown = useRef(false);
   
@@ -398,7 +395,7 @@ export const useQuestionnaire = () => {
    * Submit the completed questionnaire
    */
   const submitQuestionnaire = useCallback(async () => {
-    if (!idToken || !isComplete || !user?.uid) return;
+    if (!idToken || !user?.uid) return;
     
     setLoading(true);
     setError(null);

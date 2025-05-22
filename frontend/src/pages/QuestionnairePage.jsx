@@ -348,6 +348,7 @@ const QuestionnairePage = () => {
     
     // Check if this is a completion prompt or a continuation prompt
     if (currentQuestion.id === "final_completion_prompt") {
+      submitQuestionnaire();
       // Handle the completion prompt options
       if (answer === "yes") {
         // First option (View matched apartments)
@@ -364,6 +365,8 @@ const QuestionnairePage = () => {
       selectedOptionText = "Continue with more questions";
     } else {
       selectedOptionText = "Submit my responses now";
+      submitQuestionnaire();
+      navigate('/apartment-swipe');
     }
     answerQuestion(currentQuestion.id, selectedOptionText);
   };

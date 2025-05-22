@@ -355,14 +355,6 @@ async def submit_questionnaire(
             )
             
         questionnaire_service = QuestionnaireService(db)
-        
-        # Check if questionnaire is complete
-        is_complete = await questionnaire_service.is_questionnaire_completed(user_id)
-        if not is_complete:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Questionnaire is not complete. Please answer all questions before submitting."
-            )
             
         # Save completed questionnaire
         success = await questionnaire_service.save_completed_questionnaire(user_id)
@@ -401,6 +393,21 @@ async def get_questionnaire_status(
             
         questionnaire_service = QuestionnaireService(db)
         
+        # First check if a completed questionnaire exists
+        from src.models.models import CompletedQuestionnaire
+        has_completed = await db.execute(
+            select(CompletedQuestionnaire).where(CompletedQuestionnaire.user_id == user_id)
+        )
+        completed_questionnaire = has_completed.scalars().first()
+        
+        if completed_questionnaire:
+            # User has a submitted questionnaire in the database
+            logger.info(f"User {user_id} has a completed questionnaire in the database")
+            return {
+                "is_complete": True,
+                "questions_answered": completed_questionnaire.question_count,
+            }
+        
         # Get user state
         user_state = await questionnaire_service.get_user_state(user_id)
         
@@ -429,8 +436,8 @@ async def get_questionnaire_status(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=str(e)
-        ) 
-    
+        )
+
 @router.get("/basic-questions-length",
             summary="Get the number of basic questions",
             response_model=int)
@@ -464,21 +471,20 @@ async def _get_current_stage_counts(
     num_answered = len(answered_questions)
     
     # Get total available questions count
-    total_questions = questionnaire_service.total_questions
-
+    participating_questions_count = user_state.get('participating_questions_count', 0)
+    is_first_batch = num_answered < 10
     # Calculate the target batch size based on how many questions have been answered
     # Initial batch is 10, then we add batches of 5
-    if num_answered < 10:
-        # First batch: up to 10 questions
-        current_batch_size = min(10, total_questions)
-        return current_batch_size, num_answered
+
+    if is_first_batch:
+        return 10, num_answered
     else:
         # Which batch are we in? (after the first 10-question batch)
         current_batch_number = ((num_answered - 10) // 5) + 1
         
         # Calculate the start and end of the current batch
         batch_start = 10 + ((current_batch_number - 1) * 5)
-        batch_end = min(batch_start + 5, total_questions)
+        batch_end = min(batch_start + 5, participating_questions_count)
         
         # How many questions answered in the current batch
         questions_in_current_batch = min(num_answered - batch_start, 5)

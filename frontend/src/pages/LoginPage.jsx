@@ -10,6 +10,7 @@ import styles from "../styles/LoginPage.module.css";
 import { auth } from "../config/firebase";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
+import { useQuestionnaireStatus } from "../hooks/useQuestionnaireStatus";
 
 const LoginPage = () => {
   const [view, setView] = useState("options");
@@ -18,6 +19,7 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
+  const {isCompleted: isCompleteQuestionnaire, loading: isLoadingQuestionnaire, error: errorQuestionnaire} = useQuestionnaireStatus();
 
   const handleNavigateBack = () => {
     if (view == "emailLoginForm") {
@@ -27,6 +29,7 @@ const LoginPage = () => {
       navigate(-1);
     }
   };
+
 
   const handleContinueWithEmail = () => {
     setView("emailLoginForm");
@@ -46,7 +49,11 @@ const LoginPage = () => {
       );
       console.log("Email Login successful:", userCredentials.user);
       setIsLoading(false);
-      navigate("/apartment-swipe");
+      if (isCompleteQuestionnaire) {
+        navigate("/apartment-swipe");
+      } else {
+        navigate("/get-started");
+      }
     } catch (firebaseError) {
       setIsLoading(false);
       console.error(
@@ -87,7 +94,11 @@ const LoginPage = () => {
       const result = await signInWithPopup(auth, provider);
       console.log(`${providerName} Sign-in successful:`, result.user);
       setIsLoading(false);
-      navigate("/apartment-swipe");
+      if (isCompleteQuestionnaire) {
+        navigate("/apartment-swipe");
+      } else {
+        navigate("/get-started");
+      }
     } catch (error) {
       setIsLoading(false);
       console.error(
