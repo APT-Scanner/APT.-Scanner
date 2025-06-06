@@ -9,6 +9,7 @@ import ApartmentSwipePage from "./pages/ApartmentSwipePage";
 import FavoritesPage from './pages/FavoritesPage';
 import FilterPage from './pages/FilterPage';
 import FavoritesApartmentDetails from './pages/FavoritesApartmentDetails';
+import RecommendationsPage from './pages/RecommendationsPage';
 
 function App() {
   return (
@@ -22,9 +23,10 @@ function App() {
             <Route path = "/get-started" element={<GetStartedPage/>}></Route>
             <Route path = "/questionnaire" element = {<QuestionnairePage/>}></Route>
             <Route path = "/apartment-swipe" element={<ApartmentSwipePage/>}></Route>
-            <Route path="/favorites" element={<FavoritesPage />}></Route>
-            <Route path="/filter" element={<FilterPage />}></Route>
-            <Route path="/favorites/:token" element={<FavoritesApartmentDetails />}></Route>
+            <Route path = "/favorites" element={<FavoritesPage />}></Route>
+            <Route path = "/filter" element={<FilterPage />}></Route>
+            <Route path = "/favorites/:token" element={<FavoritesApartmentDetails />}></Route>
+            <Route path = "/recommendations" element={<RecommendationsPage />}></Route>
           </Routes>
         </div>
       </div>

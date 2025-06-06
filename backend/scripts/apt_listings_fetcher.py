@@ -1,4 +1,3 @@
-
 from populate_database import populate_listings
 import os
 import sys

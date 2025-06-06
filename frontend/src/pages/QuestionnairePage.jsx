@@ -219,7 +219,8 @@ const QuestionnairePage = () => {
 
   useEffect(() => {
     if (isSubmitted) {
-      navigate('/dashboard');
+      navigate('/recommendations');
+      //navigate('/dashboard');
     }
   }, [isSubmitted, navigate]);
   
@@ -277,7 +278,8 @@ const QuestionnairePage = () => {
   
   const handleSubmit = () => {
     submitQuestionnaire();
-    navigate('/apartment-swipe');
+    navigate('/recommendations');
+    //navigate('/apartment-swipe');
   };
   
   const goToNextQuestion = (skip = false) => {
@@ -352,7 +354,8 @@ const QuestionnairePage = () => {
       // Handle the completion prompt options
       if (answer === "yes") {
         // First option (View matched apartments)
-        navigate('/apartment-swipe');
+        //navigate('/apartment-swipe');
+        navigate('/recommendations');
       } else {
         // Second option (Go to dashboard)
         navigate('/dashboard');
@@ -366,7 +369,8 @@ const QuestionnairePage = () => {
     } else {
       selectedOptionText = "Submit my responses now";
       submitQuestionnaire();
-      navigate('/apartment-swipe');
+      //navigate('/apartment-swipe');
+      navigate('/recommendations');
     }
     answerQuestion(currentQuestion.id, selectedOptionText);
   };
