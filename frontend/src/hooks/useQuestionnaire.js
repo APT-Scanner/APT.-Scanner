@@ -2,10 +2,8 @@ import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { BACKEND_URL, CONTINUATION_PROMPT_ID } from '../config/constants';
 
-// Add debugging flag
 const DEBUG = true;
 
-// Continuation prompt configuration
 const CONTINUATION_PROMPT_QUESTION = {
   id: CONTINUATION_PROMPT_ID,
   text: "You've completed the initial questions! Would you like to continue with more questions to help us better understand your needs, or submit your responses now?",
@@ -20,37 +18,22 @@ const CONTINUATION_PROMPT_QUESTION = {
  * Supports caching, offline mode, and error recovery.
  */
 export const useQuestionnaire = () => {
-  // State for the current question
+
   const [currentQuestion, setCurrentQuestion] = useState(null);
-  
-  // State for all user answers - using a hash table structure
   const [answers, setAnswers] = useState({});
-  
-  // Loading and error states
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  
-  // Completion states
   const [isComplete, setIsComplete] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
-  
-  // Progress tracking (percentage)
   const [progress, setProgress] = useState(0);
-  
-  // Stage-specific progress tracking
   const [currentStageTotalQuestions, setCurrentStageTotalQuestions] = useState(0);
   const [currentStageAnsweredQuestions, setCurrentStageAnsweredQuestions] = useState(0);
-  
-  // Track answered questions
   const [answeredQuestions, setAnsweredQuestions] = useState([]);
-  
-  // Network status
   const [isOffline, setIsOffline] = useState(false);
   
   // Track if continuation prompt has been shown
   const continuationPromptShown = useRef(false);
   
-  // Get auth token and user info
   const { idToken, user, loading: authLoading } = useAuth();
 
   // User-specific localStorage key prefixes
@@ -116,7 +99,6 @@ export const useQuestionnaire = () => {
    */
   useEffect(() => {
     if (user?.uid) {
-      // Clear state first to prevent mixing data between users
       setAnswers({});
       setAnsweredQuestions([]);
       setProgress(0);
@@ -182,12 +164,12 @@ export const useQuestionnaire = () => {
       // Check if we need to show a continuation prompt
       if (data.show_continuation_prompt) {
         if (DEBUG) console.log("Backend requested showing continuation prompt on start");
-        // Show our custom continuation prompt
+        // Show custom continuation prompt
         setCurrentQuestion(CONTINUATION_PROMPT_QUESTION);
         continuationPromptShown.current = true;
         saveToLocalStorage('continuation-shown', true);
       } else {
-        // Normal flow - show the question from the backend
+        // Normal flow 
         setCurrentQuestion(data.question);
       }
       
@@ -370,13 +352,13 @@ export const useQuestionnaire = () => {
    * Handle answering a question
    */
   const answerQuestion = useCallback((questionId, answer) => {
-    // Guard against empty or unexpected values to prevent auto-advancing
+
     if (!questionId) {
       if (DEBUG) console.warn("answerQuestion called with no questionId");
       return;
     }
     
-    // Prevent answering with empty arrays which can happen with improper state management
+    // Prevent answering with empty arrays 
     if (Array.isArray(answer) && answer.length === 0) {
       if (DEBUG) console.warn(`Prevented submission of empty array for question ${questionId}`);
       return;

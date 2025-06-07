@@ -3,9 +3,9 @@ import { useNavigate } from 'react-router-dom';
 import { IoMdArrowBack } from 'react-icons/io';
 import { useQuestionnaire } from '../hooks/useQuestionnaire';
 import styles from '../styles/QuestionnairePage.module.css';
-import { LoadingSpinner } from '../components/loadingSpinner';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 import ContinuationPrompt from '../components/ContinuationPrompt';
-import RangeSlider from '../components/rangeSlider';
+import RangeSlider from '../components/RangeSlider';
 
 // Add debugging to track state changes
 const DEBUG = true;
@@ -220,7 +220,6 @@ const QuestionnairePage = () => {
   useEffect(() => {
     if (isSubmitted) {
       navigate('/recommendations');
-      //navigate('/dashboard');
     }
   }, [isSubmitted, navigate]);
   
@@ -279,7 +278,6 @@ const QuestionnairePage = () => {
   const handleSubmit = () => {
     submitQuestionnaire();
     navigate('/recommendations');
-    //navigate('/apartment-swipe');
   };
   
   const goToNextQuestion = (skip = false) => {
@@ -354,7 +352,6 @@ const QuestionnairePage = () => {
       // Handle the completion prompt options
       if (answer === "yes") {
         // First option (View matched apartments)
-        //navigate('/apartment-swipe');
         navigate('/recommendations');
       } else {
         // Second option (Go to dashboard)

@@ -38,18 +38,14 @@ async def _calculate_questionnaire_progress(
         return 0.0
 
     answered_questions = user_state.get('answered_questions', [])
-    
-    # Count the number of answered questions
     num_answered = len(answered_questions)
     
-    # Calculate the target batch size based on how many questions have been answered
-    # Initial batch is 10, then we add 5 more for each subsequent batch
     if num_answered <= 10:
         # First batch: 10 questions
         target_batch_size = 10
     else:
         # Calculate which batch we're in after the first batch
-        additional_batches = (num_answered - 10 + 4) // 5  # Using integer division with ceiling
+        additional_batches = (num_answered - 10 + 4) // 5  
         target_batch_size = 10 + (additional_batches * 5)
     
     # Get total available questions count (answered + in queue + potential future questions)
@@ -58,18 +54,15 @@ async def _calculate_questionnaire_progress(
     # Limit the target batch size to the total number of available questions
     target_batch_size = min(target_batch_size, total_questions)
     
-    # If the user has answered all questions, progress is 100%
     if num_answered >= total_questions:
         return 100.0
     
-    # Calculate progress based on the current batch target
     if target_batch_size > 0:
         progress = (num_answered / target_batch_size) * 100
         return round(min(progress, 100.0), 1)
     
     return 100.0
 
-# New function to check if continuation prompt should be shown
 def should_show_continuation_prompt(
     user_state: Optional[Dict[str, Any]]
 ) -> bool:
@@ -81,9 +74,7 @@ def should_show_continuation_prompt(
         
     answered_questions = user_state.get('answered_questions', [])
     num_answered = len(answered_questions)
-    
-    # Show continuation prompt exactly at 10, 15, 20, etc. questions
-    # BUT only when the queue is empty (meaning the current batch is completed)
+
     if num_answered == 10 or (num_answered > 10 and (num_answered - 10) % 5 == 0):
         return True
     
@@ -262,7 +253,6 @@ async def get_next_question_endpoint(
                 show_continuation_prompt=False
             )
         
-        # Check if we should show the continuation prompt
         show_prompt = should_show_continuation_prompt(user_state)
         
         # If we need to show a continuation prompt, return a special response
@@ -473,23 +463,15 @@ async def _get_current_stage_counts(
     # Get total available questions count
     participating_questions_count = user_state.get('participating_questions_count', 0)
     is_first_batch = num_answered < 10
-    # Calculate the target batch size based on how many questions have been answered
-    # Initial batch is 10, then we add batches of 5
 
     if is_first_batch:
         return 10, num_answered
     else:
-        # Which batch are we in? (after the first 10-question batch)
+
         current_batch_number = ((num_answered - 10) // 5) + 1
-        
-        # Calculate the start and end of the current batch
         batch_start = 10 + ((current_batch_number - 1) * 5)
         batch_end = min(batch_start + 5, participating_questions_count)
-        
-        # How many questions answered in the current batch
         questions_in_current_batch = min(num_answered - batch_start, 5)
-        
-        # If this batch size is less than 5 (due to running out of questions)
         current_batch_size = batch_end - batch_start
         
         return current_batch_size, questions_in_current_batch

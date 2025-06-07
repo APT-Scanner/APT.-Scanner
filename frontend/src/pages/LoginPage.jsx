@@ -30,7 +30,6 @@ const LoginPage = () => {
     }
   };
 
-
   const handleContinueWithEmail = () => {
     setView("emailLoginForm");
     setError("");

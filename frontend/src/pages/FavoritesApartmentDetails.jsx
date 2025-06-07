@@ -5,9 +5,9 @@ import { useApartment } from '../hooks/useApartment';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
 import { ArrowLeft } from 'lucide-react';
 import { AnimatePresence } from 'framer-motion';
-import AnimatedApartmentCard from '../components/animatedApartmentCard';
+import AnimatedApartmentCard from '../components/AnimatedApartmentCard';
 import logo from "../assets/logo-swipe-screen.jpeg";
-import { LoadingSpinner } from '../components/loadingSpinner';
+import { LoadingSpinner } from '../components/LoadingSpinner';
 
 
 const FavoritesApartmentDetails = () => {

@@ -137,7 +137,6 @@ class QuestionnaireService:
             return None
             
         try:
-            # Query for user state
             query = select(QuestionnaireState).where(QuestionnaireState.user_id == user_id)
             result = await self.db_session.execute(query)
             state_record = result.scalars().first()

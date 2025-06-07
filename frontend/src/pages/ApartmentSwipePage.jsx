@@ -13,8 +13,8 @@ import { useFavorites } from '../hooks/useFavorites';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
 import { useDrag } from '@use-gesture/react';
-import { LoadingSpinner } from '../components/loadingSpinner';
-import AnimatedApartmentCard from '../components/animatedApartmentCard';
+import { LoadingSpinner } from '../components/LoadingSpinner';
+import AnimatedApartmentCard from '../components/AnimatedApartmentCard';
 
 
 const ApartmentSwipePage = () => {
