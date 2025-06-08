@@ -179,7 +179,7 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete, disableS
                     
                     <div className={styles.fullscreenControls}>
                         <button 
-                            className={styles.fullscreenNavButton}
+                            className={styles.fullscreenNavButtonLeft}
                             onClick={prevImage}
                             aria-label="Previous image"
                         >
@@ -191,7 +191,7 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete, disableS
                         </div>
                         
                         <button 
-                            className={styles.fullscreenNavButton}
+                            className={styles.fullscreenNavButtonRight}
                             onClick={nextImage}
                             aria-label="Next image"
                         >
