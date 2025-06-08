@@ -1,12 +1,14 @@
 .pageContainer {
-  display: grid;
-  grid-template-columns: minmax(0, 2000px);
+  display: flex;
   align-items: center;
-  min-height: 100vh;         
+  justify-content: center;
+  width: 100vw;
+  min-height: 100vh;  
+  min-width: 360px;       
   background-color: #aeaff7; 
-  padding: 80px 20px 20px 20px; 
   box-sizing: border-box;    
-  position: relative;  
+  position: fixed;
+  top: 0;
 }
 
 .card {
@@ -38,12 +40,12 @@
 
 .backgroundCircle {
   position: absolute;
-  width: clamp(400px, 100vw, 2000px);
-  height: 405px;
+  width: clamp(500px, 100vw, 2000px);
+  height: clamp(300px, 50vh, 2000px);
   background-color: #d9f4f3;
   border-radius: 50%; 
-  top: 47%;     
-  left: -40%;           
+  top: 50%;     
+  left: -50%;           
   transform: translateY(-50%);
   z-index: 2;
   opacity: 0.4;
@@ -61,14 +63,13 @@
   color: #371b34;
   font-family: 'Alegreya Sans', sans-serif;
   font-weight: 400;
-  font-size: clamp(20px, 6px + 4cqi, 30px);
+  font-size: clamp(22px, 8px + 4cqi, 28px);
   line-height: 1.2;
   letter-spacing: 0%;
   text-align: left; 
   margin-bottom: 25px;
   margin-top: -5px;
   max-width: 350px;
-  margin-left: -20px;
   z-index: 3;
 }
 

@@ -2,24 +2,25 @@
     display: flex;
     justify-content: center;
     align-items: center;
-    min-height: 100vh;
+    width: 100vw;
+    height: 100vh;
+    min-width: 360px;
     background-color: #f7f7f7; 
-    padding: 20px;
     box-sizing: border-box;
-    position: relative; 
-    overflow: hidden;
+    position: fixed;
+    top: 0;
   }
   
   .backgroundCircle {
     position: absolute;
-    width: 450px; 
-    height: 450px;
+    width: clamp(500px, 100vw, 2000px);
+    height: clamp(300px, 50vh, 2000px);
     background-color: #a0e3e2; 
-    border-radius: 392px;
-    top: 40%;
-    left: 20%;
-    transform: translate(-50%, -30%); 
-    z-index: 1;
+    border-radius: 50%; 
+    top: 50%;     
+    left: -50%;           
+    transform: translateY(-50%);
+    z-index: 2;
     opacity: 0.4;
   }
   
