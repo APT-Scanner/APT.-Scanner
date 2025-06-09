@@ -19,7 +19,8 @@ const LoginPage = () => {
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const navigate = useNavigate();
-  const {isCompleted: isCompleteQuestionnaire, loading: isLoadingQuestionnaire, error: errorQuestionnaire} = useQuestionnaireStatus();
+  const { checkStatus } = useQuestionnaireStatus(false);
+
 
   const handleNavigateBack = () => {
     if (view == "emailLoginForm") {
@@ -41,25 +42,21 @@ const LoginPage = () => {
     setIsLoading(true);
 
     try {
-      const userCredentials = await signInWithEmailAndPassword(
-        auth,
-        email,
-        password
-      );
-      console.log("Email Login successful:", userCredentials.user);
-      setIsLoading(false);
-      if (isCompleteQuestionnaire) {
+      const userCredentials = await signInWithEmailAndPassword(auth, email, password);
+      
+      // Check questionnaire status using hook
+      const isComplete = await checkStatus(userCredentials.user);
+      
+      if (isComplete) {
         navigate("/apartment-swipe");
       } else {
         navigate("/get-started");
       }
+      
     } catch (firebaseError) {
       setIsLoading(false);
-      console.error(
-        "Firebase email login error:",
-        firebaseError.code,
-        firebaseError.message
-      );
+      console.error("Firebase email login error:", firebaseError.code, firebaseError.message);
+      
       if (
         firebaseError.code === "auth/invalid-credential" ||
         firebaseError.code === "auth/user-not-found" ||
@@ -71,6 +68,8 @@ const LoginPage = () => {
       } else {
         setError("Login failed. Please try again.");
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -81,7 +80,7 @@ const LoginPage = () => {
 
     if (providerName === "google") {
       provider = new GoogleAuthProvider();
-    } else if (providerName == "facebook") {
+    } else if (providerName === "facebook") {
       provider = new FacebookAuthProvider();
     } else {
       setError("Unknown Provider");
@@ -92,27 +91,24 @@ const LoginPage = () => {
     try {
       const result = await signInWithPopup(auth, provider);
       console.log(`${providerName} Sign-in successful:`, result.user);
-      setIsLoading(false);
-      if (isCompleteQuestionnaire) {
+      
+      // Check questionnaire status using hook
+      const isComplete = await checkStatus(result.user);
+      
+      if (isComplete) {
         navigate("/apartment-swipe");
       } else {
         navigate("/get-started");
       }
+      
     } catch (error) {
       setIsLoading(false);
-      console.error(
-        `${providerName} Sign-in error:`,
-        error.code,
-        error.message
-      );
+      console.error(`${providerName} Sign-in error:`, error.code, error.message);
+      
       if (error.code === "auth/popup-closed-by-user") {
         setError("Login process cancelled.");
-      } else if (
-        error.code === "auth/account-exists-with-different-credential"
-      ) {
-        setError(
-          "An account already exists with the same email address but different sign-in credentials. Sign in using a provider associated with this email address."
-        );
+      } else if (error.code === "auth/account-exists-with-different-credential") {
+        setError("An account already exists with the same email address but different sign-in credentials. Sign in using a provider associated with this email address.");
       } else {
         setError(`${providerName} login failed. Please try again.`);
       }
