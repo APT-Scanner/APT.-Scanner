@@ -74,53 +74,77 @@ class QuestionnaireService:
             A dictionary mapping question IDs to their next questions and branches
         """
         graph = {}
-        start_questions = list(self.basic_information_questions.values())
         self.total_questions = 0  # Reset counter before building
-
+        
         # Process basic information questions first
-        for index, question in enumerate(start_questions):
-            # For each question, set up next_default to be the next question in sequence
-            graph[question['id']] = {
-                "next_default": start_questions[index + 1]['id'] if index < len(start_questions) - 1 else None,
-                "branches": {},
-                "on_answered": {},
-                "on_unanswered": {}
-            }
-            self.total_questions += 1
-            self.initial_participating_questions_count += 1
-            # Add branches if the question has them
-            if question.get('branches'):
-                for answer, next_questions_val in question['branches'].items():
-                    graph[question['id']]['branches'][answer] = next_questions_val
-            if question.get('on_answered'):
-                graph[question['id']]['on_answered'] = question['on_answered']
-                graph[question['on_answered']['id']] = question['on_answered']
-                self.total_questions += 1
-            if question.get('on_unanswered'):
-                graph[question['id']]['on_unanswered'] = question['on_unanswered']
-                graph[question['on_unanswered']['id']] = question['on_unanswered']
-                self.total_questions += 1
-            if question.get('on_unanswered') or question.get('on_answered'):
-                self.initial_participating_questions_count += 1
-
+        self._process_basic_questions_for_graph(graph)
+        
         # Process dynamic questionnaire questions
-        for q_id, question in self.dynamic_questionnaire.items():
-            graph[q_id] = {
-                "next_default": [],
-                "branches": {},
-                "on_answered": {},
-                "on_unanswered": {}
-            }
-            self.total_questions += 1
-            if question.get('category') == 'Location and Convenience':
-                self.initial_participating_questions_count += 1
-            # Add branches for dynamic questions
-            if question.get('branches'):
-                for answer, next_questions_val in question['branches'].items():
-                    graph[q_id]['branches'][answer] = next_questions_val
+        self._process_dynamic_questions_for_graph(graph)
         
         logger.info(f"Total questions count: {self.total_questions}")
         return graph
+
+    def _process_basic_questions_for_graph(self, graph: Dict[str, Dict[str, Any]]) -> None:
+        """Process basic information questions for the graph."""
+        start_questions = list(self.basic_information_questions.values())
+        
+        for index, question in enumerate(start_questions):
+            next_question_id = start_questions[index + 1]['id'] if index < len(start_questions) - 1 else None
+            
+            # Create base graph node
+            graph[question['id']] = self._create_graph_node(next_question_id)
+            self.total_questions += 1
+            self.initial_participating_questions_count += 1
+            
+            # Process question branches and conditional logic
+            self._add_question_branches(graph, question)
+            self._add_conditional_questions(graph, question)
+
+    def _process_dynamic_questions_for_graph(self, graph: Dict[str, Dict[str, Any]]) -> None:
+        """Process dynamic questionnaire questions for the graph."""
+        for q_id, question in self.dynamic_questionnaire.items():
+            graph[q_id] = self._create_graph_node([])
+            self.total_questions += 1
+            
+            if question.get('category') == 'Location and Convenience':
+                self.initial_participating_questions_count += 1
+                
+            self._add_question_branches(graph, question, q_id)
+
+    def _create_graph_node(self, next_default) -> Dict[str, Any]:
+        """Create a basic graph node structure."""
+        return {
+            "next_default": next_default,
+            "branches": {},
+            "on_answered": {},
+            "on_unanswered": {}
+        }
+
+    def _add_question_branches(self, graph: Dict[str, Dict[str, Any]], question: Dict[str, Any], q_id: str = None) -> None:
+        """Add branches to a question in the graph."""
+        question_id = q_id or question['id']
+        
+        if question.get('branches'):
+            for answer, next_questions_val in question['branches'].items():
+                graph[question_id]['branches'][answer] = next_questions_val
+
+    def _add_conditional_questions(self, graph: Dict[str, Dict[str, Any]], question: Dict[str, Any]) -> None:
+        """Add on_answered and on_unanswered conditional questions."""
+        question_id = question['id']
+        
+        if question.get('on_answered'):
+            graph[question_id]['on_answered'] = question['on_answered']
+            graph[question['on_answered']['id']] = question['on_answered']
+            self.total_questions += 1
+            
+        if question.get('on_unanswered'):
+            graph[question_id]['on_unanswered'] = question['on_unanswered']
+            graph[question['on_unanswered']['id']] = question['on_unanswered']
+            self.total_questions += 1
+            
+        if question.get('on_unanswered') or question.get('on_answered'):
+            self.initial_participating_questions_count += 1
         
     async def _get_user_state_from_db(self, user_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -132,8 +156,7 @@ class QuestionnaireService:
         Returns:
             User state as a dictionary or None if not found
         """
-        if not self.db_session:
-            logger.error("Database session not available")
+        if not self._validate_db_session():
             return None
             
         try:
@@ -174,11 +197,7 @@ class QuestionnaireService:
         Returns:
             True if successful, False otherwise
         """
-        if not self.db_session:
-            logger.error("Database session not available")
-            return False
-            
-        try:
+        async def update_operation():
             # Check if record exists
             query = select(QuestionnaireState).where(QuestionnaireState.user_id == user_id)
             result = await self.db_session.execute(query)
@@ -209,12 +228,7 @@ class QuestionnaireService:
                 )
                 self.db_session.add(state_record)
                 
-            await self.db_session.commit()
-            return True
-        except Exception as e:
-            logger.error(f"Error updating user state in DB: {e}")
-            await self.db_session.rollback()
-            return False
+        return await self._execute_db_operation("updating user state in DB", update_operation)
             
     async def _delete_user_state_from_db(self, user_id: str) -> bool:
         """
@@ -226,20 +240,12 @@ class QuestionnaireService:
         Returns:
             True if successful, False otherwise
         """
-        if not self.db_session:
-            logger.error("Database session not available")
-            return False
-            
-        try:
+        async def delete_operation():
             # Delete state record
             query = delete(QuestionnaireState).where(QuestionnaireState.user_id == user_id)
             await self.db_session.execute(query)
-            await self.db_session.commit()
-            return True
-        except Exception as e:
-            logger.error(f"Error deleting user state from DB: {e}")
-            await self.db_session.rollback()
-            return False
+            
+        return await self._execute_db_operation("deleting user state from DB", delete_operation)
             
     async def get_user_state(self, user_id: str) -> Dict[str, Any]:
         """
@@ -358,13 +364,127 @@ class QuestionnaireService:
                 if q_id not in state['answered_questions']:
                     state['answers'][q_id] = answer_val
                     state['answered_questions'].append(q_id)                    
-                    # Update queue based on the answer
                     self._update_queue_based_on_answer(state, q_id, answer_val)            
         
         # Save updated state
         await self.update_user_state(user_id, state)
         
         # Handle special case logic for the next question
+        next_question_data = self._add_follow_up_questions_to_queue(state)
+
+        if next_question_data:
+            await self.update_user_state(user_id, state)
+            return next_question_data, False, False
+        
+        # Return the next question if available in the queue
+        next_question_data = await self._get_next_question_from_queue(state, user_id)
+        if next_question_data:
+            return next_question_data, False, False
+        
+        # Check if we should add more questions based on answered count
+        questions_added = await self._populate_question_queue_if_needed(state, user_id)
+        if questions_added:
+            return await self.get_next_question(user_id)
+        
+        # If we've reached this point, the questionnaire is complete
+        return None, True, False
+
+    async def _populate_question_queue_if_needed(self, state: Dict[str, Any], user_id: str) -> bool:
+        """
+        Populate the question queue with new questions based on the batching strategy.
+        
+        Args:
+            state: Current user state
+            user_id: The user's unique identifier
+            
+        Returns:
+            Boolean indicating if questions were added to the queue
+        """
+        answered_count = len(state['answered_questions'])
+        
+        # For the first batch, ensure we have filled the queue with initial questions
+        if answered_count < 10:
+            return await self._populate_initial_batch(state, user_id, answered_count)
+        else:
+            return await self._populate_subsequent_batch(state, user_id)
+
+    async def _populate_initial_batch(self, state: Dict[str, Any], user_id: str, answered_count: int) -> bool:
+        """
+        Populate the initial batch of up to 10 questions.
+        """
+        # Fill queue if it's empty for the first batch
+        if not state['queue']:
+            # Get remaining basic information questions first
+            basic_q_ids = list(self.basic_information_questions.keys())
+            unanswered_basic = self._get_unanswered_questions(state, basic_q_ids)
+            
+            if unanswered_basic:
+                # Add remaining basic questions to queue (preserving original order)
+                remaining_basic = []
+                for q_id in basic_q_ids:
+                    if q_id in unanswered_basic:
+                        remaining_basic.append(q_id)
+                
+                state['queue'].extend(remaining_basic)
+                await self.update_user_state(user_id, state)
+                
+                if state['queue']:
+                    return True
+            
+            # If we still need more to reach 10, add location and convenience questions
+            if answered_count + len(state['queue']) < 10:
+                needed_count = 10 - (answered_count + len(state['queue']))
+                
+                # Find unanswered dynamic questions
+                dynamic_q_ids = list(self.dynamic_questionnaire.keys())
+                unanswered_dynamic = self._get_unanswered_questions(state, dynamic_q_ids)
+                
+                # Prioritize questions by category or other criteria (similar to original logic)
+                location_questions = self._get_location_convenience_questions(unanswered_dynamic)
+                
+                # Add questions up to needed count
+                questions_to_add = location_questions[:needed_count]
+                
+                if questions_to_add:
+                    state['queue'].extend(questions_to_add)
+                    await self.update_user_state(user_id, state)
+                    
+                    if state['queue']:
+                        return True
+        return False
+
+    async def _populate_subsequent_batch(self, state: Dict[str, Any], user_id: str) -> bool:
+        """
+        Populate subsequent batches of 5 questions after the initial 10.
+        """
+        # We're beyond 10 questions, check if we need a new batch of 5
+        # Only add new questions if queue is empty (current batch completed)
+        if not state['queue']:
+            # Find all unanswered questions
+            all_q_ids = list(self.basic_information_questions.keys()) + list(self.dynamic_questionnaire.keys())
+            unanswered = [q_id for q_id in all_q_ids 
+                        if q_id not in state['answered_questions']]
+            
+            if unanswered:
+                # Prefer questions by category or other criteria (similar to original logic)
+                location_questions = self._get_location_convenience_questions(unanswered)
+                
+                # Add the next batch of 5 questions
+                next_batch = location_questions[:5]
+                
+                if next_batch:
+                    state['queue'].extend(next_batch)
+                    await self.update_user_state(user_id, state)
+                    
+                    if state['queue']:
+                        return True
+        return False
+
+    def _add_follow_up_questions_to_queue(self, state: Dict[str, Any]) -> Optional[Dict[str, Any]]:
+        """
+        Add follow-up questions (on_answered/on_unanswered) to the queue based on the user's answers.
+        Returns True if a follow-up question was added, False otherwise.
+        """
         next_question_data = None
         last_answered_question = state['answered_questions'][-1] if state['answered_questions'] else None
         last_answer_val = state['answers'][last_answered_question] if last_answered_question else None
@@ -378,12 +498,13 @@ class QuestionnaireService:
             next_question_data = self.question_graph[last_answered_question].get('on_unanswered')
             if state['queue'] and next_question_data and state['queue'][0] != next_question_data['id']:
                 state['queue'].appendleft(next_question_data['id'])
-
-        if next_question_data:
-            await self.update_user_state(user_id, state)
-            return next_question_data, False, False
-        
-        # Return the next question if available in the queue
+                return next_question_data
+        return None
+    
+    async def _get_next_question_from_queue(self, state: Dict[str, Any], user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get the next question from the queue.
+        """
         if state['queue']:
             next_q_id = state['queue'].popleft()
             await self.update_user_state(user_id, state)
@@ -398,91 +519,62 @@ class QuestionnaireService:
                         next_question_data = question_data['on_unanswered']
                     elif hasattr(question_data, 'get') and question_data.get('on_answered') and question_data['on_answered'].get('id') == next_q_id:
                         next_question_data = question_data['on_answered']
-                        
-            return next_question_data, False, False
-        
-        # Check if we should add more questions based on answered count
-        answered_count = len(state['answered_questions'])
-        
-        # For the first batch, ensure we have filled the queue with initial questions
-        if answered_count < 10:
-            # Fill queue if it's empty for the first batch
-            if not state['queue']:
-                # Get remaining basic information questions first
-                basic_q_ids = list(self.basic_information_questions.keys())
-                unanswered_basic = [q_id for q_id in basic_q_ids 
-                                  if q_id not in state['answered_questions']]
-                
-                if unanswered_basic:
-                    # Add remaining basic questions to queue (preserving original order)
-                    remaining_basic = []
-                    for q_id in basic_q_ids:
-                        if q_id in unanswered_basic:
-                            remaining_basic.append(q_id)
-                    
-                    state['queue'].extend(remaining_basic)
-                    await self.update_user_state(user_id, state)
-                    
-                    if state['queue']:
-                        return await self.get_next_question(user_id)
-                
-                # If we still need more to reach 10, add location and convenience questions
-                if answered_count + len(state['queue']) < 10:
-                    needed_count = 10 - (answered_count + len(state['queue']))
-                    
-                    # Find unanswered dynamic questions
-                    dynamic_q_ids = list(self.dynamic_questionnaire.keys())
-                    unanswered_dynamic = [q_id for q_id in dynamic_q_ids 
-                                        if q_id not in state['answered_questions'] 
-                                        and q_id not in state['queue']]
-                    
-                    # Prioritize questions by category or other criteria (similar to original logic)
-                    location_questions = [q for q in unanswered_dynamic 
-                                        if self.dynamic_questionnaire[q].get('category') == 'Location and Convenience']
-                    
-                    # Add questions up to needed count
-                    questions_to_add = location_questions[:needed_count]
-                    
-                    if questions_to_add:
-                        state['queue'].extend(questions_to_add)
-                        await self.update_user_state(user_id, state)
-                        
-                        if state['queue']:
-                            return await self.get_next_question(user_id)
-        else:
-            # We're beyond 10 questions, check if we need a new batch of 5
-            # Only add new questions if queue is empty (current batch completed)
-            if not state['queue']:
-                # Find all unanswered questions
-                all_q_ids = list(self.basic_information_questions.keys()) + list(self.dynamic_questionnaire.keys())
-                unanswered = [q_id for q_id in all_q_ids 
-                            if q_id not in state['answered_questions']]
-                
-                if unanswered:
-                    # Prefer questions by category or other criteria (similar to original logic)
-                    location_questions = [q for q in unanswered 
-                                        if q in self.dynamic_questionnaire and 
-                                        self.dynamic_questionnaire[q].get('category') == 'Location and Convenience']
-                    
-                    # Add the next batch of 5 questions
-                    next_batch = location_questions[:5]
-                    
-                    if next_batch:
-                        state['queue'].extend(next_batch)
-                        await self.update_user_state(user_id, state)
-                        
-                        if state['queue']:
-                            return await self.get_next_question(user_id)
-        
-        # If we've reached this point, the questionnaire is complete
-        return None, True, False
+            return next_question_data
+        return None
     
+
     def get_basic_questions_length(self) -> int:
         """
         Get the number of basic questions.
         """
         return len(self.basic_information_questions)
+
+    def _validate_db_session(self) -> bool:
+        """Validate that database session is available."""
+        if not self.db_session:
+            logger.error("Database session not available")
+            return False
+        return True
+
+    async def _execute_db_operation(self, operation_name: str, operation_func) -> bool:
+        """
+        Execute a database operation with error handling.
         
+        Args:
+            operation_name: Name of the operation for logging
+            operation_func: Function to execute
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        if not self._validate_db_session():
+            return False
+            
+        try:
+            await operation_func()
+            await self.db_session.commit()
+            return True
+        except Exception as e:
+            logger.error(f"Error {operation_name}: {e}")
+            await self.db_session.rollback()
+            return False
+
+    def _get_unanswered_questions(self, state: Dict[str, Any], question_ids: List[str]) -> List[str]:
+        """Get questions that haven't been answered or queued."""
+        return [q_id for q_id in question_ids 
+                if q_id not in state['answered_questions'] 
+                and q_id not in state['queue']]
+
+    def _get_location_convenience_questions(self, question_ids: List[str]) -> List[str]:
+        """Filter questions by Location and Convenience category."""
+        return [q_id for q_id in question_ids 
+                if q_id in self.dynamic_questionnaire and 
+                self.dynamic_questionnaire[q_id].get('category') == 'Location and Convenience']
+
+    def _is_question_available_for_queue(self, q_id: str, answered: List[str], queue) -> bool:
+        """Check if a question can be added to the queue."""
+        return q_id and q_id not in answered and q_id not in queue
+
     def _update_queue_based_on_answer(self, state: Dict[str, Any], question_id: str, answer: Any) -> None:
         """
         Update the question queue based on a user's answer.
@@ -492,95 +584,115 @@ class QuestionnaireService:
             question_id: The ID of the answered question
             answer: The user's answer (could be a string, list, or JSON-encoded string)
         """
+        # Parse JSON answer if needed
+        parsed_answer = self._parse_answer_if_json(state, question_id, answer)
+        
+        # Remove answered question from queue
+        self._remove_question_from_queue(state, question_id)
+        
+        # Process question branches based on type
+        if question_id in self.basic_information_questions:
+            self._process_basic_question_branches(state, question_id, parsed_answer)
+        elif question_id in self.dynamic_questionnaire:
+            self._process_dynamic_question_branches(state, question_id, parsed_answer)
+
+    def _parse_answer_if_json(self, state: Dict[str, Any], question_id: str, answer: Any) -> Any:
+        """Parse JSON string answers if needed."""
+        if isinstance(answer, str) and answer.startswith('[') and answer.endswith(']'):
+            try:
+                parsed_answer = json.loads(answer)
+                state['answers'][question_id] = parsed_answer
+                logger.debug(f"Parsed JSON answer for question {question_id}: {parsed_answer}")
+                return parsed_answer
+            except json.JSONDecodeError:
+                logger.debug(f"Received a string that looks like JSON but isn't: {answer}")
+        return answer
+
+    def _remove_question_from_queue(self, state: Dict[str, Any], question_id: str) -> None:
+        """Remove the answered question from the queue."""
+        queue = state['queue']
+        if queue and queue[0] == question_id:
+            queue.popleft()
+        elif question_id in queue:
+            queue_list = list(queue)
+            queue_list.remove(question_id)
+            state['queue'] = deque(queue_list)
+
+    def _process_basic_question_branches(self, state: Dict[str, Any], question_id: str, answer: Any) -> None:
+        """Process branching logic for basic information questions."""
+        if question_id not in self.question_graph:
+            return
+            
+        branch_questions = self._get_branch_questions(question_id, answer)
+        self._add_questions_to_queue(state, branch_questions)
+
+    def _process_dynamic_question_branches(self, state: Dict[str, Any], question_id: str, answer: Any) -> None:
+        """Process branching logic for dynamic questionnaire questions."""
+        next_questions = []
+        
+        if isinstance(answer, list):
+            next_questions = self._get_questions_for_multiple_answers(question_id, answer)
+        else:
+            next_questions = self._get_questions_for_single_answer(question_id, answer)
+        
+        # Ensure it's a list
+        if isinstance(next_questions, str):
+            next_questions = [next_questions]
+            
+        self._add_questions_to_queue(state, next_questions)
+
+    def _get_branch_questions(self, question_id: str, answer: Any) -> List[str]:
+        """Get branch questions for a given answer."""
+        if isinstance(answer, str):
+            branches = self.question_graph[question_id]['branches']
+            return branches.get(answer, []) if answer in branches else []
+        
+        # Handle list answers
+        branch_questions = []
+        answers_to_check = answer if isinstance(answer, list) else [answer]
+        
+        for single_answer in answers_to_check:
+            if single_answer in self.question_graph[question_id]['branches']:
+                branch_result = self.question_graph[question_id]['branches'][single_answer]
+                if isinstance(branch_result, str):
+                    branch_questions.append(branch_result)
+                else:
+                    branch_questions.extend(branch_result)
+        
+        return branch_questions
+
+    def _get_questions_for_multiple_answers(self, question_id: str, answers: List[str]) -> List[str]:
+        """Get questions for multiple choice answers."""
+        next_questions = []
+        for single_answer in answers:
+            if (question_id in self.question_graph and 
+                single_answer in self.question_graph[question_id]['branches']):
+                branch_result = self.question_graph[question_id]['branches'][single_answer]
+                if isinstance(branch_result, str):
+                    next_questions.append(branch_result)
+                else:
+                    next_questions.extend(branch_result)
+        return next_questions
+
+    def _get_questions_for_single_answer(self, question_id: str, answer: str) -> List[str]:
+        """Get questions for single choice answer."""
+        if (question_id in self.question_graph and 
+            answer in self.question_graph[question_id]['branches']):
+            return self.question_graph[question_id]['branches'][answer]
+        elif (question_id in self.question_graph and 
+              self.question_graph[question_id].get('next_default')):
+            return self.question_graph[question_id]['next_default']
+        return []
+
+    def _add_questions_to_queue(self, state: Dict[str, Any], questions: List[str]) -> None:
+        """Add new questions to the queue if not already answered or queued."""
         queue = state['queue']
         answered = state['answered_questions']
         
-        # Parse JSON string if needed (handles cases like '["option1","option2"]')
-        if isinstance(answer, str) and answer.startswith('[') and answer.endswith(']'):
-            try:
-                answer = json.loads(answer)
-                # Update the answer in the state to use the parsed version
-                state['answers'][question_id] = answer
-                logger.debug(f"Parsed JSON answer for question {question_id}: {answer}")
-            except json.JSONDecodeError:
-                # If it's not valid JSON, keep it as a string
-                logger.debug(f"Received a string that looks like JSON but isn't: {answer}")
-        
-        # Handle regular question flow (continuation prompt is now handled in frontend)
-        
-        # Remove the answered question from queue if it's at the front
-        if queue and queue[0] == question_id:
-            queue.popleft()  # Using popleft() for deque instead of pop(0)
-        elif question_id in queue:
-            # For deque, we need to convert to list, remove the element, and convert back
-            queue_list_val = list(queue)
-            queue_list_val.remove(question_id)
-            state['queue'] = deque(queue_list_val)
-        
-        # Process basic information questions
-        if question_id in self.basic_information_questions:
-            # Add branch questions if applicable
-            if question_id in self.question_graph:
-                if isinstance(answer, str):
-                    # Only look up branches if the answer is in the branches dictionary
-                    if answer in self.question_graph[question_id]['branches']:
-                        branch_questions_list = self.question_graph[question_id]['branches'][answer]
-                    else:
-                        branch_questions_list = []
-                else:
-                    # Handle case where answer is a list of strings
-                    branch_questions_list = []
-                    for single_answer_val in answer if isinstance(answer, list) else [answer]:
-                        if single_answer_val in self.question_graph[question_id]['branches']:
-                            branch_q_for_answer_val = self.question_graph[question_id]['branches'][single_answer_val]
-                            # Make sure we're always extending with a list
-                            if isinstance(branch_q_for_answer_val, str):
-                                branch_questions_list.append(branch_q_for_answer_val)
-                            else:
-                                branch_questions_list.extend(branch_q_for_answer_val)
-                
-                # Ensure branch_questions_list is a list
-                if isinstance(branch_questions_list, str):
-                    branch_questions_list = [branch_questions_list]
-                    
-                # Add each branch question that hasn't been answered yet
-                for q_id_val in branch_questions_list:
-                    if q_id_val not in answered and q_id_val not in queue:
-                        queue.append(q_id_val)
-                        self.added_participating_questions_count += 1
-        
-        # Process dynamic questions similarly to basic questions
-        elif question_id in self.dynamic_questionnaire:
-            next_questions_list = []
-            
-            # Handle multiple-choice answers (list or JSON-parsed list)
-            if isinstance(answer, list):
-                for single_answer_val in answer:
-                    if (question_id in self.question_graph and 
-                        single_answer_val in self.question_graph[question_id]['branches']):
-                        branch_q_val = self.question_graph[question_id]['branches'][single_answer_val]
-                        if isinstance(branch_q_val, str):
-                            next_questions_list.append(branch_q_val)
-                        else:
-                            next_questions_list.extend(branch_q_val)
-            # Handle single choice
-            elif (question_id in self.question_graph and 
-                  answer in self.question_graph[question_id]['branches']):
-                next_questions_list = self.question_graph[question_id]['branches'][answer]
-            # Handle default case
-            elif (question_id in self.question_graph and 
-                  self.question_graph[question_id].get('next_default')):
-                next_questions_list = self.question_graph[question_id]['next_default']
-            
-            # Ensure next_questions_list is a list
-            if isinstance(next_questions_list, str):
-                next_questions_list = [next_questions_list]
-                
-            # Add new questions to queue
-            for q_id_val in next_questions_list:
-                if q_id_val and q_id_val not in answered and q_id_val not in queue:
-                    queue.append(q_id_val)
-                    self.added_participating_questions_count += 1
+        for q_id in questions:
+            if self._is_question_available_for_queue(q_id, answered, queue):
+                queue.append(q_id)
+                self.added_participating_questions_count += 1
 
     async def save_completed_questionnaire(self, user_id: str) -> bool:
         """
@@ -592,14 +704,10 @@ class QuestionnaireService:
         Returns:
             True if successful, False otherwise
         """
-        if not self.db_session:
-            logger.error("Database session not available")
-            return False
-            
         # Get current state
         state = await self.get_user_state(user_id)
-            
-        try:
+        
+        async def save_operation():
             # Prepare answers in a structured format
             structured_answers_list = []
             for q_id, answer_val in state['answers'].items():
@@ -621,17 +729,12 @@ class QuestionnaireService:
             )
             
             self.db_session.add(completed_data)
-            await self.db_session.commit()
             
-            # Clean up temporary state
+            # Clean up temporary state after successful save
             await self._delete_user_state_from_db(user_id)
             delete_cache(get_questionnaire_cache_key(user_id))
-            
-            return True
-        except Exception as e:
-            logger.error(f"Error saving completed questionnaire: {e}")
-            await self.db_session.rollback()
-            return False
+        
+        return await self._execute_db_operation("saving completed questionnaire", save_operation)
         
     def _get_potential_dynamic_question_ids(self, state: Dict[str, Any]) -> List[str]:
         """
@@ -699,3 +802,17 @@ class QuestionnaireService:
             logger.debug(f"Added {len(questions_to_add_to_queue)} dynamic questions to queue for user.")
         else:
             logger.debug("No relevant dynamic questions found to add to queue.")
+
+    def _create_default_questions(self) -> None:
+        """Create default questions as fallback when loading fails."""
+        logger.warning("Creating default questions as fallback")
+        self.basic_information_questions = {
+            "default_question": {
+                "id": "default_question",
+                "text": "Default question - please check your question files",
+                "type": "text",
+                "required": True
+            }
+        }
+        self.dynamic_questionnaire = {}
+        self.question_graph = self._build_question_graph()

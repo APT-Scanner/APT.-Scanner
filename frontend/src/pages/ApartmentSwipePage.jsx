@@ -4,7 +4,7 @@ import { useViewHistory } from '../hooks/useViewHistory';
 import { useFilters } from '../hooks/useFilters';
 import styles from '../styles/ApartmentSwipePage.module.css';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
-import { Heart, X, ChevronUp, ChevronDown, Loader, Filter, Menu } from 'lucide-react';
+import { Heart, X, ChevronUp, ChevronDown, Loader, Filter, Menu, LogOut } from 'lucide-react';
 import logo from "../assets/logo-swipe-screen.jpeg";
 import HomeIcon from '../assets/home_pressed.svg';
 import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
@@ -15,6 +15,8 @@ import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion'
 import { useDrag } from '@use-gesture/react';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import AnimatedApartmentCard from '../components/AnimatedApartmentCard';
+import { signOut } from 'firebase/auth';
+import { auth } from '../config/firebase';
 
 
 const ApartmentSwipePage = () => {
@@ -34,11 +36,14 @@ const ApartmentSwipePage = () => {
     
     const [apartments, setApartments] = useState([]);
     const [detailsExpanded, setDetailsExpanded] = useState(false);
+    const [menuOpen, setMenuOpen] = useState(false);
     const { addFavorite } = useFavorites();
     const navigate = useNavigate();
     
     const detailsPanelRef = useRef(null);
     const detailsPanelY = useMotionValue(0);
+    const menuRef = useRef(null);
+    const menuButtonRef = useRef(null);
     
     const [windowHeight, setWindowHeight] = useState(typeof window !== 'undefined' ? window.innerHeight : 0);
 
@@ -152,6 +157,39 @@ const ApartmentSwipePage = () => {
         navigate('/filter');
     };
 
+    const handleMenuToggle = () => {
+        setMenuOpen(!menuOpen);
+    };
+
+    const handleSignOut = async () => {
+        try {
+            await signOut(auth);
+            navigate('/'); // Redirect to login page after signout
+        } catch (error) {
+            console.error('Error signing out:', error);
+        }
+    };
+
+    // Close menu when clicking outside
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            if (menuRef.current && 
+                !menuRef.current.contains(event.target) &&
+                menuButtonRef.current &&
+                !menuButtonRef.current.contains(event.target)) {
+                setMenuOpen(false);
+            }
+        };
+
+        if (menuOpen) {
+            document.addEventListener('mousedown', handleClickOutside);
+        }
+
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, [menuOpen]);
+
     useEffect(() => {
         const handleVisibilityChange = () => {
             if (document.visibilityState === 'visible') {
@@ -170,10 +208,14 @@ const ApartmentSwipePage = () => {
     if (useApartmentsError) return <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>;
 
     return (
-        <div className={styles.pageWrapper}>
+        <div className={styles.pageContainer}>
             {/* Header for Menu Icon and Filter Icon */}
             <div className={styles.swipePageHeader}>
-                <button className={styles.menuButton} >
+                <button 
+                    ref={menuButtonRef}
+                    className={styles.menuButton} 
+                    onClick={handleMenuToggle}
+                >
                     <Menu size={28} color="#333" />
                 </button>
                 <div className={styles.logo}>
@@ -187,6 +229,28 @@ const ApartmentSwipePage = () => {
                     <Filter size={24} />
                 </button>
             </div>
+
+            {/* Menu Dropdown */}
+            <AnimatePresence>
+                {menuOpen && (
+                    <motion.div
+                        ref={menuRef}
+                        className={styles.menuDropdown}
+                        initial={{ opacity: 0, y: -10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0, y: -10 }}
+                        transition={{ duration: 0.2 }}
+                    >
+                        <button 
+                            className={styles.menuItem}
+                            onClick={handleSignOut}
+                        >
+                            <LogOut size={20} />
+                            <span>Sign Out</span>
+                        </button>
+                    </motion.div>
+                )}
+            </AnimatePresence>
 
             <div className={`${styles.pageContainer} ${detailsExpanded ? styles.detailsActive : ''}`}>
                 {useApartmentsError && <div className={styles.errorContainer}>Error: {useApartmentsError.message || String(useApartmentsError)}</div>}
