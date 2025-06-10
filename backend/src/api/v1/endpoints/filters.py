@@ -1,6 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
+from typing import List
 
 from src.models.schemas import UserFiltersCreate, UserFiltersUpdate, UserFiltersSchema
 from src.models.database import get_db
@@ -140,3 +141,33 @@ async def delete_filters(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while deleting filters."
         ) 
+    
+@router.get(
+    "/cities",
+    response_model=List[str],
+    summary="Get all cities",
+    description="Retrieves all available cities from the database."
+)
+async def get_cities(db: AsyncSession = Depends(get_db)):
+    """
+    Get all available cities.
+    """
+    #cities = await filters_service.get_cities_list(db)
+    cities = ["תל אביב יפו"]
+    return cities
+
+@router.get(
+    "/neighborhoods",
+    response_model=List[str],
+    summary="Get all neighborhoods names",
+    description="Retrieves all neighborhoods names from the database."
+)
+async def get_neighborhoods(
+    db: AsyncSession = Depends(get_db),
+    city: str = None
+):
+    """
+    Get all neighborhoods names for a specific city.
+    """
+    neighborhoods = await filters_service.get_neighborhoods_list(db, city)
+    return neighborhoods

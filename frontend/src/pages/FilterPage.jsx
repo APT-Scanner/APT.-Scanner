@@ -1,8 +1,9 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/FilterPage.module.css';
 import { ArrowLeft } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
 import { useFilters } from '../hooks/useFilters';
+import { fetchCities, fetchNeighborhoods } from '../services/neighborhoodsApi';
 import shelterIcon from '../assets/icons/image 12.png'; 
 import elevatorIcon from '../assets/icons/image 11.png';
 import parkingIcon from '../assets/icons/image 10.png';
@@ -17,10 +18,6 @@ import petFriendlyIcon from '../assets/icons/image 32.png';
 import furnishedIcon from '../assets/icons/image 31.png';
 import RangeSlider from '../components/rangeSlider'; 
 
-const cities = ['תל אביב יפו'];
-const neighborhoods = {
-    'תל אביב יפו': ['פלנטין', 'נווה צדק', 'יהודה ושבע', 'צורן'],
-};
 
 const moreOptionsConfig = [
     { id: 'shelter', label: 'Shelter', icon: shelterIcon },
@@ -47,10 +44,14 @@ const MIN_SIZE = 10;
 const MAX_SIZE = 500;
 
 const FilterPage = () => {
-    const { filters, updateFilter } = useFilters();
+    const { filters, updateFilter, loading: filtersLoading } = useFilters();
     const [filterType, setFilterType] = useState(filters.type); 
     const [selectedCity, setSelectedCity] = useState(filters.city);
     const [selectedNeighborhood, setSelectedNeighborhood] = useState(filters.neighborhood);
+    const [cities, setCities] = useState([]);
+    const [neighborhoods, setNeighborhoods] = useState([]);
+    const [isLoadingCities, setIsLoadingCities] = useState(false);
+    const [isLoadingNeighborhoods, setIsLoadingNeighborhoods] = useState(false);
     const navigate = useNavigate();
     
     // Price filter state
@@ -76,6 +77,22 @@ const FilterPage = () => {
 
     // Refs for size slider interaction
     const draggingSizeHandleRef = useRef(null); 
+
+    // Update local state when filters are loaded
+    useEffect(() => {
+        if (!filtersLoading) {
+            setFilterType(filters.type);
+            setSelectedCity(filters.city);
+            setSelectedNeighborhood(filters.neighborhood);
+            setPriceMin(filters.priceMin);
+            setPriceMax(filters.priceMax);
+            setRoomsMin(filters.roomsMin);
+            setRoomsMax(filters.roomsMax);
+            setSizeMin(filters.sizeMin);
+            setSizeMax(filters.sizeMax);
+            setSelectedOptions(filters.options || []);
+        }
+    }, [filters, filtersLoading]);
 
     const handleBack = () => {
         navigate(-1); 
@@ -116,6 +133,13 @@ const FilterPage = () => {
         );
     };
 
+    const handleCityChange = (e) => {
+        const newCity = e.target.value;
+        setSelectedCity(newCity);
+        setSelectedNeighborhood(''); // Reset neighborhood on city change
+        setNeighborhoods([]); // Clear neighborhoods
+    };
+
     useEffect(() => {
         // Function to prevent default touch behavior on sliders
         const preventDefaultForSliders = (event) => {
@@ -135,6 +159,70 @@ const FilterPage = () => {
             document.removeEventListener('touchmove', preventDefaultForSliders);
         };
     }, []);
+
+    // Fetch cities on component mount
+    useEffect(() => {
+        const loadCities = async () => {
+            setIsLoadingCities(true);
+            try {
+                const citiesList = await fetchCities();
+                setCities(citiesList);
+            } catch (error) {
+                console.error('Failed to fetch cities:', error);
+                setCities([]);
+            } finally {
+                setIsLoadingCities(false);
+            }
+        };
+
+        loadCities();
+    }, []);
+
+    // Fetch neighborhoods when city changes
+    useEffect(() => {
+        const loadNeighborhoods = async () => {
+            if (!selectedCity) {
+                setNeighborhoods([]);
+                return;
+            }
+
+            setIsLoadingNeighborhoods(true);
+            try {
+                const neighborhoodsList = await fetchNeighborhoods(selectedCity);
+                setNeighborhoods(neighborhoodsList);
+            } catch (error) {
+                console.error('Failed to fetch neighborhoods:', error);
+                setNeighborhoods([]);
+            } finally {
+                setIsLoadingNeighborhoods(false);
+            }
+        };
+
+        loadNeighborhoods();
+    }, [selectedCity]);
+
+    // Show loading while filters are being loaded
+    if (filtersLoading) {
+        return (
+            <div className={styles.filterPage}>
+                <div className={styles.header}>
+                    <button onClick={handleBack} className={styles.backButton}>
+                        <ArrowLeft size={24} />
+                    </button>
+                </div>
+                <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    height: '200px',
+                    fontSize: '16px',
+                    color: '#666'
+                }}>
+                    Loading filters...
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className={styles.filterPage}>
@@ -164,22 +252,24 @@ const FilterPage = () => {
                 <select 
                     className={styles.dropdown}
                     value={selectedCity} 
-                    onChange={(e) => {
-                        setSelectedCity(e.target.value);
-                        setSelectedNeighborhood(''); // Reset neighborhood on city change
-                    }}
+                    onChange={handleCityChange}
+                    disabled={isLoadingCities}
                 >
-                    <option value="">Select a city...</option>
+                    <option value="">
+                        {isLoadingCities ? 'Loading cities...' : 'Select a city...'}
+                    </option>
                     {cities.map(city => <option key={city} value={city}>{city}</option>)}
                 </select>
                 <select 
                     className={styles.dropdown}
                     value={selectedNeighborhood}
                     onChange={(e) => setSelectedNeighborhood(e.target.value)}
-                    disabled={!selectedCity}
+                    disabled={!selectedCity || isLoadingNeighborhoods}
                 >
-                    <option value="">Select a neighborhood...</option>
-                    {selectedCity && neighborhoods[selectedCity]?.map(hood => <option key={hood} value={hood}>{hood}</option>)}
+                    <option value="">
+                        {isLoadingNeighborhoods ? 'Loading neighborhoods...' : 'Select a neighborhood...'}
+                    </option>
+                    {selectedCity && neighborhoods.map(hood => <option key={hood} value={hood}>{hood}</option>)}
                 </select>
             </div>
 

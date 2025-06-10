@@ -1,4 +1,4 @@
-import {useState, useEffect, useRef} from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
 import { BACKEND_URL } from '../config/constants';
 
@@ -16,7 +16,8 @@ export const useApartments = (options = {}) => {
     const { 
         filterViewed = true,
         filterParams = null,
-        refreshTrigger = 0  // Can be incremented to force a refresh
+        refreshTrigger = 0,  // Can be incremented to force a refresh
+        filtersReady = true  // Whether filters are fully loaded and ready
     } = options;
 
     useEffect(() => {
@@ -30,6 +31,12 @@ export const useApartments = (options = {}) => {
              setApartments([]);
              return;
          }
+
+        // Don't fetch apartments until filters are ready
+        if (!filtersReady) {
+            setLoading(true);
+            return;
+        }
         
         // Convert filterParams to string for comparison
         let currentFilterParamsString = '';
@@ -58,7 +65,7 @@ export const useApartments = (options = {}) => {
             setError(null);
             try {
                 // Base URL
-                const url = new URL(`${BACKEND_URL}/listings/all`);
+                const url = new URL(`${BACKEND_URL}/listings`);
                 
                 // Add filter_viewed query parameter
                 url.searchParams.append('filter_viewed', filterViewed);
@@ -95,7 +102,7 @@ export const useApartments = (options = {}) => {
             }
         };
         fetchApartments();
-    }, [idToken, authLoading, filterViewed, filterParams, refreshTrigger]);
+    }, [idToken, authLoading, filterViewed, filterParams, refreshTrigger, filtersReady]);
     
     return { apartments, loading, error };    
 };

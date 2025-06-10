@@ -8,6 +8,10 @@
       "canonical_name": "הצפון הישן - החלק הדרומי"
     },
     {
+      "listing_variant": "הצפון הישן - צפון",
+      "canonical_name": "הצפון הישן - החלק הצפוני"
+    },
+    {
       "listing_variant": "הצפון החדש - דרום",
       "canonical_name": "הצפון החדש - החלק הדרומי"
     },
@@ -16,12 +20,16 @@
       "canonical_name": "הצפון הישן - החלק הצפוני"
     },
     {
+      "listing_variant": "הצפון החדש - כיכר המדינה",
+      "canonical_name": "הצפון החדש - סביבת כיכר המדינה"
+    },
+    {
       "listing_variant": "נווה אליעזר וכפר שלם מזרח",
-      "canonical_name": "כפר שלם"
+      "canonical_name": "כפר שלם (מזרח נווה אליעזר)"
     },
     {
       "listing_variant": "נווה ברבור, כפר שלם מערב",
-      "canonical_name": "כפר שלם"
+      "canonical_name": "כפר שלם (מערב נווה ברבור)"
     },
     {
       "listing_variant": "נווה אביבים וסביבתה",
@@ -38,5 +46,101 @@
     {
       "listing_variant": "לב תל אביב, לב העיר צפון",
       "canonical_name": "לב העיר"
+    },
+    {
+      "listing_variant": "גבעת הרצל, אזור המלאכה יפו",
+      "canonical_name": "גבעת הרצל"
+    },
+    {
+      "listing_variant": "הגוש הגדול, רמת אביב החדשה, נופי ים",
+      "canonical_name": "נופי ים"
+    },
+    {
+      "listing_variant": "מונטיפיורי, הרכבת",
+      "canonical_name": "מונטיפיורי"
+    },
+    {
+      "listing_variant": "יפו ד', גבעת התמרים",
+      "canonical_name": "יפו ד' (גבעת התמרים)"
+    },
+    {
+      "listing_variant": "התקוה, בית יעקב, נווה צהל",
+      "canonical_name": "התקווה"
+    },
+    {
+      "listing_variant": "גני שרונה, קרית הממשלה",
+      "canonical_name": "גני שרונה"
+    },
+    {
+      "listing_variant": "קרית שלום",
+      "canonical_name": "קריית שלום"
+    },
+    {
+      "listing_variant": "עג'מי, גבעת העליה",
+      "canonical_name": "עג'מי וגבעת עלייה"
+    },
+    {
+      "listing_variant": "רמת אביב ג'",
+      "canonical_name": "רמת אביב ג"
+    },
+    {
+      "listing_variant": "נווה נווה עופר, תל כביר",
+      "canonical_name": "נווה עופר (תל כביר) יפו ב'"
+    },
+    {
+      "listing_variant": "תכנית ל', למד",
+      "canonical_name": "תוכנית ל"
+    },
+    {
+      "listing_variant": "צהלון, שיכוני חסכון",
+      "canonical_name": "צהלון ושיכוני חיסכון"
+    },
+    {
+      "listing_variant": "מכללת תל אביב יפו, דקר",
+      "canonical_name": "מכללת יפו תל אביב ודקר"
+    },
+    {
+      "listing_variant": "נווה גולן, יפו ג'",
+      "canonical_name": "יפו ג' ונווה גולן"
+    },
+    {
+      "listing_variant": "גני צהלה, רמות צהלה",
+      "canonical_name": "גני צהלה"
+    },
+    {
+      "listing_variant": "גני צהלה, רמות צהלה",
+      "canonical_name": "גני צהלה"
+    },
+    {
+      "listing_variant": "לבנה",
+      "canonical_name": "לבנה, ידידיה"
+    },
+    {
+      "listing_variant": "נווה אליעזר וכפר שלם מזרח",
+      "canonical_name": "כפר שלם (מזרח נווה אליעזר)"
+    },
+    {
+      "listing_variant": "ביצרון ורמת ישראל",
+      "canonical_name": "ביצרון"
+    },
+    {
+      "listing_variant": "עזרא, הארגזים",
+      "canonical_name": "עזרא"
+    },
+    {
+      "listing_variant": "נווה ברבור, כפר שלם מערב",
+      "canonical_name": "כפר שלם (מערב נווה ברבור)"
+    },
+    {
+      "listing_variant": "כפיר, נווה כפיר",
+      "canonical_name": "כפיר"
+    },
+    {
+      "listing_variant": "שיכון דן, נווה דן",
+      "canonical_name": "נווה דן"
+    },
+    {
+      "listing_variant": "עתידים, אזור התעסוקה רמת החייל",
+      "canonical_name": "עתידים"
     }
   ]

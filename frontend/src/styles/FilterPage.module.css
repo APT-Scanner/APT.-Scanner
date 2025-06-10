@@ -2,7 +2,7 @@
 
 .filterPage {
     max-width: 100%;
-    padding: 40px 20px;
+    padding: 20px 20px;
     background-color: #fff;
     height: 100vh;
     overflow-y: auto;
@@ -10,6 +10,7 @@
     flex-direction: column;
     width: 100vw;
     box-sizing: border-box;
+    min-width: 340px;
 }
 
 
@@ -17,7 +18,7 @@
     display: flex;
     align-items: center;
     margin-bottom: 30px;
-    color: #000;;
+    color: #000;
 }
 
 .backButton {

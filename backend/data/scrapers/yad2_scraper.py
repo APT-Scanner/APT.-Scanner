@@ -3,8 +3,10 @@ import json
 from typing import Dict, Any
 from dotenv import load_dotenv
 import os
+from bs4 import BeautifulSoup
 
-load_dotenv()
+
+load_dotenv(dotenv_path='/Users/or.hershko/Desktop/APT.-Scanner/backend/.env')
 
 class Yad2Scraper:
     """A scalable and dynamic scraper for Yad2 real estate listings."""
@@ -74,15 +76,15 @@ class Yad2Scraper:
         "forPartners": "לשותפים",
     }
     
-    def __init__(self, api_username: str, api_password: str):
+    def __init__(self):
         """Initialize the scraper with API credentials."""
-        self.api_username = api_username
-        self.api_password = api_password
-        self.hash_id = None  # Will be set later
+        self.build_id = self.get_yad2_build_id()
+        if not self.build_id:
+            raise ValueError("Failed to get build ID. Please check your ScrapeOwl API key.")
         
-    def set_hash_id(self, hash_id: str):
+    def set_build_id(self, build_id: str):
         """Set the hash ID for the API requests."""
-        self.hash_id = hash_id
+        self.build_id = build_id
 
     def from_json_config(self, config: Dict[str, Any]) -> Dict:
         """
@@ -373,8 +375,8 @@ class Yad2Scraper:
     
     def build_url(self, page: int = 1, **kwargs) -> str:
         """Build the full URL for the API request."""
-        if not self.hash_id:
-            raise ValueError("Hash ID is not set. Call set_hash_id() first.")
+        if not self.build_id:
+            raise ValueError("Hash ID is not set. Call set_build_id() first.")
         
         params = self.build_query_params(**kwargs)
         if "page" in kwargs:
@@ -383,7 +385,7 @@ class Yad2Scraper:
             params["page"] = str(page)
         
         # Construct the base URL
-        url = f"{self.BASE_URL}/{self.hash_id}/rent.json"
+        url = f"{self.BASE_URL}/{self.build_id}/rent.json"
         
         # Add query parameters
         if params:
@@ -392,7 +394,22 @@ class Yad2Scraper:
         
         return url
     
-    def scrape_apt_listing(self, page: int = 1, **kwargs) -> Dict[str, Any]:
+    def _make_scrapeowl_request(self, url: str) -> requests.Response:
+        """Makes a request to the ScrapeOwl API."""
+        payload = {
+            "api_key": os.getenv("SCRAPEOWL_API_KEY"),
+            "url": url,
+            "json_response": True,
+        }
+        headers = {"Content-Type": "application/json"}
+        response = requests.post(
+            "https://api.scrapeowl.com/v1/scrape",
+            data=json.dumps(payload),
+            headers=headers,
+        )
+        return response
+
+    def scrape_apt_listing(self, num_requested_pages: int = 1, **kwargs) -> Dict[str, Any]:
         """
         Scrape listings based on provided parameters.
         
@@ -403,30 +420,32 @@ class Yad2Scraper:
         Returns:
         - Parsed JSON data
         """
+        combined_listings = []
+        for page in range(1, num_requested_pages + 1):
+            print(f"Scraping page {page} of {num_requested_pages}")
+            url = self.build_url(page=page, **kwargs)
+            response = self._make_scrapeowl_request(url)
+        
+            try:
+                json_data = json.loads(response.content)
+                if 'html' in json_data:
+                    content = json.loads(json_data['html'])
+                    private_listings = content['pageProps']['feed']['private']
+                    platinum_listings = content['pageProps']['feed']['platinum']
+                    combined_listings = private_listings + platinum_listings
+                    combined_listings.extend(combined_listings)
+            except (json.JSONDecodeError, KeyError) as e:
+                print(f"Error parsing response: {e}")
+                return {"error": str(e), "raw_response": response.text}
 
-        url = self.build_url(page=page, **kwargs)
-        payload = {
-            "api_key": os.getenv("SCRAPEOWL_API_KEY"),
-            "url": url,
-            "json_response": True
-        }
-        headers = {
-            "Content-Type": "application/json"
-        }
-        response = requests.post("https://api.scrapeowl.com/v1/scrape", data=json.dumps(payload), headers=headers)
+            total_pages = content['pageProps']['feed']['pagination']['totalPages']
+            if page == total_pages:
+                print(f"Reached the total number of pages: {total_pages}")
+                break
         
-        try:
-            json_data = json.loads(response.content)
-            if 'html' in json_data:
-                content = json.loads(json_data['html'])
-                private_listings = content['pageProps']['feed']['private']
-                platinum_listings = content['pageProps']['feed']['platinum']
-                combined_listings = private_listings + platinum_listings
-                return combined_listings
-        except (json.JSONDecodeError, KeyError) as e:
-            print(f"Error parsing response: {e}")
-            return {"error": str(e), "raw_response": response.text}
-        
+        print(f"Total listings scraped: {len(combined_listings)}")
+        return combined_listings
+    
     def save_to_json(self, data: Dict[str, Any], file_path: str = 'response.json'):
         """Save the scraped data to a JSON file."""
         with open(file_path, 'w', encoding='utf-8') as f:
@@ -436,17 +455,8 @@ class Yad2Scraper:
 
     def scrape_hood_data(self, hood_id) -> Dict[str, Any]:
         url = f'https://gw.yad2.co.il/neighborhood-survey/{hood_id}/'
+        response = self._make_scrapeowl_request(url)
 
-        payload = {
-            "api_key": os.getenv("SCRAPEOWL_API_KEY"),
-            "url": url,
-            "json_response": True
-        }
-        headers = {
-            "Content-Type": "application/json"
-        }
-        response = requests.post("https://api.scrapeowl.com/v1/scrape", data=json.dumps(payload), headers=headers)
-        
         try:
             json_data = json.loads(response.content)
             if 'html' in json_data:
@@ -460,16 +470,7 @@ class Yad2Scraper:
     def scrape_hood_nearby_education(self, city_id, hood_id) -> Dict[str, Any]:
         
         url = f'https://gw.yad2.co.il/nearby-education/?cityId={city_id}&neighborhoodId={hood_id}'
-
-        payload = {
-            "api_key": os.getenv("SCRAPEOWL_API_KEY"),
-            "url": url,
-            "json_response": True
-        }
-        headers = {
-            "Content-Type": "application/json"
-        }
-        response = requests.post("https://api.scrapeowl.com/v1/scrape", data=json.dumps(payload), headers=headers)
+        response = self._make_scrapeowl_request(url)
         
         try:
             json_data = json.loads(response.content)
@@ -480,6 +481,53 @@ class Yad2Scraper:
         except (json.JSONDecodeError, KeyError) as e:
             print(f"Error parsing response: {e}")
             return {"error": str(e), "raw_response": response.text}
+        
+    def get_yad2_build_id(self):
+        """
+        Fetches the Yad2 page via ScrapeOwl, parses the HTML to find the 
+        __NEXT_DATA__ script tag, and extracts the buildId from its JSON content.
+        """
+        url = "https://www.yad2.co.il/realestate/rent"
+        
+        try:
+            response = self._make_scrapeowl_request(url)
+            if not response or not response.content:
+                print("Error: Received an empty response from ScrapeOwl.")
+                return None
+            
+            api_data = response.json()
+            
+            html_content = api_data.get('html')
+            if not html_content:
+                print("Error: 'html' key not found in ScrapeOwl response.")
+                return None
+
+            soup = BeautifulSoup(html_content, 'html.parser')
+            
+            script_tag = soup.find('script', {'id': '__NEXT_DATA__'})
+            
+            if not script_tag:
+                print("Error: Could not find the __NEXT_DATA__ script tag.")
+                return None
+            
+            next_data = json.loads(script_tag.string)
+            
+            build_id = next_data.get('buildId')
+            
+            if build_id:
+                print(f"Successfully extracted buildId: {build_id}")
+                return build_id
+            else:
+                print("Error: 'buildId' not found within __NEXT_DATA__ JSON.")
+                return None
+
+        except json.JSONDecodeError as e:
+            print(f"A JSON decoding error occurred: {e}")
+            print("This might be due to an invalid response from the API.")
+            return None
+        except Exception as e:
+            print(f"An unexpected error occurred: {e}")
+            return None
         
 def is_listing_still_alive(token: str):
     url = f"https://www.yad2.co.il/realestate/item/{token}"
@@ -499,25 +547,3 @@ def is_listing_still_alive(token: str):
         return False
 
 
-# Example usage
-if __name__ == "__main__":
-    # Initialize the scraper
-    api_username = os.getenv('SCRAPER_API_USERNAME')
-    api_password = os.getenv('SCRAPER_API_PASSWORD')
-    scraper = Yad2Scraper(api_username, api_password)
-    
-    # Set the hash ID (this changes periodically on the Yad2 website)
-    scraper.set_hash_id('K8ZXlI0K9KoJKzwo7O4rZ')
-    
-    direct_params = {
-        'top_area': 2,           
-        'area': 1,               
-        'city': 5000,            # Tel Aviv city area       
-        'image_only': True,      
-        'price_only': True,      
-    }
-
-    results = scraper.scrape_apt_listing(**direct_params)
-    #results = scraper.scrape_hood_data(1461)
-    
-    scraper.save_to_json(results)
