@@ -15,7 +15,7 @@ from src.models.models import (
     Tag,
     listing_tags_association
 )
-from src.models.schemas import ListingSchema, ViewHistoryCreate, ViewHistorySchema
+from src.models.schemas import ListingSchema, ViewHistoryCreate, ViewHistorySchema, UserFiltersBase
 from src.middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -23,57 +23,48 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.get(
-    "/all",
+    "/",
     response_model=List[ListingSchema],
-    summary="Get all listings",
-    description="Retrieves all listings from the database with optional filtering."
+    summary="Get listings by filters",
+    description="Retrieves listings from the database with optional filtering."
 )
 async def get_all_listings(
     db: AsyncSession = Depends(get_db), 
     limit: int = 20,
     current_user = Depends(get_current_user),
     filter_viewed: bool = True,
-    type: str = None,
-    city: str = None,
-    neighborhood: str = None,
-    price_min: float = 500,
-    price_max: float = 15000,
-    rooms_min: float = 1,
-    rooms_max: float = 8,
-    size_min: int = 10,
-    size_max: int = 500,
-    options: str = None
+    filters: UserFiltersBase = Depends()
 ):
     """
     Retrieves all listings from the database with optional filtering.
     """
-    logger.info(f"Fetching listings with filters: type={type}, city={city}, neighborhood={neighborhood}, price={price_min}-{price_max}, rooms={rooms_min}-{rooms_max}, size={size_min}-{size_max}, options={options}")
+    logger.info(f"Fetching listings with filters: {filters.dict()}")
     
     try:
         query = select(ListingModel)
         
         query = query.where(ListingModel.is_active == True)
         
-        #if type:
-        #    query = query.where(ListingModel.ad_type.ilike(f"%{type}%"))
+        #if filters.type:
+        #    query = query.where(ListingModel.ad_type.ilike(f"%{filters.type}%"))
         
-        if city:
-            query = query.where(ListingModel.city.ilike(f"%{city}%"))
+        if filters.city:
+            query = query.where(ListingModel.city == filters.city)
             
-        if neighborhood:
-            query = query.where(ListingModel.neighborhood_text.ilike(f"%{neighborhood}%"))
+        if filters.neighborhood:
+            query = query.where(ListingModel.neighborhood_text == filters.neighborhood)
             
-        query = query.where(ListingModel.price >= price_min)
-        query = query.where(ListingModel.price <= price_max)
+        query = query.where(ListingModel.price >= filters.price_min)
+        query = query.where(ListingModel.price <= filters.price_max)
         
-        query = query.where(ListingModel.rooms_count >= rooms_min)
-        query = query.where(ListingModel.rooms_count <= rooms_max)
+        query = query.where(ListingModel.rooms_count >= filters.rooms_min)
+        query = query.where(ListingModel.rooms_count <= filters.rooms_max)
         
-        query = query.where(ListingModel.square_meter >= size_min)
-        query = query.where(ListingModel.square_meter <= size_max)
+        query = query.where(ListingModel.square_meter >= filters.size_min)
+        query = query.where(ListingModel.square_meter <= filters.size_max)
         
-        if options:
-            options_list = options.split(',')
+        if filters.options:
+            options_list = filters.options.split(',')
             for option in options_list:
                 query = query.join(
                     listing_tags_association,

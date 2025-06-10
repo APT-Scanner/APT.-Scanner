@@ -42,7 +42,6 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete, disableS
         }
         
         if (apartment.images && Array.isArray(apartment.images)) {
-            console.log(apartment.images);
             apartment.images.forEach(img => {
                 if (img.image_url && img.image_url.trim() !== '' && !availableImages.includes(img.image_url)) {
                     availableImages.push(img.image_url);

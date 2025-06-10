@@ -143,17 +143,15 @@ def parse_listings(raw_data):
             for tag in listing_tags:
                 tag_id = tag.get('id')
                 tag_name = tag.get('name')
-                tag_priority = tag.get('priority')
                 if tag_id is not None and tag_name is not None:
-                    # Add unique tag definition
+                    if tag_id >= 1200:
+                        tag_id = tag_id - 200
                     if tag_id not in processed_tag_ids:
                         tags_data.append({'tag_id': tag_id, 'tag_name': tag_name})
                         processed_tag_ids.add(tag_id)
-                    # Add listing-tag relationship
                     listing_tags_data.append({
                         'listing_order_id': order_id,
                         'tag_id': tag_id,
-                        'priority': tag_priority
                     })
 
         # Extract Property Condition
@@ -182,10 +180,3 @@ def parse_listings(raw_data):
         'property_conditions': property_conditions_data
     }
 
-# --- Execution ---
-if __name__ == "__main__":
-    structured_data = parse_listings()
-
-    if structured_data:
-        with open('structured_apt_list.json', 'w', encoding='utf-8') as outfile:
-            json.dump(structured_data, outfile, ensure_ascii=False, indent=4)

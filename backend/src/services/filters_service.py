@@ -1,7 +1,7 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
-from sqlalchemy import update, delete
-from src.models.models import UserFilters
+from sqlalchemy import update, delete, distinct
+from src.models.models import UserFilters, Neighborhood
 from src.models.schemas import UserFiltersCreate, UserFiltersUpdate
 from typing import Optional, List
 import logging
@@ -110,3 +110,26 @@ async def delete_user_filters(db: AsyncSession, user_id: str) -> bool:
     
     # Return True if any row was deleted
     return result.rowcount > 0 
+
+async def get_cities_list(db: AsyncSession) -> List[str]:
+    """
+    Get all available cities from neighborhoods
+    """
+    result = await db.execute(select(distinct(Neighborhood.city)).where(Neighborhood.city.isnot(None)))
+    cities = result.scalars().all()
+    return sorted(cities)
+
+async def get_neighborhoods_list(db: AsyncSession, city: str) -> List[str]:
+    """
+    Get all neighborhoods names for a specific city
+    """
+    if not city:
+        return []
+        
+    result = await db.execute(
+        select(Neighborhood.hebrew_name)
+        .where(Neighborhood.city == city)
+        .order_by(Neighborhood.hebrew_name)
+    )
+    neighborhoods = result.scalars().all()
+    return neighborhoods

@@ -67,6 +67,7 @@ class NeighborhoodSchema(BaseModel):
     closest_beach_distance_km: Optional[float] = None
     latitude: Optional[float] = None
     longitude: Optional[float] = None
+    city: Optional[str] = None
     yad2_city_id: Optional[int] = None
     yad2_area_id: Optional[int] = None
     yad2_top_area_id: Optional[int] = None

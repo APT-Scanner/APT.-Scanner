@@ -8,7 +8,8 @@ from dotenv import load_dotenv
 from typing import Set
         
 # Load environment variables
-load_dotenv()
+load_dotenv(dotenv_path='/Users/or.hershko/Desktop/APT.-Scanner/backend/.env')
+
         
 # --- Database Connection Details ---
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -94,7 +95,6 @@ def populate_lookups(conn):
     finally:
         if cursor:
             cursor.close()
-
 
 def populate_neighborhoods(conn):
     """Loads data from CSV and JSON mapping, populates the neighborhoods table."""
@@ -232,7 +232,7 @@ def populate_neighborhoods(conn):
         if conn:
             conn.close()
 
-def map_neighborhood_variants(listings_data):
+def map_neighborhood_variants():
     """Loads neighborhood variant mapping and maps variants to canonical names."""
     logger.info(f"Loading neighborhood variant mapping from {NEIGHBORHOOD_VARIANTS_MAP_JSON}...")
     variant_to_canonical_map = {}
@@ -400,7 +400,6 @@ def insert_listing_tags(cursor, listing_tags_list):
                                 "INSERT INTO listing_tags (listing_order_id, tag_id) VALUES %s ON CONFLICT (listing_order_id, tag_id) DO NOTHING",
                                 lt_tuples, page_size=1000)
 
-
 def populate_listings(listings_data):
     """Loads listing data and populates listings, images, and listing_tags tables, using pre-mapping for variants."""
 
@@ -417,10 +416,12 @@ def populate_listings(listings_data):
         logger.info("No valid listing data found to process.")
         return
         
+    # Load variant mapping first
+    variant_to_canonical_map = map_neighborhood_variants()
+    
     logger.info("Ensuring all neighborhoods in listings exist in the database...")
-    ensure_neighborhoods_exist(conn, listings_data)
+    ensure_neighborhoods_exist(conn, listings_data, variant_to_canonical_map)
 
-    variant_to_canonical_map = map_neighborhood_variants(listings_data)
     neighborhood_name_to_id = create_neighborhood_lookup(conn)
 
     cursor = conn.cursor()
@@ -454,10 +455,11 @@ def get_db_connection():
         logger.exception(f"Error connecting to the database: {e}")
         return None
 
-def ensure_neighborhoods_exist(conn, listings_data):
+def ensure_neighborhoods_exist(conn, listings_data, variant_to_canonical_map):
     """
     Ensures that all neighborhoods mentioned in listings exist in the neighborhoods table.
-    Creates simple placeholder entries for any missing neighborhoods.
+    Creates simple placeholder entries for any missing canonical neighborhoods.
+    Uses variant mapping to convert variant names to canonical names before checking.
     """
     if not conn or not listings_data:
         return
@@ -468,16 +470,21 @@ def ensure_neighborhoods_exist(conn, listings_data):
         db_neighborhoods = {row['hebrew_name']: row['yad2_hood_id'] for row in cursor.fetchall()}
         logger.info(f"Found {len(db_neighborhoods)} existing neighborhoods in database")
         
-        unique_neighborhoods = set()
+        canonical_neighborhoods = set()
         for listing in listings_data.get('listings', []):
-            if listing.get('neighborhood_text'):
-                unique_neighborhoods.add(listing.get('neighborhood_text'))
+            raw_hood_name = listing.get('neighborhood_text')
+            if raw_hood_name:
+                # Try to get canonical name from variant mapping
+                canonical_name = variant_to_canonical_map.get(raw_hood_name, raw_hood_name)
+                canonical_neighborhoods.add(canonical_name)
         
-        missing_neighborhoods = unique_neighborhoods - set(db_neighborhoods.keys())
+        logger.info(f"Found {len(canonical_neighborhoods)} unique canonical neighborhoods in listings")
+        
+        missing_neighborhoods = canonical_neighborhoods - set(db_neighborhoods.keys())
         
         if missing_neighborhoods:
-            logger.info(f"Found {len(missing_neighborhoods)} neighborhoods in listings that are missing from database")
-            logger.debug(f"Missing neighborhoods: {sorted(missing_neighborhoods)}")
+            logger.info(f"Found {len(missing_neighborhoods)} canonical neighborhoods missing from database")
+            logger.debug(f"Missing canonical neighborhoods: {sorted(missing_neighborhoods)}")
             
             cursor.execute("SELECT COALESCE(MAX(yad2_hood_id), 100000) FROM neighborhoods")
             max_id = cursor.fetchone()['coalesce']
@@ -496,9 +503,9 @@ def ensure_neighborhoods_exist(conn, listings_data):
                            "INSERT INTO neighborhoods (yad2_hood_id, hebrew_name, english_name) VALUES %s ON CONFLICT (yad2_hood_id) DO NOTHING",
                            neighborhoods_to_insert)
                 conn.commit()
-                logger.info(f"Added {len(neighborhoods_to_insert)} missing neighborhoods to the database")
+                logger.info(f"Added {len(neighborhoods_to_insert)} missing canonical neighborhoods to the database")
         else:
-            logger.info("All neighborhoods in listings already exist in the database")
+            logger.info("All canonical neighborhoods in listings already exist in the database")
             
     except (psycopg2.Error, Exception) as e:
         conn.rollback()

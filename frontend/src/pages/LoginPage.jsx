@@ -11,6 +11,7 @@ import { auth } from "../config/firebase";
 import { FaFacebook, FaGoogle } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import { useQuestionnaireStatus } from "../hooks/useQuestionnaireStatus";
+import { LoadingSpinner } from "../components/LoadingSpinner";
 
 const LoginPage = () => {
   const [view, setView] = useState("options");
@@ -185,6 +186,10 @@ const LoginPage = () => {
       </button>
     </form>
   );
+
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
 
   return (
     <div className={styles.pageBackground}>

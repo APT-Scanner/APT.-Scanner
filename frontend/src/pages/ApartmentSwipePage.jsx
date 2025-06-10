@@ -20,9 +20,12 @@ import { auth } from '../config/firebase';
 
 
 const ApartmentSwipePage = () => {
-    const { getFilterQueryParams } = useFilters();
+    const { getFilterQueryParams, filters, loading: filtersLoading } = useFilters();
     
-    const filterParams = useMemo(() => getFilterQueryParams(), [getFilterQueryParams]);
+    const filterParams = useMemo(() => {
+        if (filtersLoading) return null;
+        return getFilterQueryParams();
+    }, [filters]);  // Only re-run when filters change
     
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     
@@ -30,6 +33,7 @@ const ApartmentSwipePage = () => {
         filterViewed: true,
         filterParams,
         refreshTrigger,
+        filtersReady: !filtersLoading
     });
     
     const { recordView, filterViewedApartments, loading: viewHistoryLoading } = useViewHistory();
@@ -57,17 +61,25 @@ const ApartmentSwipePage = () => {
         return () => window.removeEventListener('resize', handleResize);
     }, []);
 
-    useEffect(() => {
-        if (fetchedApartments && fetchedApartments.length > 0 && !viewHistoryLoading) {
-            const filteredApartments = filterViewedApartments(fetchedApartments);
-            
-            if (filteredApartments.length === 0 && fetchedApartments.length > 0) {
-                setApartments(fetchedApartments);
-            } else {
-                setApartments(filteredApartments);
-            }
+    const processedApartments = useMemo(() => {
+        if (!fetchedApartments || fetchedApartments.length === 0 || viewHistoryLoading) {
+            return [];
+        }
+
+        const filteredApartments = filterViewedApartments(fetchedApartments);
+        
+        if (filteredApartments.length === 0 && fetchedApartments.length > 0) {
+            return fetchedApartments;
+        } else {
+            return filteredApartments;
         }
     }, [fetchedApartments, viewHistoryLoading, filterViewedApartments]);
+
+    useEffect(() => {
+        if (processedApartments) {
+            setApartments(processedApartments);
+        }
+    }, [processedApartments]);
 
     const currentApartment = apartments.length > 0 ? apartments[0] : null;
 
@@ -112,7 +124,7 @@ const ApartmentSwipePage = () => {
     };
 
     const detailsPanelDrag = useDrag(
-        ({ active, movement: [_, my], direction: [__, dy], velocity: [___, vy], cancel }) => {
+        ({ active, movement: [, my], direction: [, dy], velocity: [, vy] }) => {
             if (active) {
                 const newY = detailsExpanded 
                     ? Math.max(0, my) 
@@ -151,7 +163,7 @@ const ApartmentSwipePage = () => {
     const expandedPanelHeight = windowHeight - 80; 
     const collapsedPanelHeight = 120; 
 
-    const loading = apartmentsLoading || viewHistoryLoading;
+    const loading = apartmentsLoading || viewHistoryLoading || filtersLoading;
     
     const handleNavigateToFilter = () => {
         navigate('/filter');

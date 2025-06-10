@@ -19,7 +19,7 @@ from .database import Base
 # between listings and tags using SQLAlchemy Core Table object
 listing_tags_association = Table(
     "listing_tags",
-    Base.metadata, # Use metadata from the Declarative Base
+    Base.metadata, 
     Column("listing_order_id", BIGINT, ForeignKey("listings.order_id", ondelete="CASCADE"), primary_key=True),
     Column("tag_id", Integer, ForeignKey("tags.tag_id", ondelete="CASCADE"), primary_key=True),
 )
@@ -42,7 +42,7 @@ class Tag(Base):
     __tablename__ = "tags"
 
     tag_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    tag_name: Mapped[str] = mapped_column(String(100), nullable=False, unique=True)
+    tag_name: Mapped[str] = mapped_column(String(100), nullable=False)
 
     # Many-to-Many relationship to Listings through the association table
     listings: Mapped[List["Listing"]] = relationship(
@@ -77,6 +77,7 @@ class Neighborhood(Base):
     closest_beach_distance_km: Mapped[Optional[float]] = mapped_column(Float)
     latitude: Mapped[Optional[float]] = mapped_column(Float)
     longitude: Mapped[Optional[float]] = mapped_column(Float)
+    city: Mapped[Optional[str]] = mapped_column(String(100))
     yad2_city_id: Mapped[Optional[int]] = mapped_column(Integer)
     yad2_area_id: Mapped[Optional[int]] = mapped_column(Integer)
     yad2_top_area_id: Mapped[Optional[int]] = mapped_column(Integer)

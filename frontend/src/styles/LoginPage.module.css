@@ -25,13 +25,14 @@
 }
 
 .backButton {
-  position: absolute;
-  top: -50px; 
-  left: 5px; 
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 1000;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 5px;
+  padding: 20px;
   color: #333; 
 }
 
