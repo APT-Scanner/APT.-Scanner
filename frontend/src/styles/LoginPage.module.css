@@ -7,7 +7,7 @@
   width: 100vw;
   background-color: #f7f7f7; 
   box-sizing: border-box;    
-  position: fixed;
+  position: relative;
   top: 0;
 }
 
@@ -25,7 +25,7 @@
 }
 
 .backButton {
-  position: fixed;
+  position: absolute;
   top: 0;
   left: 0;
   z-index: 1000;

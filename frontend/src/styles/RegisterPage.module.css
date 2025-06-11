@@ -6,7 +6,7 @@
   width: 100vw;       
   background-color: #f7f7f7; 
   box-sizing: border-box;    
-  position: fixed;
+  position: relative;
   top: 0;
 }
 
@@ -25,13 +25,12 @@
 
 .backButton {
   position: absolute;
-  top: -50px;
-  left: 5px;
+  top: 10px;
+  left: 10px;
   background: none;
   border: none;
   cursor: pointer;
-  padding: 5px;
-  color: #333;
+  color: #371b34; 
 }
 
 .backButton:hover {

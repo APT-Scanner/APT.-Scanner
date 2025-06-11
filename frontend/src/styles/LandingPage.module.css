@@ -3,11 +3,11 @@
   align-items: center;
   justify-content: center;
   width: 100vw;
-  min-height: 100vh;  
+  height: 100%;
   min-width: 360px;       
   background-color: #aeaff7; 
   box-sizing: border-box;    
-  position: fixed;
+  position: relative;
   top: 0;
 }
 
