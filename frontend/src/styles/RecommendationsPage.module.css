@@ -1,0 +1,127 @@
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  width: 100vw;
+  min-height: 100vh;
+  padding: 20px 16px 100px; /* bottom padding for CTA */
+  box-sizing: border-box;
+  background-color: #f7f7f7;
+}
+
+.header {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  max-width: 480px;
+  margin-bottom: 16px;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  padding: 8px;
+  margin-right: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  position: absolute;
+  top: 16px;
+  left: 16px;
+}
+
+.title {
+  font-size: 24px;
+  font-weight: 700;
+  color: #371b34;
+  margin: 0;
+}
+
+.subtitle {
+  font-size: 14px;
+  color: #555;
+  text-align: center;
+  max-width: 420px;
+  margin-bottom: 24px;
+}
+
+.mainTitle {
+  font-size: 32px;
+  font-weight: 700;
+  color: #371b34;
+  text-align: center;
+  line-height: 1.15;
+  margin: 40px 0 20px;
+}
+
+.description {
+  font-size: 14px;
+  color: #555;
+  text-align: center;
+  max-width: 340px;
+  margin-bottom: 24px;
+}
+
+.listContainer {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  width: 100%;
+  max-width: 340px;
+}
+
+.listItem {
+  width: 100%;
+  height: 68px;
+  border-radius: 14px;
+  background-size: cover;
+  background-position: center;
+  position: relative;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.itemOverlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.35);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 14px;
+  color: #fff;
+  font-size: 13px;
+}
+
+.itemName {
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 70%;
+}
+
+.itemMatch {
+  font-weight: 600;
+  font-size: 12px;
+}
+
+.hintText {
+  font-size: 14px;
+  color: #666;
+  text-align: center;
+  margin-top: 28px;
+  line-height: 1.4;
+}
+
+.manualLink {
+  color: #371b34;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+/* Remove old card & button styles */
+.cardGrid, .card, .cardImage, .cardContent, .matchBadge, .cardTitle, .cardCity, .viewButton, .continueButton {
+  display: none;
+} 

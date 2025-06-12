@@ -112,7 +112,6 @@ class Listing(Base):
     square_meter: Mapped[Optional[int]] = mapped_column(Integer)
     cover_image_url: Mapped[Optional[str]] = mapped_column(TEXT)
     video_url: Mapped[Optional[str]] = mapped_column(TEXT)
-    priority: Mapped[Optional[int]] = mapped_column(Integer)
     city: Mapped[Optional[str]] = mapped_column(String(100))
     area: Mapped[Optional[str]] = mapped_column(String(100))
     neighborhood_text: Mapped[Optional[str]] = mapped_column(String(150)) # Raw text from source

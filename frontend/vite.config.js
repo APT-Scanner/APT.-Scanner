@@ -38,6 +38,8 @@ export default defineConfig({
   
   // Server optimizations
   server: {
+    host: '0.0.0.0', // Allow access from any IP address
+    port: 5173,      // Default Vite port
     warmup: {
       clientFiles: [
         './src/components/**/*.jsx',

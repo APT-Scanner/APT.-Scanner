@@ -195,7 +195,7 @@ const LoginPage = () => {
     <div className={styles.pageBackground}>
       <div className={styles.loginContainer}>
         <button onClick={handleNavigateBack} className={styles.backButton}>
-          <IoMdArrowBack size={24} />
+          <IoMdArrowBack size={24}/>
         </button>
         <h1 className={styles.title}>Log in to your account</h1>
         {view === "options" ? renderOptionsView() : renderEmailFormView()}

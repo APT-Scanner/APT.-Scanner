@@ -88,7 +88,6 @@ class ListingSchema(BaseModel):
     square_meter: Optional[int] = None
     cover_image_url: Optional[str] = None
     video_url: Optional[str] = None
-    priority: Optional[int] = None
     city: Optional[str] = None
     area: Optional[str] = None
     neighborhood_text: Optional[str] = None
@@ -133,8 +132,8 @@ class QuestionnaireAnswers(BaseModel):
     )
 
 class QuestionModel(BaseModel):
-    category: str
     id: str
+    category: str
     text: str
     type: str
     options: Optional[List[Any]] = None
@@ -142,6 +141,13 @@ class QuestionModel(BaseModel):
     conditional: Optional[dict[str,Any]] = None
     display_type: Optional[str] = None
     placeholder: Optional[str] = None
+    branches: Optional[Dict[str, List[str]]] = None
+
+    model_config = ConfigDict(
+        from_attributes=True,
+        populate_by_name=True,
+        arbitrary_types_allowed=True,
+    )
 
 class FavoriteCreateSchema(BaseModel):
     listing_id: int

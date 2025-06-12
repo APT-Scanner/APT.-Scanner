@@ -16,6 +16,7 @@ class Settings(BaseSettings):
         "http://localhost:5173",# Frontend dev server
         "http://localhost:5174",  
         "http://localhost:3000",  # Alternative frontend dev server
+        "http://192.168.1.204:5173",  # Local frontend dev server
         "https://apt-scanner.com",  # Production
     ]
 
