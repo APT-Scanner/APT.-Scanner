@@ -1,7 +1,7 @@
-import React, { use, useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/RegisterPage.module.css";
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
+import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
 import { FaCheckCircle, FaRegCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import { auth } from "../config/firebase";
@@ -89,10 +89,12 @@ const RegisterPage = () => {
           });
 
           if (!response.ok) {
+            await deleteUser(user);
             const errorData = await response.json();
             throw new Error(
               errorData.detail || `Backend sync failed: ${response.statusText}`
             );
+
           }
 
           const backendUser = await response.json();
