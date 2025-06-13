@@ -198,26 +198,3 @@ class UserFiltersSchema(UserFiltersBase):
     updated_at: datetime
     
     model_config = ConfigDict(from_attributes=True)
-
-# QuestionnaireState schema
-class QuestionnaireStateSchema(BaseModel):
-    user_id: str
-    queue: str 
-    answers: str
-    answered_questions: str
-    participating_questions_count: int
-    questionnaire_version: int
-    last_updated: datetime
-    created_at: datetime
-    
-    model_config = ConfigDict(from_attributes=True)
-
-# CompletedQuestionnaire schema
-class CompletedQuestionnaireSchema(BaseModel):
-    user_id: str
-    answers: Dict[str, Any]
-    questionnaire_version: int
-    submitted_at: datetime
-    question_count: int
-    
-    model_config = ConfigDict(from_attributes=True)

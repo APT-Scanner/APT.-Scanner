@@ -253,50 +253,6 @@ class ViewHistory(Base):
         return f"<ViewHistory(user_id={self.user_id}, listing_id={self.listing_id}, viewed_at={self.viewed_at})>"
 
 
-class QuestionnaireState(Base):
-    """
-    Temporary storage for in-progress questionnaire states. 
-    This stores the current state of a user's questionnaire including 
-    their current position, answers, and remaining questions.
-    """
-    __tablename__ = "questionnaire_states"
-    
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), primary_key=True, index=True, nullable=False)
-    # Store serialized JSON data
-    queue: Mapped[str] = mapped_column(TEXT, nullable=False, default="[]")  # JSON list of question IDs
-    answers: Mapped[str] = mapped_column(TEXT, nullable=False, default="{}")  # JSON dict of answers
-    answered_questions: Mapped[str] = mapped_column(TEXT, nullable=False, default="[]")  # JSON list of answered question IDs
-    participating_questions_count: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    questionnaire_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)  # For tracking schema changes
-    last_updated: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow)
-    
-    # Relationship to user
-    user: Mapped["User"] = relationship("User")
-
-class CompletedQuestionnaire(Base):
-    """
-    Permanent storage for completed questionnaires.
-    Once a user completes a questionnaire, the final answers are stored here
-    and the temporary state is deleted.
-    """
-    __tablename__ = "completed_questionnaires"
-    
-    user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), primary_key=True, index=True, nullable=False)
-    # Store the final answers
-    answers: Mapped[Dict[str, Any]] = mapped_column(JSONB, nullable=False)  # Store as JSONB for querying
-    questionnaire_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
-    submitted_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
-    
-    # Track metrics about the questionnaire
-    question_count: Mapped[int] = mapped_column(Integer, nullable=False)
-    
-    # Relationship to user
-    user: Mapped["User"] = relationship("User")
-    
-    def __repr__(self):
-        return f"<CompletedQuestionnaire(user_id={self.user_id}, submitted_at={self.submitted_at})>"
-
 # Add UserFilters model to store user-specific filters
 class UserFilters(Base):
     __tablename__ = "user_filters"
