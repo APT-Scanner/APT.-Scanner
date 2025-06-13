@@ -9,6 +9,7 @@ import os
 from pathlib import Path
 from src.api.router import api_router
 from src.config.settings import settings
+from src.models.mongo_db import connect_to_mongo, close_mongo_connection
 
 # Ensure logs directory exists
 Path("logs").mkdir(exist_ok=True)
@@ -31,6 +32,9 @@ async def lifespan(app: FastAPI):
     try:
         logger.info("Starting APT. Scanner API...")
         
+        # Connect to MongoDB
+        await connect_to_mongo()
+        
         if settings.FIREBASE_CREDENTIALS_PATH:
             import firebase_admin
             from firebase_admin import credentials
@@ -46,6 +50,8 @@ async def lifespan(app: FastAPI):
         raise
     finally:
         logger.info("Shutting down APT. Scanner API...")
+        # Disconnect from MongoDB
+        await close_mongo_connection()
 
 app = FastAPI(
     title=settings.PROJECT_NAME,

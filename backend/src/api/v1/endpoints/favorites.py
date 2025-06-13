@@ -9,9 +9,6 @@ from src.models.database import get_db
 from src.models.models import Favorite, Listing
 from src.models.schemas import FavoriteSchema, FavoriteCreateSchema
 from src.middleware.auth import verify_firebase_user
-import sys
-import os
-sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 from data.scrapers.yad2_scraper import is_listing_still_alive
 
 logger = logging.getLogger(__name__)
@@ -67,7 +64,7 @@ async def get_favorites(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(verify_firebase_user)
 ):
-    """Get all favorites for the current user"""
+    """Get all favorites for the current user. Does not update listing status."""
     user_id = current_user["user_id"]
     
     stmt = (
@@ -81,12 +78,53 @@ async def get_favorites(
     
     result = await db.execute(stmt)
     favorites = result.scalars().all()
-    for favorite in favorites:
-        if not is_listing_still_alive(favorite.listing.token):
-            favorite.listing.is_active = False
-            await db.commit()
-            await db.refresh(favorite.listing)
+    return favorites
+
+
+@router.post(
+    "/sync",
+    response_model=List[FavoriteSchema],
+    summary="Sync status of favorite listings",
+    status_code=status.HTTP_200_OK
+)
+async def sync_favorites_status(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(verify_firebase_user)
+):
+    """
+    Checks if favorited listings are still active and updates their status.
+    Returns the updated list of favorites.
+    """
+    user_id = current_user["user_id"]
     
+    stmt = (
+        select(Favorite)
+        .where(Favorite.user_id == user_id)
+        .options(
+            selectinload(Favorite.listing)
+            .selectinload(Listing.neighborhood)
+        )
+    )
+    
+    result = await db.execute(stmt)
+    favorites = result.scalars().all()
+    
+    updated = False
+    for favorite in favorites:
+        # We only check listings that are currently marked as active
+        if favorite.listing and favorite.listing.is_active:
+            if not is_listing_still_alive(favorite.listing.token):
+                favorite.listing.is_active = False
+                updated = True
+    
+    if updated:
+        await db.commit()
+        # Refresh the objects to get the latest state after commit
+        for favorite in favorites:
+             await db.refresh(favorite)
+             if favorite.listing:
+                await db.refresh(favorite.listing)
+
     return favorites
 
 
@@ -121,9 +159,3 @@ async def remove_from_favorites(
     
     await db.delete(favorite)
     await db.commit()
-
-    
-
-    
-    
-

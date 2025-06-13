@@ -1,99 +1,96 @@
-#!/usr/bin/env python3
-"""Script to migrate questionnaire data from JSON files to MongoDB."""
 import asyncio
 import json
 import os
 import sys
-import logging
-from pathlib import Path
-
-# Add the backend src directory to Python path
-backend_dir = Path(__file__).parent.parent
-sys.path.insert(0, str(backend_dir))
-
+from motor.motor_asyncio import AsyncIOMotorClient
 from dotenv import load_dotenv
-from src.config.mongodb import connect_to_mongo, close_mongo_connection
-from src.services.MongoQuestionnaireService import MongoQuestionnaireService
 
-# Load environment variables
-load_dotenv(dotenv_path=backend_dir / '.env')
+# Add backend directory to Python path to allow src imports
+sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
-)
-logger = logging.getLogger(__name__)
+# Load environment variables from the .env file in the backend directory
+load_dotenv(dotenv_path=os.path.join(os.path.dirname(__file__), '..', '.env'))
 
-async def migrate_questionnaires():
-    """Migrate questionnaire data from JSON files to MongoDB."""
+MONGO_URL = os.getenv("MONGO_URL")
+if not MONGO_URL:
+    raise ValueError("MONGO_URL environment variable is not set. Please create a .env file in the backend directory.")
+
+# Define paths to the source JSON files
+# Note: These paths are relative to the script's location in `backend/scripts/`
+BASIC_QUESTIONS_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'sources', 'basic_information_questions.json')
+DYNAMIC_QUESTIONS_PATH = os.path.join(os.path.dirname(__file__), '..', 'data', 'sources', 'dynamic_questionnaire.json')
+
+# Collection names in MongoDB
+BASIC_COLLECTION = 'basic_questions'
+DYNAMIC_COLLECTION = 'dynamic_questions'
+
+async def populate_db():
+    """Connects to MongoDB, clears old data, and inserts new questions from JSON files."""
+    print("Connecting to MongoDB...")
+    client = AsyncIOMotorClient(MONGO_URL)
+    db_name = os.getenv("MONGO_DB_NAME")
+    
+    if not db_name:
+        print("\n--- CONFIGURATION ERROR ---")
+        print("Your MONGO_URL in the .env file is missing a database name.")
+        print("Please add it to the end of the URL.")
+        print(f"Example: mongodb://localhost:27017/{'apt_scanner'}\n")
+        client.close()
+        return
+        
+    db = client[db_name] # Explicitly get the database by name
+    
+    print(f"Connected to database: {db.name}")
+
     try:
-        # Connect to MongoDB
-        await connect_to_mongo()
-        logger.info("Connected to MongoDB successfully")
-        
-        # Initialize the MongoDB service
-        mongo_service = MongoQuestionnaireService()
-        
-        # Define file paths
-        basic_info_file = backend_dir / "data" / "sources" / "basic_information_questions.json"
-        dynamic_file = backend_dir / "data" / "sources" / "dynamic_questionnaire.json"
-        
-        # Migrate basic information questions
-        if basic_info_file.exists():
-            logger.info(f"Migrating basic information questions from {basic_info_file}")
-            with open(basic_info_file, 'r', encoding='utf-8') as f:
-                basic_questions = json.load(f)
+        # --- Populate Basic Questions ---
+        print(f"\nPopulating '{BASIC_COLLECTION}' collection...")
+        if not os.path.exists(BASIC_QUESTIONS_PATH):
+            print(f"Error: Source file not found at {BASIC_QUESTIONS_PATH}.")
+            return
+
+        with open(BASIC_QUESTIONS_PATH, 'r', encoding='utf-8') as f:
+            basic_questions_data = json.load(f)
+
+        if basic_questions_data and isinstance(basic_questions_data, list):
+            basic_collection = db[BASIC_COLLECTION]
+            # Clear existing data to ensure idempotency
+            await basic_collection.delete_many({})
+            print(f"Cleared existing documents in '{BASIC_COLLECTION}'.")
             
-            success = await mongo_service.migrate_from_json(basic_questions, is_basic_info=True)
-            if success:
-                logger.info(f"Successfully migrated {len(basic_questions)} basic information questions")
-            else:
-                logger.error("Failed to migrate basic information questions")
+            # Insert new data
+            result = await basic_collection.insert_many(basic_questions_data)
+            print(f"Successfully inserted {len(result.inserted_ids)} documents into '{BASIC_COLLECTION}'.")
         else:
-            logger.error(f"Basic information questions file not found: {basic_info_file}")
-        
-        # Migrate dynamic questionnaire questions
-        if dynamic_file.exists():
-            logger.info(f"Migrating dynamic questionnaire questions from {dynamic_file}")
-            with open(dynamic_file, 'r', encoding='utf-8') as f:
-                dynamic_questions = json.load(f)
+            print(f"No data found or data is not a list in {BASIC_QUESTIONS_PATH}.")
+
+        # --- Populate Dynamic Questions ---
+        print(f"\nPopulating '{DYNAMIC_COLLECTION}' collection...")
+        if not os.path.exists(DYNAMIC_QUESTIONS_PATH):
+            print(f"Error: Source file not found at {DYNAMIC_QUESTIONS_PATH}.")
+            return
             
-            success = await mongo_service.migrate_from_json(dynamic_questions, is_basic_info=False)
-            if success:
-                logger.info(f"Successfully migrated {len(dynamic_questions)} dynamic questions")
-            else:
-                logger.error("Failed to migrate dynamic questions")
+        with open(DYNAMIC_QUESTIONS_PATH, 'r', encoding='utf-8') as f:
+            dynamic_questions_data = json.load(f)
+
+        if dynamic_questions_data and isinstance(dynamic_questions_data, list):
+            dynamic_collection = db[DYNAMIC_COLLECTION]
+            # Clear existing data
+            await dynamic_collection.delete_many({})
+            print(f"Cleared existing documents in '{DYNAMIC_COLLECTION}'.")
+            
+            # Insert new data
+            result = await dynamic_collection.insert_many(dynamic_questions_data)
+            print(f"Successfully inserted {len(result.inserted_ids)} documents into '{DYNAMIC_COLLECTION}'.")
         else:
-            logger.error(f"Dynamic questionnaire file not found: {dynamic_file}")
-        
-        # Verify migration
-        all_questions = await mongo_service.get_all_questions()
-        logger.info(f"Total questions in MongoDB: {len(all_questions)}")
-        
-        basic_questions = await mongo_service.get_basic_information_questions()
-        dynamic_questions = await mongo_service.get_dynamic_questionnaire_questions()
-        
-        logger.info(f"Basic information questions: {len(basic_questions)}")
-        logger.info(f"Dynamic questions: {len(dynamic_questions)}")
-        
-        # List question IDs for verification
-        logger.info("Basic question IDs:")
-        for q in basic_questions:
-            logger.info(f"  - {q['question_id']}")
-        
-        logger.info("Dynamic question IDs:")
-        for q in dynamic_questions:
-            logger.info(f"  - {q['question_id']}")
-        
+            print(f"No data found or data is not a list in {DYNAMIC_QUESTIONS_PATH}.")
+
     except Exception as e:
-        logger.error(f"Migration failed: {e}")
-        raise
+        print(f"An error occurred: {e}")
     finally:
-        await close_mongo_connection()
-        logger.info("MongoDB connection closed")
+        client.close()
+        print("\nMongoDB connection closed. Population process finished.")
 
 if __name__ == "__main__":
-    logger.info("Starting questionnaire migration to MongoDB...")
-    asyncio.run(migrate_questionnaires())
-    logger.info("Migration completed!") 
+    print("Starting questionnaire database population...")
+    asyncio.run(populate_db())

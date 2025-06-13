@@ -24,6 +24,9 @@ class Settings(BaseSettings):
     DATABASE_URL: str = os.getenv(
         "DATABASE_URL"
     )
+    MONGO_URL: str = os.getenv("MONGO_URL", "")
+    MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "")
+
 
     # Firebase settings
     FIREBASE_CREDENTIALS_PATH: str = os.getenv("FIREBASE_CREDENTIALS_PATH", "")
