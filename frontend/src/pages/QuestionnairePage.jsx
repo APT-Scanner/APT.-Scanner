@@ -6,30 +6,10 @@ import styles from '../styles/QuestionnairePage.module.css';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import ContinuationPrompt from '../components/ContinuationPrompt';
 import RangeSlider from '../components/RangeSlider';
+import { fetchPlaceSuggestions } from '../services/mapsApi';
 
 // Add debugging to track state changes
 const DEBUG = true;
-
-const GOOGLE_MAPS_API_KEY = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
-const loadGoogleMapsScript = (callback) => {
-  if (window.google && window.google.maps && window.google.maps.places) {
-    callback();
-    return;
-  }
-  const existingScript = document.getElementById('googleMapsScript');
-  if (existingScript) {
-    existingScript.addEventListener('load', callback);
-    return;
-  }
-  const script = document.createElement('script');
-  // Add a callback parameter to handle errors more gracefully
-  script.src = `https://maps.googleapis.com/maps/api/js?key=${GOOGLE_MAPS_API_KEY}&libraries=places&callback=Function.prototype`;
-  script.id = 'googleMapsScript';
-  script.async = true;
-  script.defer = true;
-  document.body.appendChild(script);
-  script.onload = () => callback();
-};
 
 const QuestionnairePage = () => {
   const navigate = useNavigate();
@@ -42,9 +22,9 @@ const QuestionnairePage = () => {
     error, 
     isComplete, 
     isSubmitted,
-    progress, // Overall percentage
-    currentStageTotalQuestions, // New: Total for current stage (e.g., 5 for dynamic batch)
-    currentStageAnsweredQuestions, // New: Answered in current stage
+    progress, 
+    currentStageTotalQuestions, 
+    currentStageAnsweredQuestions,
     isOffline,
     answerQuestion: originalAnswerQuestion,
     submitQuestionnaire,
@@ -60,28 +40,56 @@ const QuestionnairePage = () => {
   
   const [selectedOptions, setSelectedOptions] = useState([]);
   const [listInputValues, setListInputValues] = useState(['']);
-  const [googleMapsReady, setGoogleMapsReady] = useState(false);
+  const [placeSuggestions, setPlaceSuggestions] = useState({});
+  const [showSuggestions, setShowSuggestions] = useState({});
+  const [loadingSuggestions, setLoadingSuggestions] = useState(false);
   const [priceMin, setPriceMin] = useState(2000);
   const [priceMax, setPriceMax] = useState(20000);
   const [textInputValue, setTextInputValue] = useState('');
-  // Refs for autocomplete inputs
-  const autocompleteRefs = useRef([]);
-  const textInputRef = useRef(null); // Ref for single text input
+  const [textSuggestions, setTextSuggestions] = useState([]);
+  const [showTextSuggestions, setShowTextSuggestions] = useState(false);
   // Track question changes
   const previousQuestionRef = useRef(null);
   
   const [totalQuestions, setTotalQuestions] = useState(0);
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
 
-  // Load Google Maps when needed
-  useEffect(() => {
-    if (currentQuestion && (currentQuestion.type === 'list-input' || currentQuestion.type === 'text')) {
-      if (DEBUG) console.log('Loading Google Maps for:', currentQuestion.type);
-      loadGoogleMapsScript(() => {
-        setGoogleMapsReady(true);
-      });
+  // Handle place suggestions for autocomplete
+  const handlePlaceInput = useCallback(async (value, index = null, isTextInput = false) => {
+    if (!value || value.length < 2) {
+      if (isTextInput) {
+        setTextSuggestions([]);
+        setShowTextSuggestions(false);
+      } else {
+        setPlaceSuggestions(prev => ({...prev, [index]: []}));
+        setShowSuggestions(prev => ({...prev, [index]: false}));
+      }
+      return;
     }
-  }, [currentQuestion?.id]); // Only when the question ID changes
+
+    setLoadingSuggestions(true);
+    try {
+      const suggestions = await fetchPlaceSuggestions(value);
+      if (isTextInput) {
+        setTextSuggestions(suggestions);
+        setShowTextSuggestions(true);
+      } else {
+        setPlaceSuggestions(prev => ({...prev, [index]: suggestions}));
+        setShowSuggestions(prev => ({...prev, [index]: true}));
+      }
+    } catch (error) {
+      console.error('Error fetching place suggestions:', error);
+      if (isTextInput) {
+        setTextSuggestions([]);
+        setShowTextSuggestions(false);
+      } else {
+        setPlaceSuggestions(prev => ({...prev, [index]: []}));
+        setShowSuggestions(prev => ({...prev, [index]: false}));
+      }
+    } finally {
+      setLoadingSuggestions(false);
+    }
+  }, []);
 
   // Monitor question changes for debugging
   useEffect(() => {
@@ -95,65 +103,18 @@ const QuestionnairePage = () => {
     }
   }, [currentQuestion?.id]);
   
-  // Initialize Autocomplete for list inputs
-  useEffect(() => {
-    if (googleMapsReady && currentQuestion && currentQuestion.type === 'list-input') {
-      listInputValues.forEach((_, index) => {
-        if (autocompleteRefs.current[index] && !autocompleteRefs.current[index].__googleAutocompleteInitialized) {
-          const autocomplete = new window.google.maps.places.Autocomplete(
-            autocompleteRefs.current[index],
-            { types: ['geocode', 'establishment'], componentRestrictions: { country: 'IL' } }
-          );
-          autocomplete.addListener('place_changed', () => {
-            const place = autocomplete.getPlace();
-            if (place && place.formatted_address) {
-              const newListValues = [...listInputValues];
-              newListValues[index] = place.formatted_address;
-              setListInputValues(newListValues);
-            } else if (place && place.name) {
-                const newListValues = [...listInputValues];
-                newListValues[index] = place.name;
-                setListInputValues(newListValues);
-            }
-          });
-          autocompleteRefs.current[index].__googleAutocompleteInitialized = true;
-        }
-      });
+  // Handle suggestion selection
+  const handleSuggestionSelect = useCallback((suggestion, index = null, isTextInput = false) => {
+    if (isTextInput) {
+      setTextInputValue(suggestion.description);
+      setShowTextSuggestions(false);
+    } else {
+      const newListValues = [...listInputValues];
+      newListValues[index] = suggestion.description;
+      setListInputValues(newListValues);
+      setShowSuggestions(prev => ({...prev, [index]: false}));
     }
-    return () => {
-        autocompleteRefs.current.forEach(ref => {
-            if (ref) delete ref.__googleAutocompleteInitialized;
-        });
-    };
-  }, [googleMapsReady, currentQuestion?.id, listInputValues.length]);
-
-  // Initialize Autocomplete for single text input
-  useEffect(() => {
-    if (googleMapsReady && currentQuestion && currentQuestion.type === 'text' && textInputRef.current && !textInputRef.current.__googleAutocompleteInitialized) {
-      const autocompleteOptions = {
-        componentRestrictions: { country: 'IL' },
-        types: ['(regions)'] // Restrict to areas/cities for text type
-      };
-      const autocomplete = new window.google.maps.places.Autocomplete(
-        textInputRef.current,
-        autocompleteOptions
-      );
-      autocomplete.addListener('place_changed', () => {
-        const place = autocomplete.getPlace();
-        if (place && place.formatted_address) {
-          setTextInputValue(place.formatted_address);
-        } else if (place && place.name) {
-          setTextInputValue(place.name);
-        }
-      });
-      textInputRef.current.__googleAutocompleteInitialized = true;
-    }
-    return () => {
-      if (textInputRef.current) {
-        delete textInputRef.current.__googleAutocompleteInitialized;
-      }
-    };
-  }, [googleMapsReady, currentQuestion?.id]);
+  }, [listInputValues]);
 
   // Setup total questions counter
   useEffect(() => {
@@ -204,14 +165,13 @@ const QuestionnairePage = () => {
       }
       if (currentQuestion.type === 'list-input') {
         setListInputValues(['']);
-        // Ensure refs array is ready for the inputs
-        autocompleteRefs.current = listInputValues.map(
-            (_, i) => autocompleteRefs.current[i] || React.createRef()
-        );
+        setPlaceSuggestions({});
+        setShowSuggestions({});
       }
       if (currentQuestion.type === 'text') {
-        // Reset text input when the question type is text
         setTextInputValue('');
+        setTextSuggestions([]);
+        setShowTextSuggestions(false);
       }
       setSubmissionError(null);
     }
@@ -253,14 +213,14 @@ const QuestionnairePage = () => {
     const newListValues = [...listInputValues];
     newListValues[index] = event.target.value;
     setListInputValues(newListValues);
+    
+    // Trigger place suggestions
+    handlePlaceInput(event.target.value, index, false);
   };
 
   const handleAddListInput = () => {
     if (listInputValues.length < 5) {
       setListInputValues([...listInputValues, '']);
-      autocompleteRefs.current = [...listInputValues, ''].map(
-          (_, i) => autocompleteRefs.current[i] || React.createRef()
-      );
     }
   };
 
@@ -268,11 +228,25 @@ const QuestionnairePage = () => {
     const newListValues = [...listInputValues];
     newListValues.splice(index, 1);
     setListInputValues(newListValues);
-    autocompleteRefs.current.splice(index, 1);
+    
+    // Clean up suggestions for removed item
+    setPlaceSuggestions(prev => {
+      const updated = {...prev};
+      delete updated[index];
+      return updated;
+    });
+    setShowSuggestions(prev => {
+      const updated = {...prev};
+      delete updated[index];
+      return updated;
+    });
   };
 
   const handleTextInputChange = (event) => {
     setTextInputValue(event.target.value);
+    
+    // Trigger place suggestions for text input
+    handlePlaceInput(event.target.value, null, true);
   };
   
   const handleSubmit = () => {
@@ -337,8 +311,9 @@ const QuestionnairePage = () => {
     answerQuestion(currentQuestion.id, currentAnswer);
     
     if (currentQuestion.type === 'list-input') {
-        setListInputValues(['']); 
-        autocompleteRefs.current = [React.createRef()]; // Reset refs for next list-input q
+        setListInputValues(['']);
+        setPlaceSuggestions({});
+        setShowSuggestions({});
     }
     setSelectedOptions([]);
   };
@@ -532,16 +507,48 @@ const QuestionnairePage = () => {
 
         {currentQuestion.type === 'text' && (
           <div className={styles.textInputContainer}>
-            <input
-              type="text"
-              ref={textInputRef} // Assign ref for text input
-              value={textInputValue}
-              onChange={(e) => setTextInputValue(e.target.value)}
-              placeholder={currentQuestion.placeholder}
-              className={styles.textInput}
-              disabled={!googleMapsReady && currentQuestion.type === 'text'} // Disable if maps not ready
-            />
-            {!googleMapsReady && currentQuestion.type === 'text' && <p className={styles.mapsLoadingText}>Loading Google Maps...</p>}
+            <div className={styles.autocompleteContainer}>
+              <input
+                type="text"
+                value={textInputValue}
+                onChange={handleTextInputChange}
+                placeholder={currentQuestion.placeholder}
+                className={styles.textInput}
+                onFocus={() => {
+                  if (textSuggestions.length > 0) {
+                    setShowTextSuggestions(true);
+                  }
+                }}
+              />
+              {showTextSuggestions && textSuggestions.length > 0 && (
+                <div className={styles.suggestionsDropdown}>
+                  {textSuggestions.map((suggestion, index) => (
+                    <div
+                      key={suggestion.place_id || index}
+                      className={styles.suggestionItem}
+                      onClick={() => handleSuggestionSelect(suggestion, null, true)}
+                    >
+                      <div className={styles.suggestionText}>
+                        {suggestion.structured_formatting?.main_text && (
+                          <span className={styles.mainText}>
+                            {suggestion.structured_formatting.main_text}
+                          </span>
+                        )}
+                        {suggestion.structured_formatting?.secondary_text && (
+                          <span className={styles.secondaryText}>
+                            {suggestion.structured_formatting.secondary_text}
+                          </span>
+                        )}
+                        {!suggestion.structured_formatting && (
+                          <span>{suggestion.description}</span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+            {loadingSuggestions && <p className={styles.loadingText}>Loading suggestions...</p>}
           </div>
         )}
         
@@ -550,15 +557,47 @@ const QuestionnairePage = () => {
           <div className={styles.listInputContainer}>
             {listInputValues.map((value, index) => (
               <div key={index} className={styles.listItem}>
-                <input
-                  type="text"
-                  ref={el => autocompleteRefs.current[index] = el} // Assign ref
-                  value={value} // Controlled component
-                  onChange={(e) => handleListInputChange(index, e)}
-                  placeholder={index === 0 ? 'eg. your office, university...' : ''}
-                  className={styles.listInput}
-                  disabled={!googleMapsReady && currentQuestion.type === 'list-input'} // Disable if maps not ready
-                />
+                <div className={styles.autocompleteContainer}>
+                  <input
+                    type="text"
+                    value={value}
+                    onChange={(e) => handleListInputChange(index, e)}
+                    placeholder={index === 0 ? 'eg. your office, university...' : ''}
+                    className={styles.listInput}
+                    onFocus={() => {
+                      if (placeSuggestions[index] && placeSuggestions[index].length > 0) {
+                        setShowSuggestions(prev => ({...prev, [index]: true}));
+                      }
+                    }}
+                  />
+                  {showSuggestions[index] && placeSuggestions[index] && placeSuggestions[index].length > 0 && (
+                    <div className={styles.suggestionsDropdown}>
+                      {placeSuggestions[index].map((suggestion, suggestionIndex) => (
+                        <div
+                          key={suggestion.place_id || suggestionIndex}
+                          className={styles.suggestionItem}
+                          onClick={() => handleSuggestionSelect(suggestion, index, false)}
+                        >
+                          <div className={styles.suggestionText}>
+                            {suggestion.structured_formatting?.main_text && (
+                              <span className={styles.mainText}>
+                                {suggestion.structured_formatting.main_text}
+                              </span>
+                            )}
+                            {suggestion.structured_formatting?.secondary_text && (
+                              <span className={styles.secondaryText}>
+                                {suggestion.structured_formatting.secondary_text}
+                              </span>
+                            )}
+                            {!suggestion.structured_formatting && (
+                              <span>{suggestion.description}</span>
+                            )}
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
                 {listInputValues.length > 1 && (
                   <button 
                     onClick={() => handleRemoveListInput(index)} 
@@ -574,12 +613,11 @@ const QuestionnairePage = () => {
               <button 
                 onClick={handleAddListInput} 
                 className={styles.addListItemButton}
-                disabled={!googleMapsReady && currentQuestion.type === 'list-input'}
               >
                 + Add Item
               </button>
             )}
-            {!googleMapsReady && currentQuestion.type === 'list-input' && <p className={styles.mapsLoadingText}>Loading Google Maps...</p>}
+            {loadingSuggestions && <p className={styles.loadingText}>Loading suggestions...</p>}
           </div>
         )}
       </div>
@@ -588,17 +626,16 @@ const QuestionnairePage = () => {
         <button
           className={styles.nextButton}
           onClick={() => goToNextQuestion()}
-          disabled={!nextButtonEnabled || submissionLoading || (!googleMapsReady && (currentQuestion.type === 'list-input' || currentQuestion.type === 'text'))}
+          disabled={!nextButtonEnabled || submissionLoading}
         >
           {submissionLoading ? 'Submitting...' : (currentQuestionIndex < totalQuestions - 1 || currentQuestion.display_type === 'continuation_page' ? 'Next Question' : 'Finish')}
         </button>
       )}
       
-      {!(currentQuestionIndex >= totalQuestions - 1 && totalQuestions > 0) && (
+      {currentQuestionIndex <= totalQuestions - 1 && (
           <button 
             className={styles.skipLink} 
             onClick={() => goToNextQuestion(true)}
-            disabled={!googleMapsReady && (currentQuestion.type === 'list-input' || currentQuestion.type === 'text')} // Also disable skip if maps not ready for list-input or text
           >
               SKIP TO NEXT QUESTION &gt;
           </button>

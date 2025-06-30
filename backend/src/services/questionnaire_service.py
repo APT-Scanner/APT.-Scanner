@@ -177,11 +177,17 @@ class QuestionnaireService:
         cached_state = get_cache(cache_key)
         if cached_state:
             cached_state['queue'] = deque(cached_state.get('queue', []))
+            # Migrate existing states to include current_question_id
+            if 'current_question_id' not in cached_state:
+                cached_state['current_question_id'] = None
             logger.debug(f"Using cached state for user {user_id}")
             return cached_state
             
         db_state = await self._get_user_state_from_db(user_id)
         if db_state:
+            # Migrate existing states to include current_question_id
+            if 'current_question_id' not in db_state:
+                db_state['current_question_id'] = None
             set_cache(cache_key, db_state)
             return db_state
             
@@ -198,9 +204,9 @@ class QuestionnaireService:
         basic_q_ids = [q['id'] for q in self.basic_information_questions.values()]
         queue = deque(basic_q_ids)
         logger.info(f"Created initial queue with {len(queue)} questions: {basic_q_ids}")
-        
         return {
             'queue': queue, 'answers': {}, 'answered_questions': [],
+            'current_question_id': None,  # Track current question without removing from queue
             'participating_questions_count': self.total_questions,
             'version': self.current_version, 'start_time': time.time()
         }
@@ -224,6 +230,11 @@ class QuestionnaireService:
                     state['answers'][q_id] = answer_val
                     state['answered_questions'].append(q_id)
                     self._update_queue_based_on_answer(state, q_id, answer_val)
+                    
+                    # Remove the answered question from queue if it's the current one
+                    if state.get('current_question_id') == q_id and state['queue'] and state['queue'][0] == q_id:
+                        state['queue'].popleft()
+                        state['current_question_id'] = None
         
         self._add_follow_up_questions_to_queue(state)
 
@@ -299,8 +310,27 @@ class QuestionnaireService:
             logger.info(f"Added follow-up question '{follow_up_id}' to the front of the queue.")
     
     async def _get_next_question_from_queue(self, state: Dict[str, Any], user_id: str) -> Optional[Dict[str, Any]]:
-        if not state['queue']: return None
-        next_q_id = state['queue'].popleft()
+        if not state['queue']: 
+            return None
+            
+        # If we already have a current question and it hasn't been answered, return it
+        current_q_id = state.get('current_question_id')
+        if current_q_id and current_q_id not in state['answered_questions']:
+            all_questions = {**self.basic_information_questions, **self.dynamic_questionnaire}
+            question_data = all_questions.get(current_q_id)
+            if question_data:
+                return question_data
+                
+            # Check in conditional questions
+            for q_data_node in self.question_graph.values():
+                if q_data_node.get('on_unanswered', {}).get('id') == current_q_id: 
+                    return q_data_node['on_unanswered']
+                if q_data_node.get('on_answered', {}).get('id') == current_q_id: 
+                    return q_data_node['on_answered']
+        
+        # Get the next question from queue without removing it
+        next_q_id = state['queue'][0]
+        state['current_question_id'] = next_q_id
         await self.update_user_state(user_id, state)
         
         all_questions = {**self.basic_information_questions, **self.dynamic_questionnaire}
@@ -393,6 +423,24 @@ class QuestionnaireService:
         if self.mongo_db is None:
             return None
         return await self.mongo_db.completed_questionnaires.find_one({"user_id": user_id})
+
+    async def skip_current_question(self, user_id: str) -> bool:
+        """
+        Skip the current question by removing it from the queue and clearing current_question_id.
+        Returns True if a question was skipped, False otherwise.
+        """
+        state = await self.get_user_state(user_id)
+        current_q_id = state.get('current_question_id')
+        
+        if current_q_id and state['queue'] and state['queue'][0] == current_q_id:
+            # Remove the question from queue and clear current question
+            state['queue'].popleft()
+            state['current_question_id'] = None
+            await self.update_user_state(user_id, state)
+            logger.info(f"Skipped question '{current_q_id}' for user {user_id}")
+            return True
+        
+        return False
 
     def _create_default_questions(self) -> None:
         logger.warning("Creating default questions as fallback")

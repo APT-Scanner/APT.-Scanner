@@ -8,18 +8,18 @@ from dotenv import load_dotenv
 from collections import deque
 from bson import ObjectId
 from datetime import datetime
+from src.config.settings import settings
 
 load_dotenv()
 
 logger = logging.getLogger(__name__)
 
-# Get Redis configuration from environment variables
-REDIS_ENABLED = os.getenv("REDIS_ENABLED", "false").lower() == "true"
-CACHE_TTL = int(os.getenv("REDIS_CACHE_TTL", "3600"))  # Default: 1 hour
-REDIS_HOST = os.getenv("REDIS_HOST")
-REDIS_PORT = int(os.getenv("REDIS_PORT", "6379"))
-REDIS_USERNAME = os.getenv("REDIS_USERNAME")
-REDIS_PASSWORD = os.getenv("REDIS_PASSWORD")
+REDIS_ENABLED = settings.REDIS_ENABLED
+CACHE_TTL = settings.REDIS_CACHE_TTL
+REDIS_HOST = settings.REDIS_HOST
+REDIS_PORT = settings.REDIS_PORT
+REDIS_USERNAME = settings.REDIS_USERNAME
+REDIS_PASSWORD = settings.REDIS_PASSWORD
 
 class CustomJSONEncoder(json.JSONEncoder):
     """Custom JSON encoder to handle special types."""

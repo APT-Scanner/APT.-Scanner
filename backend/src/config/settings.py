@@ -26,14 +26,20 @@ class Settings(BaseSettings):
     )
     MONGO_URL: str = os.getenv("MONGO_URL", "")
     MONGO_DB_NAME: str = os.getenv("MONGO_DB_NAME", "")
-
+    
+    # Redis settings
+    REDIS_ENABLED: bool = os.getenv("REDIS_ENABLED", "false").lower() == "true"
+    REDIS_CACHE_TTL: int = int(os.getenv("REDIS_CACHE_TTL", "3600"))
+    REDIS_HOST: str = os.getenv("REDIS_HOST", "")
+    REDIS_PORT: int = int(os.getenv("REDIS_PORT", "6379"))
+    REDIS_USERNAME: str = os.getenv("REDIS_USERNAME", "")
+    REDIS_PASSWORD: str = os.getenv("REDIS_PASSWORD", "")
 
     # Firebase settings
-    FIREBASE_CREDENTIALS_PATH: str = os.getenv("FIREBASE_CREDENTIALS_PATH", "")
+    FIREBASE_CREDENTIALS: str = os.getenv("FIREBASE_SERVICE_ACCOUNT_JSON_BASE64", "")
 
 
     # External API settings
-    GOOGLE_MAPS_API_KEY: str = os.getenv("GOOGLE_MAPS_API_KEY", "")
     GOOGLE_API_KEY: str = os.getenv("GOOGLE_API_KEY", "")
 
     # Scraper settings

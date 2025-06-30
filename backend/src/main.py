@@ -35,13 +35,21 @@ async def lifespan(app: FastAPI):
         # Connect to MongoDB
         await connect_to_mongo()
         
-        if settings.FIREBASE_CREDENTIALS_PATH:
+        if settings.FIREBASE_CREDENTIALS:
             import firebase_admin
             from firebase_admin import credentials
+            import json
+            import base64
             
-            cred = credentials.Certificate(settings.FIREBASE_CREDENTIALS_PATH)
-            firebase_admin.initialize_app(cred)
-            logger.info("Firebase Admin SDK initialized successfully")
+            try:
+                decoded_credentials = base64.b64decode(settings.FIREBASE_CREDENTIALS).decode('utf-8')
+                credentials_dict = json.loads(decoded_credentials)
+                
+                cred = credentials.Certificate(credentials_dict)
+                firebase_admin.initialize_app(cred)
+                logger.info("Firebase Admin SDK initialized successfully")
+            except Exception as e:
+                logger.error(f"Failed to initialize Firebase Admin SDK: {str(e)}")
 
         yield
         

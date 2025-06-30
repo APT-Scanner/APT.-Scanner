@@ -25,7 +25,7 @@ logger = logging.getLogger(__name__)
 
 logger.info("Script started")
 
-API_KEY = os.getenv("GOOGLE_MAPS_API_KEY")
+API_KEY = os.getenv("GOOGLE_API_KEY")
 endpoint = 'https://places.googleapis.com/v1/places:searchNearby'
 headers = {
     'Content-Type': 'application/json',

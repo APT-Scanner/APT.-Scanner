@@ -1,5 +1,4 @@
 """API endpoints for the questionnaire system."""
-import json
 import logging
 from typing import Dict, Any, Optional, List, Tuple
 from fastapi import APIRouter, Depends, HTTPException, status
@@ -8,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from src.middleware.auth import get_current_user
 from src.models.schemas import QuestionModel
 from src.models.database import get_db
-from src.services.QuestionnaireService import QuestionnaireService
+from backend.src.services.questionnaire_service import QuestionnaireService
 from src.models.mongo_db import get_mongo_db
 from pydantic import BaseModel
 
@@ -256,6 +255,73 @@ async def submit_questionnaire(
         return {"message": "Questionnaire submitted successfully"}
     except Exception as e:
         logger.error(f"Error submitting questionnaire: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.post("/skip",
+            response_model=NextQuestionResponse,
+            summary="Skip the current question and get next question")
+async def skip_question(
+    current_user: dict = Depends(get_current_user),
+    questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
+):
+    """Skip the current question and proceed to the next one."""
+    try:
+        user_id = current_user.firebase_uid
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
+        
+        # Skip the current question
+        skipped = await questionnaire_service.skip_current_question(user_id)
+        if not skipped:
+            logger.warning(f"No question to skip for user {user_id}")
+        
+        # Get the next question
+        next_question, is_complete, _ = await questionnaire_service.get_next_question(user_id)
+        
+        user_state = await questionnaire_service.get_user_state(user_id)
+        
+        # Check for completion or continuation prompts
+        show_final = should_show_final_prompt(user_state, questionnaire_service)
+        if show_final:
+            progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
+            current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
+            return NextQuestionResponse(
+                question=COMPLETION_PROMPT, is_complete=True, progress=100.0,
+                current_stage_total_questions=current_stage_total,
+                current_stage_answered_questions=current_stage_answered,
+                show_continuation_prompt=False
+            )
+        
+        show_prompt = should_show_continuation_prompt(user_state)
+        if show_prompt:
+            progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
+            current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
+            return NextQuestionResponse(
+                question=None, is_complete=False, progress=progress,
+                current_stage_total_questions=current_stage_total,
+                current_stage_answered_questions=current_stage_answered,
+                show_continuation_prompt=True
+            )
+
+        progress = await _calculate_questionnaire_progress(user_state, questionnaire_service)
+        current_stage_total, current_stage_answered = await _get_current_stage_counts(user_state, questionnaire_service)
+        
+        if is_complete:
+            return NextQuestionResponse(
+                question=COMPLETION_PROMPT, is_complete=True, progress=100.0,
+                current_stage_total_questions=current_stage_total,
+                current_stage_answered_questions=current_stage_answered,
+                show_continuation_prompt=False
+            )
+
+        return NextQuestionResponse(
+            question=next_question, is_complete=is_complete, progress=progress,
+            current_stage_total_questions=current_stage_total,
+            current_stage_answered_questions=current_stage_answered,
+            show_continuation_prompt=False
+        )
+    except Exception as e:
+        logger.error(f"Error skipping question: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/status",

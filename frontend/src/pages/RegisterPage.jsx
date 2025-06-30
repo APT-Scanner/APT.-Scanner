@@ -92,7 +92,7 @@ const RegisterPage = () => {
             await deleteUser(user);
             const errorData = await response.json();
             throw new Error(
-              errorData.detail || `Backend sync failed: ${response.statusText}`
+              errorData.detail.message || `Backend sync failed: ${response.statusText}`
             );
 
           }

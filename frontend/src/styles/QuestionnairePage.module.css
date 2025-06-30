@@ -384,3 +384,65 @@ position: relative;
   background-color: #f0f0f0;
   color: black;
 }
+
+/* Autocomplete Styles */
+.autocompleteContainer {
+  position: relative;
+  display: flex;
+  width: 100%;
+}
+
+.suggestionsDropdown {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  background-color: white;
+  border: 1px solid #ccc;
+  border-top: none;
+  border-radius: 0 0 6px 6px;
+  max-height: 200px;
+  overflow-y: auto;
+  z-index: 1000;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.suggestionItem {
+  padding: 10px 12px;
+  cursor: pointer;
+  border-bottom: 1px solid #f0f0f0;
+  transition: background-color 0.2s ease;
+}
+
+.suggestionItem:hover {
+  background-color: #f5f5f5;
+}
+
+.suggestionItem:last-child {
+  border-bottom: none;
+}
+
+.suggestionText {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.mainText {
+  font-size: 14px;
+  font-weight: 500;
+  color: #333;
+}
+
+.secondaryText {
+  font-size: 12px;
+  color: #666;
+}
+
+.loadingText {
+  font-size: 0.9em;
+  color: #666;
+  text-align: center;
+  padding-top: 10px;
+  font-style: italic;
+}

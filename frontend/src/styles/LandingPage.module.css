@@ -5,10 +5,10 @@
   width: 100vw;
   height: 100vh;
   min-width: 360px;       
-  background-color: #aeaff7; 
+  background-color: #aeaff7;
   box-sizing: border-box;    
   position: relative;
-  top: 0;
+  top: 10vh;
 }
 
 .card {
