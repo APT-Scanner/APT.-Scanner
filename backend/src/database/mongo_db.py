@@ -18,7 +18,7 @@ async def connect_to_mongo():
         
     try:
         db_client.client = AsyncIOMotorClient(settings.MONGO_URL)
-        # The ismaster command is cheap and does not require auth, used to check connection.
+        # The ismaster command is used to check connection.
         await db_client.client.admin.command('ismaster')
         logger.info("MongoDB connection successful.")
     except Exception as e:

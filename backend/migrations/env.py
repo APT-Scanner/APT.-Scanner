@@ -9,9 +9,9 @@ from alembic import context
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.models.database import Base  
+from src.database.postgresql_db import Base  
 
-from src.models.models import *  
+from src.database.models import *  
 
 load_dotenv()
 

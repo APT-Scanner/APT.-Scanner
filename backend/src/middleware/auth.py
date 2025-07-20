@@ -1,13 +1,12 @@
-
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict
 
-from src.models.database import get_db
+from src.database.postgresql_db import get_db
 from src.services import user_service 
-from src.models.models import User as UserModel
+from src.database.models import User as UserModel
 
 security = HTTPBearer()
 
@@ -44,14 +43,38 @@ async def verify_firebase_user(token: HTTPAuthorizationCredentials = Depends(sec
 
 async def get_current_user(
     decoded_token: Dict = Depends(verify_firebase_user), 
-    db: AsyncSession = Depends(get_db)) -> UserModel:
+    db: AsyncSession = Depends(get_db)
+) -> UserModel:
     """
-    Gets the decoded Firebase token, finds or creates the corresponding
-    user in the local database, checks if active, and returns the DB user model.
+    Gets the user from the database based on the Firebase token.
+    This is a read-only operation and will raise an exception if the user does not exist.
     """
     firebase_uid = decoded_token.get("uid")
     if not firebase_uid:
-         raise HTTPException(status_code=400, detail="Firebase UID not found in token")
+        raise HTTPException(status_code=400, detail="Firebase UID not found in token")
+
+    user = await user_service.get_user_by_firebase_uid(db, firebase_uid=firebase_uid)
+
+    if not user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found in database. Registration may not be complete."
+        )
+
+    return user
+
+async def get_or_create_current_user(
+    decoded_token: Dict = Depends(verify_firebase_user),
+    db: AsyncSession = Depends(get_db)
+) -> UserModel:
+    """
+    Gets the decoded Firebase token, finds or creates the corresponding
+    user in the local database, and returns the DB user model.
+    To be used for user creation/sync endpoints.
+    """
+    firebase_uid = decoded_token.get("uid")
+    if not firebase_uid:
+        raise HTTPException(status_code=400, detail="Firebase UID not found in token")
 
     user = await user_service.get_or_create_user_by_firebase(
         db=db,
@@ -61,6 +84,6 @@ async def get_current_user(
     )
 
     if not user:
-         raise HTTPException(status_code=404, detail="User mapping not found or could not be created.")
+        raise HTTPException(status_code=500, detail="User mapping not found or could not be created.")
 
     return user

@@ -3,8 +3,8 @@ from sqlalchemy.ext.asyncio import AsyncSession
 import logging
 from typing import List
 
-from src.models.schemas import UserFiltersCreate, UserFiltersUpdate, UserFiltersSchema
-from src.models.database import get_db
+from src.database.schemas import UserFiltersCreate, UserFiltersUpdate, UserFiltersSchema
+from src.database.postgresql_db import get_db
 from src.middleware.auth import get_current_user
 from src.services import filters_service
 

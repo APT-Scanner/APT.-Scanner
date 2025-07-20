@@ -46,13 +46,12 @@ export const useFavorites = () => {
         console.log("Sending favorite payload:", payload);
         
         try {
-            const response = await fetch(`${BACKEND_URL}/favorites/`, {
+            const response = await fetch(`${BACKEND_URL}/favorites/${listingId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
                     'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({ listing_id: listingId }),
+                }
             });
 
             console.log("Response status:", response.status);

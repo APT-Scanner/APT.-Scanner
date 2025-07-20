@@ -9,7 +9,7 @@ import os
 from pathlib import Path
 from src.api.router import api_router
 from src.config.settings import settings
-from src.models.mongo_db import connect_to_mongo, close_mongo_connection
+from src.database.mongo_db import connect_to_mongo, close_mongo_connection
 
 # Ensure logs directory exists
 Path("logs").mkdir(exist_ok=True)

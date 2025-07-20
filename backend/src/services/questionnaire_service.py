@@ -10,7 +10,7 @@ from ..utils.cache.redis_client import (
     get_cache, set_cache, delete_cache, get_questionnaire_cache_key
 )
 from ..config.constant import CONTINUATION_PROMPT_ID
-from ..models.mongo_db import get_mongo_db
+from ..database.mongo_db import get_mongo_db
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +24,7 @@ class QuestionnaireService:
         Args:
             db_session: SQLAlchemy async session for database access (can be None)
         """
-        self.db_session = db_session # Kept for potential future use, but not for state
+        self.db_session = db_session 
         self.mongo_db = get_mongo_db()
         self.basic_information_questions = {}
         self.dynamic_questionnaire = {}
@@ -93,13 +93,6 @@ class QuestionnaireService:
         for q_id, question_data in all_question_data.items():
             self._build_node_recursively(graph, question_data)
         
-        basic_question_list = list(self.basic_information_questions.values())
-        for i, question in enumerate(basic_question_list):
-            if i + 1 < len(basic_question_list):
-                next_q_id = basic_question_list[i + 1]['id']
-                if question['id'] in graph:
-                    graph[question['id']]['next_default'] = next_q_id
-        
         return graph
 
     def _build_node_recursively(self, graph: Dict, question_data: Dict):
@@ -110,7 +103,7 @@ class QuestionnaireService:
         if not q_id or q_id in graph:
             return
 
-        graph[q_id] = self._create_graph_node(None)
+        graph[q_id] = self._create_graph_node()
         self.total_questions += 1
         
         if 'branches' in question_data:
@@ -126,9 +119,9 @@ class QuestionnaireService:
             graph[q_id]['on_unanswered'] = conditional_q
             self._build_node_recursively(graph, conditional_q)
 
-    def _create_graph_node(self, next_default) -> Dict[str, Any]:
+    def _create_graph_node(self) -> Dict[str, Any]:
         """Helper to create a standard graph node structure."""
-        return {"next_default": next_default, "branches": {}, "on_answered": {}, "on_unanswered": {}}
+        return {"branches": {}, "on_answered": {}, "on_unanswered": {}}
 
     async def _get_user_state_from_db(self, user_id: str) -> Optional[Dict[str, Any]]:
         if self.mongo_db is None: return None
@@ -217,7 +210,7 @@ class QuestionnaireService:
         db_updated = await self._update_user_state_in_db(user_id, state)
         return cache_updated or db_updated
         
-    async def get_next_question(self, user_id: str, new_answers: Dict[str, Any] = None) -> Tuple[Optional[Dict[str, Any]], bool, bool]:
+    async def get_next_question_internal(self, user_id: str, new_answers: Dict[str, Any] = None) -> Tuple[Optional[Dict[str, Any]], bool, bool]:
         state = await self.get_user_state(user_id)
         is_user_chose_to_continue = False
         
@@ -246,7 +239,7 @@ class QuestionnaireService:
         
         questions_added = await self._populate_question_queue_if_needed(state, user_id)
         if questions_added:
-            return await self.get_next_question(user_id)
+            return await self.get_next_question_internal(user_id)
         
         return None, True, is_user_chose_to_continue
 
@@ -424,7 +417,7 @@ class QuestionnaireService:
             return None
         return await self.mongo_db.completed_questionnaires.find_one({"user_id": user_id})
 
-    async def skip_current_question(self, user_id: str) -> bool:
+    async def skip_current_question_internal(self, user_id: str) -> bool:
         """
         Skip the current question by removing it from the queue and clearing current_question_id.
         Returns True if a question was skipped, False otherwise.
@@ -448,3 +441,307 @@ class QuestionnaireService:
             "default_question": {"id": "default_question", "text": "Default question", "type": "text"}
         }
         self.dynamic_questionnaire = {}
+
+    
+    COMPLETION_PROMPT = {
+        "id": "final_completion_prompt",
+        "text": "Congratulations! You've completed all the questions. Your preferences have been saved and we're ready to find the perfect apartments for you.",
+        "type": "single-choice",
+        "options": ["View matched apartments", "Go to dashboard"],
+        "category": "System",
+        "display_type": "continuation_page"
+    }
+
+    async def calculate_questionnaire_progress(
+        self, 
+        user_state: Optional[Dict[str, Any]]
+    ) -> Optional[float]:
+        """Calculate the current progress of the questionnaire."""
+        if not user_state:
+            return 0.0
+
+        answered_questions = user_state.get('answered_questions', [])
+        num_answered = len(answered_questions)
+        
+        if num_answered <= 10:
+            target_batch_size = 10
+        else:
+            additional_batches = (num_answered - 10 + 4) // 5  
+            target_batch_size = 10 + (additional_batches * 5)
+        
+        total_questions = len(self.basic_information_questions) + len(self.dynamic_questionnaire)
+        target_batch_size = min(target_batch_size, total_questions)
+        
+        if num_answered >= total_questions:
+            return 100.0
+        
+        if target_batch_size > 0:
+            progress = (num_answered / target_batch_size) * 100
+            return round(min(progress, 100.0), 1)
+        
+        return 100.0
+
+    def should_show_continuation_prompt(
+        self, 
+        user_state: Optional[Dict[str, Any]]
+    ) -> bool:
+        """Determine if a continuation prompt should be shown."""
+        if not user_state:
+            return False
+            
+        answered_questions = user_state.get('answered_questions', [])
+        num_answered = len(answered_questions)
+
+        if num_answered == 10 or (num_answered > 10 and (num_answered - 10) % 5 == 0):
+            return True
+        
+        return False
+
+    def should_show_final_prompt(
+        self, 
+        user_state: Optional[Dict[str, Any]]
+    ) -> bool:
+        """Determine if the final completion prompt should be shown."""
+        if not user_state:
+            return False
+        
+        answered_questions = user_state.get('answered_questions', [])
+        queue = user_state.get('queue', [])
+        
+        all_question_ids = list(self.basic_information_questions.keys()) + list(self.dynamic_questionnaire.keys())
+        
+        all_answered = all(q_id in answered_questions for q_id in all_question_ids)
+        
+        return not queue and all_answered
+
+    async def get_current_stage_counts(
+        self, 
+        user_state: Optional[Dict[str, Any]]
+    ) -> Tuple[Optional[int], Optional[int]]:
+        """Get the current stage question counts."""
+        if not user_state:
+            return None, None
+
+        num_answered = len(user_state.get('answered_questions', []))
+        participating_questions_count = user_state.get('participating_questions_count', 0)
+        
+        if num_answered < 10:
+            return 10, num_answered
+        else:
+            current_batch_number = ((num_answered - 10) // 5) + 1
+            batch_start = 10 + ((current_batch_number - 1) * 5)
+            batch_end = min(batch_start + 5, participating_questions_count)
+            questions_in_current_batch = min(num_answered - batch_start, 5)
+            current_batch_size = batch_end - batch_start
+            return current_batch_size, questions_in_current_batch
+
+    async def start_questionnaire(self, user_id: str) -> Dict[str, Any]:
+        """
+        Start or resume questionnaire.
+        Returns a complete response ready for the API endpoint.
+        """
+        user_state = await self.get_user_state(user_id)
+        
+        show_final = self.should_show_final_prompt(user_state)
+        if show_final:
+            progress = await self.calculate_questionnaire_progress(user_state)
+            current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+            return {
+                "question": self.COMPLETION_PROMPT,
+                "is_complete": True,
+                "progress": 100.0,
+                "current_stage_total_questions": current_stage_total,
+                "current_stage_answered_questions": current_stage_answered,
+                "show_continuation_prompt": False
+            }
+        
+        show_prompt = self.should_show_continuation_prompt(user_state)
+        if show_prompt and not show_final:
+            progress = await self.calculate_questionnaire_progress(user_state)
+            current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+            return {
+                "question": None,
+                "is_complete": False,
+                "progress": progress,
+                "current_stage_total_questions": current_stage_total,
+                "current_stage_answered_questions": current_stage_answered,
+                "show_continuation_prompt": True
+            }
+        
+        next_question, is_complete, _ = await self.get_next_question_internal(user_id)
+        
+        if is_complete:
+            return {
+                "question": self.COMPLETION_PROMPT,
+                "is_complete": True,
+                "progress": 100.0,
+                "current_stage_total_questions": 0,
+                "current_stage_answered_questions": 0,
+                "show_continuation_prompt": False
+            }
+        
+        progress = await self.calculate_questionnaire_progress(user_state)
+        current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+        
+        return {
+            "question": next_question,
+            "is_complete": is_complete,
+            "progress": progress,
+            "current_stage_total_questions": current_stage_total,
+            "current_stage_answered_questions": current_stage_answered,
+            "show_continuation_prompt": False
+        }
+
+    async def submit_answers(self, user_id: str, answers: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Submit answers and get next question.
+        Returns a complete response ready for the API endpoint.
+        """
+        next_question, is_complete, is_user_chose_to_continue = await self.get_next_question_internal(
+            user_id, answers
+        )
+        
+        user_state = await self.get_user_state(user_id)
+        
+        show_final = self.should_show_final_prompt(user_state)
+        if show_final:
+            progress = await self.calculate_questionnaire_progress(user_state)
+            current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+            return {
+                "question": self.COMPLETION_PROMPT,
+                "is_complete": True,
+                "progress": 100.0,
+                "current_stage_total_questions": current_stage_total,
+                "current_stage_answered_questions": current_stage_answered,
+                "show_continuation_prompt": False
+            }
+        
+        show_prompt = self.should_show_continuation_prompt(user_state)
+        if show_prompt and not is_user_chose_to_continue:
+            progress = await self.calculate_questionnaire_progress(user_state)
+            current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+            return {
+                "question": None,
+                "is_complete": False,
+                "progress": progress,
+                "current_stage_total_questions": current_stage_total,
+                "current_stage_answered_questions": current_stage_answered,
+                "show_continuation_prompt": True
+            }
+
+        progress = await self.calculate_questionnaire_progress(user_state)
+        current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+        
+        if is_complete:
+            return {
+                "question": self.COMPLETION_PROMPT,
+                "is_complete": True,
+                "progress": 100.0,
+                "current_stage_total_questions": current_stage_total,
+                "current_stage_answered_questions": current_stage_answered,
+                "show_continuation_prompt": False
+            }
+
+        return {
+            "question": next_question,
+            "is_complete": is_complete,
+            "progress": progress,
+            "current_stage_total_questions": current_stage_total,
+            "current_stage_answered_questions": current_stage_answered,
+            "show_continuation_prompt": False
+        }
+
+    async def skip_question(self, user_id: str) -> Dict[str, Any]:
+        """
+        Skip current question.
+        Returns a complete response ready for the API endpoint.
+        """
+        # Skip the current question
+        skipped = await self.skip_current_question_internal(user_id)
+        if not skipped:
+            logger.warning(f"No question to skip for user {user_id}")
+        
+        # Get the next question
+        next_question, is_complete, _ = await self.get_next_question_internal(user_id)
+        
+        user_state = await self.get_user_state(user_id)
+        
+        # Check for completion or continuation prompts
+        show_final = self.should_show_final_prompt(user_state)
+        if show_final:
+            progress = await self.calculate_questionnaire_progress(user_state)
+            current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+            return {
+                "question": self.COMPLETION_PROMPT,
+                "is_complete": True,
+                "progress": 100.0,
+                "current_stage_total_questions": current_stage_total,
+                "current_stage_answered_questions": current_stage_answered,
+                "show_continuation_prompt": False
+            }
+        
+        show_prompt = self.should_show_continuation_prompt(user_state)
+        if show_prompt:
+            progress = await self.calculate_questionnaire_progress(user_state)
+            current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+            return {
+                "question": None,
+                "is_complete": False,
+                "progress": progress,
+                "current_stage_total_questions": current_stage_total,
+                "current_stage_answered_questions": current_stage_answered,
+                "show_continuation_prompt": True
+            }
+
+        progress = await self.calculate_questionnaire_progress(user_state)
+        current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+        
+        if is_complete:
+            return {
+                "question": self.COMPLETION_PROMPT,
+                "is_complete": True,
+                "progress": 100.0,
+                "current_stage_total_questions": current_stage_total,
+                "current_stage_answered_questions": current_stage_answered,
+                "show_continuation_prompt": False
+            }
+
+        return {
+            "question": next_question,
+            "is_complete": is_complete,
+            "progress": progress,
+            "current_stage_total_questions": current_stage_total,
+            "current_stage_answered_questions": current_stage_answered,
+            "show_continuation_prompt": False
+        }
+
+    async def get_questionnaire_status(self, user_id: str) -> Dict[str, Any]:
+        """
+        Get questionnaire status.
+        Returns a complete response ready for the API endpoint.
+        """
+        completed_questionnaire = await self.get_completed_questionnaire(user_id)
+        
+        if completed_questionnaire:
+            logger.info(f"User {user_id} has a completed questionnaire in MongoDB")
+            return {
+                "is_complete": True,
+                "questions_answered": completed_questionnaire.get("question_count", 0),
+            }
+        
+        user_state = await self.get_user_state(user_id)
+        progress = await self.calculate_questionnaire_progress(user_state)
+        current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
+        
+        is_complete = (progress == 100.0 and not user_state.get('queue')) if progress is not None else False
+        show_prompt = self.should_show_continuation_prompt(user_state)
+        
+        return {
+            "is_complete": is_complete,
+            "progress": progress,
+            "questions_answered": len(user_state.get('answered_questions', [])),
+            "questions_remaining": len(user_state.get('queue', [])),
+            "current_stage_total_questions": current_stage_total,
+            "current_stage_answered_questions": current_stage_answered,
+            "show_continuation_prompt": show_prompt
+        }

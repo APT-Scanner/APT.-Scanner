@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy.exc import IntegrityError
-from src.models.models import User as UserModel
-from src.models.schemas import UserCreate 
+from src.database.models import User as UserModel
+from src.database.schemas import UserCreate 
 from typing import Optional
 import logging
 import uuid

@@ -5,6 +5,7 @@ import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
 import { FaCheckCircle, FaRegCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import { auth } from "../config/firebase";
+import { BACKEND_URL } from "../config/constants";
 
 const validatePassword = (password) => {
   const requirements = {
@@ -79,8 +80,8 @@ const RegisterPage = () => {
       if (user) {
         const idToken = await user.getIdToken();
         try {
-          const backendUrl = 'http://localhost:8000/api/v1/users/sync-profile';
-          const response = await fetch(backendUrl, {
+          const userUrl = `${BACKEND_URL}/users/me`;
+          const response = await fetch(userUrl, {
             method: "POST",
             headers: {
               Authorization: `Bearer ${idToken}`,
@@ -92,20 +93,20 @@ const RegisterPage = () => {
             await deleteUser(user);
             const errorData = await response.json();
             throw new Error(
-              errorData.detail.message || `Backend sync failed: ${response.statusText}`
+              errorData.detail || `Backend user creation failed: ${response.statusText}`
             );
 
           }
 
           const backendUser = await response.json();
-          console.log("Backend sync successful:", backendUser);
+          console.log("Backend user creation successful:", backendUser);
 
           setIsLoading(false);
           navigate("/get-started");
         } catch (backendError) {
-          console.error("Backend sync error:", backendError);
+          console.error("Backend user creation error:", backendError);
           setError(
-            `Registration succeeded but profile sync failed: ${backendError.message}. Please try logging in.`
+            `Registration succeeded but user creation failed: ${backendError.message}. Please try logging in.`
           );
           setIsLoading(false);
         }

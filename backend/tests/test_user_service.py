@@ -1,7 +1,7 @@
 import pytest
 from sqlalchemy.ext.asyncio import AsyncSession
 from src.services.user_service import create_user, generate_unique_username, get_user_by_username
-from src.models.models import User as UserModel
+from src.database.models import User as UserModel
 from unittest.mock import AsyncMock
 
 

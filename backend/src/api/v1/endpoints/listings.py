@@ -7,15 +7,15 @@ import logging
 from datetime import datetime, timedelta
 from sqlalchemy import and_, delete
 
-from src.models.database import get_db
-from src.models.models import (
+from src.database.postgresql_db import get_db
+from src.database.models import (
     Listing as ListingModel, 
     Neighborhood as NeighborhoodModel, 
     ViewHistory as ViewHistoryModel,
     Tag,
     listing_tags_association
 )
-from src.models.schemas import ListingSchema, ViewHistoryCreate, ViewHistorySchema, UserFiltersBase
+from src.database.schemas import ListingSchema, ViewHistoryCreate, ViewHistorySchema, UserFiltersBase
 from src.middleware.auth import get_current_user
 
 logger = logging.getLogger(__name__)
@@ -28,7 +28,7 @@ router = APIRouter()
     summary="Get listings by filters",
     description="Retrieves listings from the database with optional filtering."
 )
-async def get_all_listings(
+async def get_listings(
     db: AsyncSession = Depends(get_db), 
     limit: int = 20,
     current_user = Depends(get_current_user),
@@ -114,55 +114,8 @@ async def get_all_listings(
             detail="An error occurred while retrieving listings."
         )
 
-@router.get(
-    "/by-neighborhood/{neighborhood_id}",
-    response_model=List[ListingSchema], 
-    summary="Get listings by neighborhood ID",
-    description="Retrieves all listings associated with a specific neighborhood ID (yad2_hood_id)."
-)
-async def get_listings_by_neighborhood(
-    neighborhood_id: int,
-    db: AsyncSession = Depends(get_db) 
-):
-    """
-    Retrieves listings from the database filtered by the provided neighborhood ID.
-    """
-    logger.info(f"Fetching listings for neighborhood_id: {neighborhood_id}")
-
-    neighborhood = await db.get(NeighborhoodModel, neighborhood_id)
-    if not neighborhood:
-        logger.warning(f"Neighborhood with id {neighborhood_id} not found.")
-        raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
-            detail=f"Neighborhood with id {neighborhood_id} not found"
-        )
-
-    stmt = (
-        select(ListingModel)
-        .where(ListingModel.neighborhood_id == neighborhood_id)
-        .options(
-            selectinload(ListingModel.neighborhood),
-            selectinload(ListingModel.property_condition), 
-            selectinload(ListingModel.images), 
-            selectinload(ListingModel.tags) 
-        )
-    )
-
-    try:
-        result = await db.execute(stmt)
-        listings = result.scalars().all()
-        logger.info(f"Found {len(listings)} listings for neighborhood_id: {neighborhood_id}")
-        return listings 
-
-    except Exception as e:
-        logger.error(f"Database error while fetching listings for neighborhood {neighborhood_id}: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while retrieving listings."
-        )
-
 @router.post(
-    "/view",
+    "/views",
     response_model=ViewHistorySchema,
     summary="Record a listing view",
     description="Records when a user views a listing."
@@ -229,7 +182,7 @@ async def record_listing_view(
         )
 
 @router.get(
-    "/view-history",
+    "/views",
     response_model=List[ViewHistorySchema],
     summary="Get user's view history",
     description="Retrieves the user's listing view history."
@@ -267,7 +220,7 @@ async def get_view_history(
         )
 
 @router.delete(
-    "/view-history/clear",
+    "/views",
     status_code=status.HTTP_204_NO_CONTENT,
     summary="Clear user's view history",
     description="Clears the user's listing view history."

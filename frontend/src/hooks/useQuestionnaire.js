@@ -142,7 +142,7 @@ export const useQuestionnaire = () => {
       
       if (DEBUG) console.log("Starting/resuming questionnaire");
       
-      const response = await fetch(`${BACKEND_URL}/questionnaire/start`, {
+      const response = await fetch(`${BACKEND_URL}/questionnaire/current`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${idToken}`,
@@ -269,7 +269,7 @@ export const useQuestionnaire = () => {
       }
       
       // Send request to API
-      const response = await fetch(`${BACKEND_URL}/questionnaire/next`, {
+      const response = await fetch(`${BACKEND_URL}/questionnaire/answers`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${idToken}`,
@@ -391,8 +391,8 @@ export const useQuestionnaire = () => {
         return;
       }
       
-      const response = await fetch(`${BACKEND_URL}/questionnaire/submit`, {
-        method: 'POST',
+      const response = await fetch(`${BACKEND_URL}/questionnaire/`, {
+        method: 'PUT',
         headers: {
           'Authorization': `Bearer ${idToken}`,
           'Content-Type': 'application/json',

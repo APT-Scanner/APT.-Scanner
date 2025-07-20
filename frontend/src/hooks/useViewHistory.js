@@ -44,7 +44,7 @@ export const useViewHistory = () => {
 
         const fetchViewHistory = async () => {
             try {
-                const response = await fetch(`${BACKEND_URL}/listings/view-history`, {
+                const response = await fetch(`${BACKEND_URL}/listings/views`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,
@@ -112,7 +112,7 @@ export const useViewHistory = () => {
         // Record view on the server if authenticated
         if (idToken) {
             try {
-                await fetch(`${BACKEND_URL}/listings/view`, {
+                await fetch(`${BACKEND_URL}/listings/views`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,
@@ -156,7 +156,7 @@ export const useViewHistory = () => {
         // Clear server history if authenticated
         if (idToken) {
             try {
-                await fetch(`${BACKEND_URL}/listings/view-history/clear`, {
+                await fetch(`${BACKEND_URL}/listings/views`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,

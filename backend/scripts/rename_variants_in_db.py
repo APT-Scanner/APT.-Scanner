@@ -20,7 +20,7 @@ else:
     print(f"Warning: .env file not found at {dotenv_path}")
 
 
-from backend.src.models.models import Listing
+from backend.src.database.models import Listing
 
 load_dotenv(dotenv_path='/Users/or.hershko/Desktop/APT.-Scanner/backend/.env')
 

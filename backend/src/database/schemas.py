@@ -1,9 +1,9 @@
 """Schemas for the API."""
-from pydantic import BaseModel, Field, conint, confloat, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, conint, ConfigDict, EmailStr
 from typing import Optional, List, Any, Dict
 from datetime import datetime
 from decimal import Decimal 
-from .models import PaceOfLife, ParkingImportance, ImportanceScale, YesNoPref
+from .models import PaceOfLife, ImportanceScale, YesNoPref
 
 
 class UserBase(BaseModel):
@@ -149,9 +149,6 @@ class QuestionModel(BaseModel):
         arbitrary_types_allowed=True,
     )
 
-class FavoriteCreateSchema(BaseModel):
-    listing_id: int
-    
 class FavoriteSchema(BaseModel):
     id: int
     user_id: str

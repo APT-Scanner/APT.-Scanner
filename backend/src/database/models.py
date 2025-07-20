@@ -11,7 +11,7 @@ from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from enum import Enum as PyEnum
-from .database import Base 
+from .postgresql_db import Base 
 
 
 

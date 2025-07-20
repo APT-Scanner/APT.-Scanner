@@ -1,8 +1,8 @@
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.future import select
 from sqlalchemy import update, delete, distinct
-from src.models.models import UserFilters, Neighborhood
-from src.models.schemas import UserFiltersCreate, UserFiltersUpdate
+from src.database.models import UserFilters, Neighborhood
+from src.database.schemas import UserFiltersCreate, UserFiltersUpdate
 from typing import Optional, List
 import logging
 

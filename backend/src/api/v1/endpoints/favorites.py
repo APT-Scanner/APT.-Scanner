@@ -5,9 +5,9 @@ from sqlalchemy.orm import selectinload
 from sqlalchemy import and_
 from typing import List
 import logging
-from src.models.database import get_db
-from src.models.models import Favorite, Listing
-from src.models.schemas import FavoriteSchema, FavoriteCreateSchema
+from src.database.postgresql_db import get_db
+from src.database.models import Favorite, Listing
+from src.database.schemas import FavoriteSchema
 from src.middleware.auth import verify_firebase_user
 from data.scrapers.yad2_scraper import is_listing_still_alive
 
@@ -15,20 +15,20 @@ logger = logging.getLogger(__name__)
 router = APIRouter()
 
 @router.post(
-    "/",
+    "/{listing_id}",
     response_model=FavoriteSchema,
     status_code=status.HTTP_201_CREATED,
     summary="Add a listing to favorites"
 )
 async def add_favorites(
-    favorite: FavoriteCreateSchema,
+    listing_id: int,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(verify_firebase_user)
 ):
     """Add a listing to user's favorites"""
     user_id = current_user["user_id"]
 
-    listing = await db.get(Listing, favorite.listing_id)
+    listing = await db.get(Listing, listing_id)
     if not listing:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
     
@@ -81,8 +81,8 @@ async def get_favorites(
     return favorites
 
 
-@router.post(
-    "/sync",
+@router.put(
+    "/status",
     response_model=List[FavoriteSchema],
     summary="Sync status of favorite listings",
     status_code=status.HTTP_200_OK

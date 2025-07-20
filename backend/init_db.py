@@ -1,7 +1,7 @@
 """Initialize the database by creating all tables."""
 import asyncio
-from src.models.database import Base, engine
-from src.models.models import *  # Import all models to register them with Base
+from src.database.postgresql_db import Base, engine
+from src.database.models import *  # Import all models to register them with Base
 
 async def init_db():
     """Create all tables."""
