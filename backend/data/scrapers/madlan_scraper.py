@@ -79,8 +79,53 @@ class MadlanScraper:
 
 if __name__ == "__main__":
     scraper = MadlanScraper(api_key=os.getenv("SCRAPEOWL_API_KEY"))
-    neighborhood = "גלילות"
-    city = "תל אביב-יפו"
-    country = "ישראל"
-    data = scraper.scrape(neighborhood=neighborhood, city=city, country=country)
-    scraper.save_to_json(data, file_path=f"{neighborhood}_{city}.json")
+    
+    with open("data/sources/yad2_hood_mapping.json", "r", encoding='utf-8') as f:
+        neighborhoods = json.load(f)
+    
+    results = {}
+    
+    for neighborhood in neighborhoods:
+        # Use madlan_name if available, otherwise use regular neighborhood_name
+        neighborhood_name = neighborhood.get("madlan_name", neighborhood["neigborhood_name"])
+        city_name = neighborhood["city_name"]
+        country = "ישראל"
+        
+        print(f"Scraping data for {neighborhood_name}, {city_name}...")
+        
+        try:
+            data = scraper.scrape(
+                neighborhood=neighborhood_name, 
+                city=city_name, 
+                country=country
+            )
+            
+            # Add metadata to the scraped data
+            results[neighborhood["hoodId"]] = {
+                "neighborhood_id": neighborhood["hoodId"],
+                "neighborhood_name": neighborhood["neigborhood_name"],
+                "madlan_name": neighborhood.get("madlan_name"),
+                "city_name": city_name,
+                "scraped_data": data,
+                "scraped_with_madlan_name": "madlan_name" in neighborhood
+            }
+            
+            print(f"Successfully scraped data for {neighborhood_name}")
+            
+        except Exception as e:
+            print(f"Failed to scrape {neighborhood_name}: {e}")
+            results[neighborhood["hoodId"]] = {
+                "neighborhood_id": neighborhood["hoodId"],
+                "neighborhood_name": neighborhood["neigborhood_name"],
+                "madlan_name": neighborhood.get("madlan_name"),
+                "city_name": city_name,
+                "error": str(e),
+                "scraped_with_madlan_name": "madlan_name" in neighborhood
+            }
+    
+    # Save all results to a JSON file
+    output_file = "data/sources/madlan_scraped_data.json"
+    scraper.save_to_json(results, output_file)
+    print(f"All results saved to {output_file}")
+    print(f"Successfully scraped {len([r for r in results.values() if 'error' not in r])} neighborhoods")
+    print(f"Failed to scrape {len([r for r in results.values() if 'error' in r])} neighborhoods")

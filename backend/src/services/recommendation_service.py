@@ -11,7 +11,7 @@ import logging
 
 from src.database.models import Listing, Neighborhood
 from src.services.questionnaire_service import QuestionnaireService
-from src.database.models import NeighborhoodFeatures
+from src.database.models import NeighborhoodFeatures, UserPreferenceVector
 
 logger = logging.getLogger(__name__)
 
@@ -74,15 +74,21 @@ class NeighborhoodRecommendationService:
             List of recommended neighborhoods with scores and sample listings
         """
         try:
-            # Get user's questionnaire responses
-            user_responses = await self.questionnaire_service.get_user_responses(db, user_id)
-            if not user_responses:
-                logger.warning(f"No questionnaire responses found for user {user_id}")
-                return []
+            # First, try to get cached preference vector from PostgreSQL
+            preference_vector = await self._get_cached_preference_vector(db, user_id)
             
-            # Convert responses to preference vector
-            preference_vector = self._create_preference_vector(user_responses)
-            logger.info(f"Generated preference vector for user {user_id}: {preference_vector}")
+            if preference_vector is None:
+                # Fallback: Get user's questionnaire responses and calculate vector
+                user_responses = await self.questionnaire_service.get_user_responses(db, user_id)
+                if not user_responses:
+                    logger.warning(f"No questionnaire responses found for user {user_id}")
+                    return []
+                
+                # Convert responses to preference vector
+                preference_vector = self._create_preference_vector(user_responses)
+                logger.info(f"Calculated preference vector from responses for user {user_id}: {preference_vector}")
+            else:
+                logger.info(f"Using cached preference vector for user {user_id}: {preference_vector}")
             
             # Get neighborhood features from database
             neighborhood_features = await self._get_neighborhood_features(db)
@@ -341,6 +347,11 @@ class NeighborhoodRecommendationService:
                 # Get neighborhood info
                 neighborhood_info = await self._get_neighborhood_info(db, neighborhood['yad2_hood_id'])
                 
+                # Get sample listings
+                sample_listings = await self._get_sample_listings(
+                    db, neighborhood['yad2_hood_id'], limit=3
+                )
+                
                 # Count total available listings
                 total_listings = await self._count_available_listings(
                     db, neighborhood['yad2_hood_id']
@@ -353,6 +364,7 @@ class NeighborhoodRecommendationService:
                     'score': neighborhood['score'],
                     'match_details': neighborhood['match_details'],
                     'individual_scores': neighborhood['individual_scores'],
+                    'sample_listings': sample_listings,
                     'total_available_listings': total_listings,
                     'neighborhood_info': neighborhood_info
                 })
@@ -449,6 +461,32 @@ class NeighborhoodRecommendationService:
         except Exception as e:
             logger.error(f"Error counting listings for neighborhood {yad2_hood_id}: {e}")
             return 0
+
+    async def _get_cached_preference_vector(self, db: AsyncSession, user_id: str) -> Optional[np.ndarray]:
+        """
+        Get cached user preference vector from PostgreSQL.
+        
+        Args:
+            db: Database session
+            user_id: User's Firebase UID
+            
+        Returns:
+            Preference vector as numpy array, or None if not found
+        """
+        try:
+            result = await db.execute(
+                select(UserPreferenceVector).where(UserPreferenceVector.user_id == user_id)
+            )
+            cached_vector = result.scalar_one_or_none()
+            
+            if cached_vector and cached_vector.preference_vector:
+                return np.array(cached_vector.preference_vector)
+            
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error fetching cached preference vector for user {user_id}: {e}")
+            return None
 
 # Convenience function for direct usage
 async def get_user_neighborhood_recommendations(

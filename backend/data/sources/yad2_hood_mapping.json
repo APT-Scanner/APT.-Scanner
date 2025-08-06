@@ -11,6 +11,7 @@
     "cityId": "5000",
     "hoodId": 1520,
     "neigborhood_name": "לב העיר",
+    "madlan_name": "לב תל אביב",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -25,6 +26,7 @@
     "cityId": "5000",
     "hoodId": 1483,
     "neigborhood_name": "הצפון הישן - החלק הצפוני",
+    "madlan_name": "הצפון הישן החלק הצפוני",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -39,6 +41,7 @@
     "cityId": "5000",
     "hoodId": 1461,
     "neigborhood_name": "הצפון הישן - החלק הדרומי",
+    "madlan_name": "הצפון הישן החלק הדרום מזרחי",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -67,6 +70,7 @@
     "cityId": "5000",
     "hoodId": 1516,
     "neigborhood_name": "הצפון החדש - סביבת כיכר המדינה",
+    "madlan_name": "הצפון החדש סביבת כיכר המדינה",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -109,6 +113,7 @@
     "cityId": "5000",
     "hoodId": 307,
     "neigborhood_name": "נווה שאנן",
+    "madlan_name": "נוה שאנן",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -137,6 +142,7 @@
     "cityId": "5000",
     "hoodId": 1462,
     "neigborhood_name": "גני שרונה",
+    "madlan_name": "שרונה",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -179,6 +185,7 @@
     "cityId": "5000",
     "hoodId": 1519,
     "neigborhood_name": "הצפון החדש - החלק הדרומי",
+    "madlan_name": "הצפון החדש החלק הדרום",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -193,6 +200,7 @@
     "cityId": "5000",
     "hoodId": 195,
     "neigborhood_name": "נופי ים",
+    "madlan_name": "נופי ים (הגוש הגדול)",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -207,6 +215,7 @@
     "cityId": "5000",
     "hoodId": 495,
     "neigborhood_name": "צפון יפו",
+    "madlan_name": "שוק הפשפשים וצפון יפו",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -235,6 +244,7 @@
     "cityId": "5000",
     "hoodId": 1517,
     "neigborhood_name": "צמרות איילון, פארק צמרת",
+    "madlan_name": "פארק צמרת",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -249,6 +259,7 @@
     "cityId": "5000",
     "hoodId": 212,
     "neigborhood_name": "קריית שלום",
+    "madlan_name": "קרית שלום",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -263,6 +274,7 @@
     "cityId": "5000",
     "hoodId": 204,
     "neigborhood_name": "הצפון החדש - החלק הצפוני",
+    "madlan_name": "הצפון החדש החלק הצפוני",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -291,6 +303,7 @@
     "cityId": "5000",
     "hoodId": 196,
     "neigborhood_name": "נווה אביבים וסביבתה",
+    "madlan_name": "נוה אביבים",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -305,6 +318,7 @@
     "cityId": "5000",
     "hoodId": 493,
     "neigborhood_name": "עג'מי וגבעת עלייה",
+    "madlan_name": "עג'מי",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -361,6 +375,7 @@
     "cityId": "5000",
     "hoodId": 213,
     "neigborhood_name": "נווה עופר (תל כביר) יפו ב'",
+    "madlan_name": "נווה עופר",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -389,6 +404,7 @@
     "cityId": "5000",
     "hoodId": 207,
     "neigborhood_name": "נווה חן",
+    "madlan_name": "נוה חן",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -403,6 +419,7 @@
     "cityId": "5000",
     "hoodId": 494,
     "neigborhood_name": "צהלון ושיכוני חיסכון",
+
     "city_name": "תל אביב-יפו"
   },
   {
@@ -417,6 +434,7 @@
     "cityId": "5000",
     "hoodId": 496,
     "neigborhood_name": "מכללת יפו תל אביב ודקר",
+    "madlan_name": "דקר",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -431,6 +449,7 @@
     "cityId": "5000",
     "hoodId": 314,
     "neigborhood_name": "נווה שרת",
+    "madlan_name": "נוה שרת",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -445,6 +464,7 @@
     "cityId": "5000",
     "hoodId": 321,
     "neigborhood_name": "יפו ד' (גבעת התמרים)",
+    "madlan_name": "יפו ד",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -487,6 +507,7 @@
     "cityId": "5000",
     "hoodId": 492,
     "neigborhood_name": "יפו ג' ונווה גולן",
+    "madlan_name": "יפו ג",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -501,6 +522,7 @@
     "cityId": "5000",
     "hoodId": 199,
     "neigborhood_name": "נאות אפקה ב'",
+    "madlan_name": "נאות אפקה ב",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -529,6 +551,7 @@
     "cityId": "5000",
     "hoodId": 319,
     "neigborhood_name": "לבנה, ידידיה",
+    "madlan_name": "לבנה וידידיה",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -543,6 +566,7 @@
     "cityId": "5000",
     "hoodId": 209,
     "neigborhood_name": "כפר שלם (מזרח נווה אליעזר)",
+    "madlan_name": "כפר שלם",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -613,6 +637,7 @@
     "cityId": "5000",
     "hoodId": 1518,
     "neigborhood_name": "בבלי",
+    "madlan_name": "שיכון בבלי",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -655,6 +680,7 @@
     "cityId": "5000",
     "hoodId": 208,
     "neigborhood_name": "כפר שלם (מערב נווה ברבור)",
+    "madlan_name": "כפר שלם",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -669,6 +695,7 @@
     "cityId": "5000",
     "hoodId": 1490,
     "neigborhood_name": "אזורי חן, גימל החדשה",
+    "madlan_name": "אזורי חן",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -725,6 +752,7 @@
     "cityId": "5000",
     "hoodId": 200,
     "neigborhood_name": "נאות אפקה א'",
+    "madlan_name": "נאות אפקה א",
     "city_name": "תל אביב-יפו"
   },
   {
@@ -837,6 +865,7 @@
     "cityId": "5000",
     "hoodId": 214,
     "neigborhood_name": "מעוז אביב",
+    "madlan_name": "מעוז אביב א",
     "city_name": "תל אביב-יפו"
   },
   {

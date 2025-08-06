@@ -82,6 +82,17 @@ class Neighborhood(Base):
     yad2_area_id: Mapped[Optional[int]] = mapped_column(Integer)
     yad2_top_area_id: Mapped[Optional[int]] = mapped_column(Integer)
     yad2_doc_count: Mapped[Optional[int]] = mapped_column(Integer)
+    
+    # Madlan metrics fields
+    madlan_name: Mapped[Optional[str]] = mapped_column(String(200))  # Alternative name used for Madlan scraping
+    madlan_metrics: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB)  # All raw metrics from Madlan
+    madlan_overview: Mapped[Optional[str]] = mapped_column(TEXT)  # Madlan neighborhood overview text
+    madlan_avg_price_per_sqm: Mapped[Optional[float]] = mapped_column(Float)  # Average price per square meter
+    madlan_price_trend: Mapped[Optional[str]] = mapped_column(String(50))  # Price trend (up/down/stable)
+    madlan_demand_level: Mapped[Optional[str]] = mapped_column(String(50))  # Demand level description
+    madlan_supply_level: Mapped[Optional[str]] = mapped_column(String(50))  # Supply level description
+    madlan_last_scraped: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))  # When data was last fetched
+    
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()) # Or rely only on DB trigger
 
@@ -287,25 +298,54 @@ class NeighborhoodFeatures(Base):
     """Model for neighborhood feature vectors."""
     __tablename__ = "neighborhood_features"
     
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    yad2_hood_id = Column(Integer, unique=True, nullable=False, index=True)
-    hebrew_name = Column(String(150), nullable=True)
+    yad2_hood_id: Mapped[int] = mapped_column(primary_key=True)
+    hebrew_name: Mapped[str] = mapped_column(String(255), nullable=False)
     
-    # Quality of life ratings from hood_ratings.json (normalized 0-1)
-    cultural_level = Column(Float, nullable=True)          # High_culturallevel
-    religiosity_level = Column(Float, nullable=True)       # High_religiositylevel  
-    communality_level = Column(Float, nullable=True)       # High_communalitylevel
-    kindergardens_level = Column(Float, nullable=True)     # High_kindergardenslevel
-    maintenance_level = Column(Float, nullable=True)       # High_maintnancelevel
-    mobility_level = Column(Float, nullable=True)          # High_mobilitylevel
-    parks_level = Column(Float, nullable=True)             # High_parkslevel
-    peaceful_level = Column(Float, nullable=True)          # High_peacfullevel
-    shopping_level = Column(Float, nullable=True)          # High_shoppinglevel
-    safety_level = Column(Float, nullable=True)            # High_saftylevel
+    # Individual feature scores (0-1 scale)
+    cultural_level: Mapped[Optional[float]] = mapped_column(Float)
+    religiosity_level: Mapped[Optional[float]] = mapped_column(Float)
+    communality_level: Mapped[Optional[float]] = mapped_column(Float)
+    kindergardens_level: Mapped[Optional[float]] = mapped_column(Float)
+    maintenance_level: Mapped[Optional[float]] = mapped_column(Float)
+    mobility_level: Mapped[Optional[float]] = mapped_column(Float)
+    parks_level: Mapped[Optional[float]] = mapped_column(Float)
+    peaceful_level: Mapped[Optional[float]] = mapped_column(Float)
+    shopping_level: Mapped[Optional[float]] = mapped_column(Float)
+    safety_level: Mapped[Optional[float]] = mapped_column(Float)
     
-    # Combined feature vector as array for ML algorithms
-    feature_vector = Column(ARRAY(Float), nullable=True)
+    # Combined feature vector for ML calculations
+    feature_vector: Mapped[Optional[List[float]]] = mapped_column(ARRAY(Float))
     
     # Metadata
-    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    updated_at: Mapped[Optional[datetime]] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+
+
+class UserPreferenceVector(Base):
+    """Stores cached user preference vectors for fast recommendation lookup."""
+    __tablename__ = "user_preference_vectors"
+
+    user_id: Mapped[str] = mapped_column(String(255), primary_key=True)  # Firebase UID
+    
+    # Individual preference scores (0-1 scale, same order as NeighborhoodFeatures)
+    cultural_level: Mapped[float] = mapped_column(Float, nullable=False)
+    religiosity_level: Mapped[float] = mapped_column(Float, nullable=False)
+    communality_level: Mapped[float] = mapped_column(Float, nullable=False)
+    kindergardens_level: Mapped[float] = mapped_column(Float, nullable=False)
+    maintenance_level: Mapped[float] = mapped_column(Float, nullable=False)
+    mobility_level: Mapped[float] = mapped_column(Float, nullable=False)
+    parks_level: Mapped[float] = mapped_column(Float, nullable=False)
+    peaceful_level: Mapped[float] = mapped_column(Float, nullable=False)
+    shopping_level: Mapped[float] = mapped_column(Float, nullable=False)
+    safety_level: Mapped[float] = mapped_column(Float, nullable=False)
+    
+    # Combined preference vector for ML calculations  
+    preference_vector: Mapped[List[float]] = mapped_column(ARRAY(Float), nullable=False)
+    
+    # Metadata
+    questionnaire_version: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), onupdate=func.now())
+    
+    def __repr__(self):
+        return f"<UserPreferenceVector(user_id='{self.user_id}', version={self.questionnaire_version})>"

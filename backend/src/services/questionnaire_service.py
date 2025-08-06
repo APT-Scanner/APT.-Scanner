@@ -1,16 +1,19 @@
 """Service for managing questionnaires and user responses."""
 import json
 import logging
+import numpy as np
 from typing import Dict, Any, List, Optional, Tuple
 from collections import deque
 from datetime import datetime, timezone
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 import time
 from ..utils.cache.redis_client import (
     get_cache, set_cache, delete_cache, get_questionnaire_cache_key
 )
 from ..config.constant import CONTINUATION_PROMPT_ID
 from ..database.mongo_db import get_mongo_db
+from ..database.models import UserPreferenceVector
 
 logger = logging.getLogger(__name__)
 
@@ -389,7 +392,9 @@ class QuestionnaireService:
                 self.added_participating_questions_count += 1
 
     async def save_completed_questionnaire(self, user_id: str) -> bool:
-        if self.mongo_db is None: return False
+        if self.mongo_db is None: 
+            return False
+            
         state = await self.get_user_state(user_id)
         if not state.get('answers'):
             logger.warning(f"Attempted to save empty questionnaire for user {user_id}")
@@ -405,6 +410,10 @@ class QuestionnaireService:
             }
             await self.mongo_db.completed_questionnaires.insert_one(completed_doc)
             
+            # Calculate and save user preference vector to PostgreSQL
+            if self.db_session:
+                await self._save_user_preference_vector(user_id, state['answers'], state['version'])
+            
             await self._delete_user_state_from_db(user_id)
             delete_cache(get_questionnaire_cache_key(user_id))
             return True
@@ -412,10 +421,276 @@ class QuestionnaireService:
             logger.error(f"Error saving completed questionnaire to MongoDB: {e}")
             return False
 
+    async def _save_user_preference_vector(self, user_id: str, user_responses: Dict[str, Any], version: int) -> bool:
+        """Calculate and save user preference vector to PostgreSQL."""
+        try:
+            # Calculate preference vector using the same logic as recommendation service
+            preference_vector = self._calculate_preference_vector(user_responses)
+            
+            # Create or update user preference vector record
+            existing = await self.db_session.execute(
+                select(UserPreferenceVector).where(UserPreferenceVector.user_id == user_id)
+            )
+            existing_record = existing.scalar_one_or_none()
+            
+            if existing_record:
+                # Update existing record
+                existing_record.cultural_level = preference_vector[0]
+                existing_record.religiosity_level = preference_vector[1]
+                existing_record.communality_level = preference_vector[2]
+                existing_record.kindergardens_level = preference_vector[3]
+                existing_record.maintenance_level = preference_vector[4]
+                existing_record.mobility_level = preference_vector[5]
+                existing_record.parks_level = preference_vector[6]
+                existing_record.peaceful_level = preference_vector[7]
+                existing_record.shopping_level = preference_vector[8]
+                existing_record.safety_level = preference_vector[9]
+                existing_record.preference_vector = preference_vector.tolist()
+                existing_record.questionnaire_version = version
+                existing_record.updated_at = datetime.now(timezone.utc)
+            else:
+                # Create new record
+                user_pref_vector = UserPreferenceVector(
+                    user_id=user_id,
+                    cultural_level=preference_vector[0],
+                    religiosity_level=preference_vector[1],
+                    communality_level=preference_vector[2],
+                    kindergardens_level=preference_vector[3],
+                    maintenance_level=preference_vector[4],
+                    mobility_level=preference_vector[5],
+                    parks_level=preference_vector[6],
+                    peaceful_level=preference_vector[7],
+                    shopping_level=preference_vector[8],
+                    safety_level=preference_vector[9],
+                    preference_vector=preference_vector.tolist(),
+                    questionnaire_version=version,
+                    updated_at=datetime.now(timezone.utc)
+                )
+                self.db_session.add(user_pref_vector)
+            
+            await self.db_session.commit()
+            logger.info(f"Successfully saved preference vector for user {user_id}")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error saving preference vector for user {user_id}: {e}", exc_info=True)
+            await self.db_session.rollback()
+            return False
+
+    def _calculate_preference_vector(self, responses: Dict[str, Any]) -> np.ndarray:
+        """
+        Calculate user preference vector from questionnaire responses.
+        Uses the same logic as the recommendation service.
+        """
+        # Feature names in order (matching NeighborhoodFeatures)
+        feature_names = [
+            'cultural_level',           # 0
+            'religiosity_level',        # 1  
+            'communality_level',        # 2
+            'kindergardens_level',      # 3
+            'maintenance_level',        # 4
+            'mobility_level',           # 5
+            'parks_level',              # 6
+            'peaceful_level',           # 7
+            'shopping_level',           # 8
+            'safety_level'              # 9
+        ]
+        
+        # Importance scale mapping
+        importance_scale = {
+            'Very important': 0.9,
+            'Somewhat important': 0.6,
+            'Not important': 0.1,
+            'Yes, I want to be in the center of the action': 0.9,
+            'Close but not too close': 0.6,
+            'As far as possible': 0.1,
+            'No preference': 0.5,
+            'Walking distance': 0.9,
+            'Short drive or public transport ride': 0.6,
+            'Very important - I want well-maintained buildings': 0.9,
+            'Not important - I don\'t mind older/less maintained areas': 0.1,
+            'Very important - I need a quiet area': 0.9,
+            'Not important - I don\'t mind noise': 0.1,
+            'Very important - I want an active, connected community': 0.9,
+            'Not important - I prefer privacy': 0.2,
+            'No': 0.1,
+            'Yes': 0.9
+        }
+        
+        preferences = {feature: 0.5 for feature in feature_names}  # Default neutral
+        
+        # Apply mapping logic
+        self._map_basic_questions(responses, preferences, importance_scale)
+        self._map_dynamic_questions(responses, preferences, importance_scale)
+        self._apply_persona_logic(responses, preferences)
+        
+        # Convert to array
+        preference_vector = np.array([preferences[feature] for feature in feature_names])
+        return preference_vector
+
+    def _map_basic_questions(self, responses: Dict, preferences: Dict, importance_scale: Dict):
+        """Map basic information questions."""
+        if 'religious_community_importance' in responses:
+            importance = importance_scale.get(responses['religious_community_importance'], 0.5)
+            preferences['religiosity_level'] = importance
+        
+        if 'safety_priority' in responses:
+            importance = importance_scale.get(responses['safety_priority'], 0.5)
+            preferences['safety_level'] = importance
+        
+        if 'commute_pref' in responses:
+            commute_type = responses['commute_pref']
+            if commute_type in ['Public transport', 'Walking']:
+                preferences['mobility_level'] = 0.8
+            elif commute_type in ['Bicycle / scooter']:
+                preferences['mobility_level'] = 0.7
+            elif commute_type == 'Private car':
+                preferences['mobility_level'] = 0.4
+
+    def _map_dynamic_questions(self, responses: Dict, preferences: Dict, importance_scale: Dict):
+        """Map dynamic questionnaire questions."""
+        # Children ages -> affects multiple features
+        if 'children_ages' in responses:
+            children_ages = responses['children_ages']
+            if isinstance(children_ages, list):
+                children_ages = children_ages[0] if children_ages else 'No children'
+            
+            if 'No children' not in children_ages:
+                preferences['safety_level'] = max(preferences['safety_level'], 0.8)
+                preferences['kindergardens_level'] = max(preferences['kindergardens_level'], 0.7)
+                preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.7)
+        
+        # Learning spaces -> cultural_level
+        if 'learning_space_nearby' in responses:
+            importance = importance_scale.get(responses['learning_space_nearby'], 0.5)
+            preferences['cultural_level'] = max(preferences['cultural_level'], importance)
+        
+        # Shopping centers -> shopping_level
+        if 'proximity_to_shopping_centers' in responses:
+            importance = importance_scale.get(responses['proximity_to_shopping_centers'], 0.5)
+            preferences['shopping_level'] = importance
+        
+        # Green spaces -> parks_level
+        if 'proximity_to_green_spaces' in responses:
+            importance = importance_scale.get(responses['proximity_to_green_spaces'], 0.5)
+            preferences['parks_level'] = importance
+        
+        # Family activities -> communality_level
+        if 'family_activities_nearby' in responses:
+            importance = importance_scale.get(responses['family_activities_nearby'], 0.5)
+            preferences['communality_level'] = max(preferences['communality_level'], importance)
+        
+        # Nightlife -> cultural_level and peaceful_level (inverse)
+        if 'nightlife_proximity' in responses:
+            response = responses['nightlife_proximity']
+            if response == 'Yes, I want to be in the center of the action':
+                preferences['cultural_level'] = max(preferences['cultural_level'], 0.9)
+                preferences['peaceful_level'] = min(preferences['peaceful_level'], 0.3)
+            elif response == 'Close but not too close':
+                preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
+                preferences['peaceful_level'] = 0.6
+            elif response == 'As far as possible':
+                preferences['cultural_level'] = min(preferences['cultural_level'], 0.2)
+                preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.9)
+        
+        # Community involvement -> communality_level
+        if 'community_involvement_preference' in responses:
+            importance = importance_scale.get(responses['community_involvement_preference'], 0.5)
+            preferences['communality_level'] = max(preferences['communality_level'], importance)
+        
+        # Cultural activities -> cultural_level
+        if 'cultural_activities_importance' in responses:
+            importance = importance_scale.get(responses['cultural_activities_importance'], 0.5)
+            preferences['cultural_level'] = max(preferences['cultural_level'], importance)
+        
+        # Neighborhood quality -> maintenance_level
+        if 'neighborhood_quality_importance' in responses:
+            importance = importance_scale.get(responses['neighborhood_quality_importance'], 0.5)
+            preferences['maintenance_level'] = importance
+        
+        # Building condition -> maintenance_level
+        if 'building_condition_preference' in responses:
+            importance = importance_scale.get(responses['building_condition_preference'], 0.5)
+            preferences['maintenance_level'] = max(preferences['maintenance_level'], importance)
+        
+        # Quiet hours -> peaceful_level
+        if 'quiet_hours_importance' in responses:
+            importance = importance_scale.get(responses['quiet_hours_importance'], 0.5)
+            preferences['peaceful_level'] = max(preferences['peaceful_level'], importance)
+        
+        # Pet ownership -> parks_level
+        if 'pet_ownership' in responses:
+            if responses['pet_ownership'] == 'Yes':
+                preferences['parks_level'] = max(preferences['parks_level'], 0.7)
+
+    def _apply_persona_logic(self, responses: Dict, preferences: Dict):
+        """Apply logic based on housing purpose (user persona)."""
+        if 'housing_purpose' not in responses:
+            return
+        
+        housing_purpose = responses['housing_purpose']
+        if isinstance(housing_purpose, list):
+            housing_purpose = housing_purpose[0] if housing_purpose else ''
+        
+        # Adjust preferences based on persona
+        if 'Just me' in housing_purpose:
+            preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
+            preferences['shopping_level'] = max(preferences['shopping_level'], 0.6)
+            
+        elif 'With a partner' in housing_purpose:
+            preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
+            preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.6)
+            
+        elif 'With family (and children)' in housing_purpose:
+            preferences['safety_level'] = max(preferences['safety_level'], 0.8)
+            preferences['kindergardens_level'] = max(preferences['kindergardens_level'], 0.7)
+            preferences['parks_level'] = max(preferences['parks_level'], 0.7)
+            preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.7)
+            preferences['communality_level'] = max(preferences['communality_level'], 0.6)
+            
+        elif 'With roommates' in housing_purpose:
+            preferences['cultural_level'] = max(preferences['cultural_level'], 0.7)
+            preferences['shopping_level'] = max(preferences['shopping_level'], 0.6)
+            preferences['mobility_level'] = max(preferences['mobility_level'], 0.7)
+
     async def get_completed_questionnaire(self, user_id: str) -> Optional[Dict[str, Any]]:
         if self.mongo_db is None:
             return None
         return await self.mongo_db.completed_questionnaires.find_one({"user_id": user_id})
+
+    async def get_user_responses(self, db: AsyncSession, user_id: str) -> Optional[Dict[str, Any]]:
+        """
+        Get user's questionnaire responses for recommendation generation.
+        
+        First tries to get completed questionnaire from MongoDB.
+        If not found, gets answers from current user state.
+        
+        Args:
+            db: Database session (for future use if needed)
+            user_id: User's Firebase UID
+            
+        Returns:
+            Dictionary of user's answers or None if no responses found
+        """
+        try:
+            # Try to get completed questionnaire first
+            completed = await self.get_completed_questionnaire(user_id)
+            if completed and 'answers' in completed:
+                logger.info(f"Found completed questionnaire for user {user_id}")
+                return completed['answers']
+            
+            # Fallback to current user state if no completed questionnaire
+            user_state = await self.get_user_state(user_id)
+            if user_state and 'answers' in user_state and user_state['answers']:
+                logger.info(f"Using current answers from user state for user {user_id}")
+                return user_state['answers']
+            
+            logger.warning(f"No questionnaire responses found for user {user_id}")
+            return None
+            
+        except Exception as e:
+            logger.error(f"Error getting user responses for {user_id}: {e}", exc_info=True)
+            return None
 
     async def skip_current_question_internal(self, user_id: str) -> bool:
         """
