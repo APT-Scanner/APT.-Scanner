@@ -253,20 +253,20 @@ async def clear_view_history(
         )
 
 @router.get(
-    "/{order_id}",
+    "/{listing_id}",
     response_model=ListingSchema,
     summary="Get listing by ID"
 )
 async def get_listing_by_id(
-    order_id: int,
+    listing_id: int,
     db: AsyncSession = Depends(get_db)
 ):
     """Get a specific listing by ID"""
-    logger.info(f"Fetching listing with ID: {order_id}")
+    logger.info(f"Fetching listing with ID: {listing_id}")
     
     stmt = (
         select(ListingModel)
-        .where(ListingModel.order_id == order_id)
+        .where(ListingModel.order_id == listing_id)
         .options(
             selectinload(ListingModel.neighborhood),
             selectinload(ListingModel.property_condition),
@@ -282,7 +282,7 @@ async def get_listing_by_id(
         if not listing:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
-                detail=f"Listing with ID {order_id} not found"
+                detail=f"Listing with ID {listing_id} not found"
             )
             
         return listing
@@ -290,7 +290,7 @@ async def get_listing_by_id(
     except Exception as e:
         if isinstance(e, HTTPException):
             raise e
-        logger.error(f"Database error while fetching listing {order_id}: {e}", exc_info=True)
+        logger.error(f"Database error while fetching listing {listing_id}: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while retrieving the listing"

@@ -1,5 +1,4 @@
 from fastapi import APIRouter, HTTPException, Query
-from typing import List, Optional
 import requests
 import logging
 from src.config.settings import settings

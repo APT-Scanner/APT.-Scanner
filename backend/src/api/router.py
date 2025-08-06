@@ -1,5 +1,5 @@
 from fastapi import APIRouter
-from .v1.endpoints import users, listings, favorites, questionnaire, filters, maps
+from .v1.endpoints import users, listings, favorites, questionnaire, filters, maps, recommendations
 
 
 # Main API router
@@ -12,6 +12,6 @@ api_router.include_router(favorites.router, prefix = "/v1/favorites", tags=["fav
 api_router.include_router(questionnaire.router, prefix = "/v1/questionnaire", tags=["questionnaire"])
 api_router.include_router(filters.router, prefix = "/v1/filters", tags=["filters"])
 api_router.include_router(maps.router, prefix = "/v1/maps", tags=["maps"])
-
+api_router.include_router(recommendations.router, prefix = "/v1/recommendations", tags=["recommendations"])
 
 

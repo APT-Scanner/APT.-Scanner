@@ -6,7 +6,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.orm import relationship, Mapped, mapped_column
 from sqlalchemy.sql import func
-from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
@@ -282,3 +282,30 @@ class UserFilters(Base):
     
     def __repr__(self):
         return f"<UserFilters(user_id={self.user_id}, type={self.type})>"
+# Neighborhood Features Model for Recommendations
+class NeighborhoodFeatures(Base):
+    """Model for neighborhood feature vectors."""
+    __tablename__ = "neighborhood_features"
+    
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    yad2_hood_id = Column(Integer, unique=True, nullable=False, index=True)
+    hebrew_name = Column(String(150), nullable=True)
+    
+    # Quality of life ratings from hood_ratings.json (normalized 0-1)
+    cultural_level = Column(Float, nullable=True)          # High_culturallevel
+    religiosity_level = Column(Float, nullable=True)       # High_religiositylevel  
+    communality_level = Column(Float, nullable=True)       # High_communalitylevel
+    kindergardens_level = Column(Float, nullable=True)     # High_kindergardenslevel
+    maintenance_level = Column(Float, nullable=True)       # High_maintnancelevel
+    mobility_level = Column(Float, nullable=True)          # High_mobilitylevel
+    parks_level = Column(Float, nullable=True)             # High_parkslevel
+    peaceful_level = Column(Float, nullable=True)          # High_peacfullevel
+    shopping_level = Column(Float, nullable=True)          # High_shoppinglevel
+    safety_level = Column(Float, nullable=True)            # High_saftylevel
+    
+    # Combined feature vector as array for ML algorithms
+    feature_vector = Column(ARRAY(Float), nullable=True)
+    
+    # Metadata
+    created_at = Column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at = Column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())

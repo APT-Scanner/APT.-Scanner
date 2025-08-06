@@ -149,16 +149,16 @@ async def get_questionnaire_status(
         logger.error(f"Error getting questionnaire status: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
-@router.get("/basic-questions-length",
+@router.get("/basic-questions-count",
             summary="Get the number of basic questions",
             response_model=int)
-async def get_basic_questions_length(
+async def get_basic_questions_count(
     questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
 ):
     """Get the number of basic questions."""
     try:
-        return questionnaire_service.get_basic_questions_length()
+        return questionnaire_service.get_basic_questions_count()
     except Exception as e:
-        logger.error(f"Error getting basic questions length: {e}", exc_info=True)
+        logger.error(f"Error getting basic questions count: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 

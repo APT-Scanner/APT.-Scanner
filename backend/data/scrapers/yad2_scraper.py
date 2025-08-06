@@ -6,7 +6,7 @@ import os
 from bs4 import BeautifulSoup
 
 
-load_dotenv(dotenv_path='/Users/or.hershko/Desktop/APT.-Scanner/backend/.env')
+load_dotenv(dotenv_path='/Users/or.hershko/Desktop/projects/APT.-Scanner/backend/.env')
 
 class Yad2Scraper:
     """A scalable and dynamic scraper for Yad2 real estate listings."""

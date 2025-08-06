@@ -44,52 +44,20 @@ async def get_filters(
             detail="An error occurred while retrieving filters."
         )
 
-@router.post(
-    "/",
-    response_model=UserFiltersSchema,
-    status_code=status.HTTP_201_CREATED,
-    summary="Create user filters",
-    description="Creates or replaces filters for the current user."
-)
-async def create_filters(
-    filters_data: UserFiltersCreate,
-    db: AsyncSession = Depends(get_db),
-    current_user = Depends(get_current_user)
-):
-    """
-    Create or replace filters for the current user.
-    """
-    user_id = current_user.firebase_uid
-    logger.info(f"Creating filters for user: {user_id}")
-    
-    try:
-        # Delete existing filters if any
-        await filters_service.delete_user_filters(db, user_id)
-        
-        # Create new filters
-        filters = await filters_service.create_user_filters(db, user_id, filters_data)
-        return filters
-            
-    except Exception as e:
-        logger.error(f"Error creating filters: {e}", exc_info=True)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="An error occurred while creating filters."
-        )
-
 @router.put(
     "/",
     response_model=UserFiltersSchema,
-    summary="Update user filters",
-    description="Updates filters for the current user."
+    status_code=status.HTTP_200_OK,
+    summary="Create or update user filters",
+    description="Creates new filters or updates existing ones for the current user."
 )
-async def update_filters(
+async def create_or_update_filters(
     filters_data: UserFiltersUpdate,
     db: AsyncSession = Depends(get_db),
     current_user = Depends(get_current_user)
 ):
     """
-    Update filters for the current user.
+    Create or update filters for the current user.
     """
     user_id = current_user.firebase_uid
     logger.info(f"Updating filters for user: {user_id}")

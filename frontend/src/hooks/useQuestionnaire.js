@@ -204,7 +204,7 @@ export const useQuestionnaire = () => {
   }, [idToken, authLoading, startQuestionnaire, user]);
 
   const getNumberOfBasicQuestions = useCallback(async () => {
-    const response = await fetch(`${BACKEND_URL}/questionnaire/basic-questions-length`, {
+    const response = await fetch(`${BACKEND_URL}/questionnaire/basic-questions-count`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${idToken}`,

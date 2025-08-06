@@ -1,10 +1,6 @@
-from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy.ext.asyncio import AsyncSession
-from typing import List
+from fastapi import APIRouter, Depends, status
 
-import src.services.user_service as user_service
 from src.database.schemas import User
-from src.database.postgresql_db import get_db
 from src.database.models import User as UserModel
 from src.middleware.auth import get_current_user, get_or_create_current_user
 
