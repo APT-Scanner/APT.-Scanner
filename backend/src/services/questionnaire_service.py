@@ -342,7 +342,7 @@ class QuestionnaireService:
                 return q_data_node['on_answered']
         return None
 
-    def get_basic_questions_length(self) -> int:
+    def get_basic_questions_count(self) -> int:
         return len(self.basic_information_questions)
 
     def _get_unanswered_questions(self, state: Dict[str, Any], question_ids: List[str]) -> List[str]:
@@ -445,6 +445,7 @@ class QuestionnaireService:
                 existing_record.peaceful_level = preference_vector[7]
                 existing_record.shopping_level = preference_vector[8]
                 existing_record.safety_level = preference_vector[9]
+                existing_record.nightlife_level = preference_vector[10]  # Added nightlife level
                 existing_record.preference_vector = preference_vector.tolist()
                 existing_record.questionnaire_version = version
                 existing_record.updated_at = datetime.now(timezone.utc)
@@ -462,6 +463,7 @@ class QuestionnaireService:
                     peaceful_level=preference_vector[7],
                     shopping_level=preference_vector[8],
                     safety_level=preference_vector[9],
+                    nightlife_level=preference_vector[10],  # Added nightlife level
                     preference_vector=preference_vector.tolist(),
                     questionnaire_version=version,
                     updated_at=datetime.now(timezone.utc)
@@ -493,7 +495,8 @@ class QuestionnaireService:
             'parks_level',              # 6
             'peaceful_level',           # 7
             'shopping_level',           # 8
-            'safety_level'              # 9
+            'safety_level',             # 9
+            'nightlife_level'           # 10 - Added nightlife level
         ]
         
         # Importance scale mapping
@@ -580,16 +583,19 @@ class QuestionnaireService:
             importance = importance_scale.get(responses['family_activities_nearby'], 0.5)
             preferences['communality_level'] = max(preferences['communality_level'], importance)
         
-        # Nightlife -> cultural_level and peaceful_level (inverse)
+        # Nightlife -> nightlife_level and peaceful_level (inverse)
         if 'nightlife_proximity' in responses:
             response = responses['nightlife_proximity']
             if response == 'Yes, I want to be in the center of the action':
+                preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.9)
                 preferences['cultural_level'] = max(preferences['cultural_level'], 0.9)
                 preferences['peaceful_level'] = min(preferences['peaceful_level'], 0.3)
             elif response == 'Close but not too close':
+                preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.6)
                 preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
                 preferences['peaceful_level'] = 0.6
             elif response == 'As far as possible':
+                preferences['nightlife_level'] = min(preferences['nightlife_level'], 0.2)
                 preferences['cultural_level'] = min(preferences['cultural_level'], 0.2)
                 preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.9)
         
@@ -636,10 +642,13 @@ class QuestionnaireService:
         if 'Just me' in housing_purpose:
             preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
             preferences['shopping_level'] = max(preferences['shopping_level'], 0.6)
+            preferences['mobility_level'] = max(preferences['mobility_level'], 0.6)
+            preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.6)
             
         elif 'With a partner' in housing_purpose:
             preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
             preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.6)
+            preferences['shopping_level'] = max(preferences['shopping_level'], 0.6)
             
         elif 'With family (and children)' in housing_purpose:
             preferences['safety_level'] = max(preferences['safety_level'], 0.8)
@@ -647,11 +656,13 @@ class QuestionnaireService:
             preferences['parks_level'] = max(preferences['parks_level'], 0.7)
             preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.7)
             preferences['communality_level'] = max(preferences['communality_level'], 0.6)
+            preferences['nightlife_level'] = min(preferences['nightlife_level'], 0.3)  # Families typically avoid nightlife areas
             
         elif 'With roommates' in housing_purpose:
             preferences['cultural_level'] = max(preferences['cultural_level'], 0.7)
             preferences['shopping_level'] = max(preferences['shopping_level'], 0.6)
             preferences['mobility_level'] = max(preferences['mobility_level'], 0.7)
+            preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.7)
 
     async def get_completed_questionnaire(self, user_id: str) -> Optional[Dict[str, Any]]:
         if self.mongo_db is None:

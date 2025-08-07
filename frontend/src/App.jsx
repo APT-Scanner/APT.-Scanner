@@ -29,7 +29,7 @@ function App() {
               <Route path="/apartment-swipe" element={<ApartmentSwipePage />} />
               <Route path="/favorites" element={<FavoritesPage />} />
               <Route path="/filter" element={<FilterPage />} />
-              <Route path="/favorites/:token" element={<FavoritesApartmentDetails />} />
+              <Route path="/favorites/:listing_id" element={<FavoritesApartmentDetails />} />
               <Route path="/recommendations" element={<RecommendationsPage />} />
             </Routes>
           </div>

@@ -14,13 +14,12 @@ from enum import Enum as PyEnum
 from .postgresql_db import Base 
 
 
-
 # Define the association table for the Many-to-Many relationship
 # between listings and tags using SQLAlchemy Core Table object
 listing_tags_association = Table(
     "listing_tags",
     Base.metadata, 
-    Column("listing_order_id", BIGINT, ForeignKey("listings.order_id", ondelete="CASCADE"), primary_key=True),
+    Column("listing_id", BIGINT, ForeignKey("listings.listing_id", ondelete="CASCADE"), primary_key=True),
     Column("tag_id", Integer, ForeignKey("tags.tag_id", ondelete="CASCADE"), primary_key=True),
 )
 
@@ -31,9 +30,6 @@ class PropertyCondition(Base):
     condition_id: Mapped[int] = mapped_column(Integer, primary_key=True)
     condition_name_he: Mapped[Optional[str]] = mapped_column(String(100))
     condition_name_en: Mapped[Optional[str]] = mapped_column(String(100))
-
-    # Relationship back to listings (optional, if needed)
-    listings: Mapped[List["Listing"]] = relationship(back_populates="property_condition")
 
     def __repr__(self):
         return f"<PropertyCondition(id={self.condition_id}, name_en='{self.condition_name_en}')>"
@@ -54,78 +50,99 @@ class Tag(Base):
 
 # --- Main Tables Models ---
 class Neighborhood(Base):
+    """Core neighborhood information - basic identification and geographic data."""
     __tablename__ = "neighborhoods"
 
-    yad2_hood_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
     hebrew_name: Mapped[str] = mapped_column(String(150), unique=True, nullable=False)
     english_name: Mapped[Optional[str]] = mapped_column(String(150), unique=True)
-    avg_purchase_price: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(15, 2))
-    avg_rent_price: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(10, 2))
-    socioeconomic_index: Mapped[Optional[float]] = mapped_column(Float)
-    avg_school_rating: Mapped[Optional[float]] = mapped_column(Float)
-    general_overview: Mapped[Optional[str]] = mapped_column(TEXT)
-    bars_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    restaurants_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    clubs_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    shopping_malls_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    unique_entertainment_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    primary_schools_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    elementary_schools_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    secondary_schools_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    high_schools_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    universities_count: Mapped[Optional[int]] = mapped_column(Integer, default=0)
-    closest_beach_distance_km: Mapped[Optional[float]] = mapped_column(Float)
+    city: Mapped[Optional[str]] = mapped_column(String(100))
     latitude: Mapped[Optional[float]] = mapped_column(Float)
     longitude: Mapped[Optional[float]] = mapped_column(Float)
-    city: Mapped[Optional[str]] = mapped_column(String(100))
-    yad2_city_id: Mapped[Optional[int]] = mapped_column(Integer)
-    yad2_area_id: Mapped[Optional[int]] = mapped_column(Integer)
-    yad2_top_area_id: Mapped[Optional[int]] = mapped_column(Integer)
-    yad2_doc_count: Mapped[Optional[int]] = mapped_column(Integer)
-    
-    # Madlan metrics fields
-    madlan_name: Mapped[Optional[str]] = mapped_column(String(200))  # Alternative name used for Madlan scraping
-    madlan_metrics: Mapped[Optional[Dict[str, Any]]] = mapped_column(JSONB)  # All raw metrics from Madlan
-    madlan_overview: Mapped[Optional[str]] = mapped_column(TEXT)  # Madlan neighborhood overview text
-    madlan_avg_price_per_sqm: Mapped[Optional[float]] = mapped_column(Float)  # Average price per square meter
-    madlan_price_trend: Mapped[Optional[str]] = mapped_column(String(50))  # Price trend (up/down/stable)
-    madlan_demand_level: Mapped[Optional[str]] = mapped_column(String(50))  # Demand level description
-    madlan_supply_level: Mapped[Optional[str]] = mapped_column(String(50))  # Supply level description
-    madlan_last_scraped: Mapped[Optional[datetime]] = mapped_column(TIMESTAMP(timezone=True))  # When data was last fetched
     
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
-    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()) # Or rely only on DB trigger
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
 
-    # One-to-Many relationship to Listings
-    listings: Mapped[List["Listing"]] = relationship(back_populates="neighborhood")
+    # One-to-One relationships to related data tables
+    metrics: Mapped[Optional["NeighborhoodMetrics"]] = relationship(back_populates="neighborhood", uselist=False)
+    meta_data: Mapped[Optional["NeighborhoodMetadata"]] = relationship(back_populates="neighborhood", uselist=False)
 
     def __repr__(self):
-        return f"<Neighborhood(id={self.yad2_hood_id}, name='{self.hebrew_name}')>"
+        return f"<Neighborhood(id={self.id}, name='{self.hebrew_name}')>"
+
+
+class NeighborhoodMetrics(Base):
+    """Metrics data for neighborhoods."""
+    __tablename__ = "neighborhood_metrics"
+
+    neighborhood_id: Mapped[int] = mapped_column(Integer, ForeignKey("neighborhoods.id", ondelete="CASCADE"), primary_key=True)
+    avg_sale_price: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(15, 2))
+    avg_rental_price: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(10, 2))
+    social_economic_index: Mapped[Optional[float]] = mapped_column(Float)
+    popular_political_party: Mapped[Optional[str]] = mapped_column(String(100))
+    school_rating: Mapped[Optional[float]] = mapped_column(Float)
+    beach_distance_km: Mapped[Optional[float]] = mapped_column(Float)
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # One-to-One relationship back to Neighborhood
+    neighborhood: Mapped["Neighborhood"] = relationship(back_populates="metrics")
+
+    def __repr__(self):
+        return f"<NeighborhoodMetrics(id={self.neighborhood_id})>"
+
+
+class NeighborhoodMetadata(Base):
+    """Metadata and external system data for neighborhoods."""
+    __tablename__ = "neighborhood_metadata"
+
+    neighborhood_id: Mapped[int] = mapped_column(Integer, ForeignKey("neighborhoods.id", ondelete="CASCADE"), primary_key=True)
+    overview: Mapped[Optional[str]] = mapped_column(TEXT)
+    external_city_id: Mapped[Optional[int]] = mapped_column(Integer)
+    external_area_id: Mapped[Optional[int]] = mapped_column(Integer)
+    external_top_area_id: Mapped[Optional[int]] = mapped_column(Integer)
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # One-to-One relationship back to Neighborhood
+    neighborhood: Mapped["Neighborhood"] = relationship(back_populates="meta_data")
+
+    def __repr__(self):
+        return f"<NeighborhoodMetadata(id={self.neighborhood_id})>"
+    
+class ListingMetadata(Base):
+    __tablename__ = "listing_metadata"
+    listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.listing_id", ondelete="CASCADE"), primary_key=True)
+    neighborhood_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("neighborhoods.id", ondelete="CASCADE"))
+    category_id: Mapped[Optional[int]] = mapped_column(Integer)
+    subcategory_id: Mapped[Optional[int]] = mapped_column(Integer)
+    ad_type: Mapped[Optional[str]] = mapped_column(String(20))
+    property_condition_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("property_conditions.condition_id", ondelete="CASCADE"))
+    cover_image_url: Mapped[Optional[str]] = mapped_column(TEXT)
+    video_url: Mapped[Optional[str]] = mapped_column(TEXT)
+    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
+    
+    created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
+    updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    # Relationships
+    property_condition: Mapped[Optional["PropertyCondition"]] = relationship("PropertyCondition")
+    neighborhood: Mapped[Optional["Neighborhood"]] = relationship("Neighborhood")
 
 
 class Listing(Base):
     __tablename__ = "listings"
 
-    order_id: Mapped[int] = mapped_column(BIGINT, primary_key=True)
-    token: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
-
-    # Foreign keys
-    neighborhood_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("neighborhoods.yad2_hood_id", ondelete="SET NULL"))
-    property_condition_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("property_conditions.condition_id", ondelete="SET NULL"))
+    listing_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    yad2_url_token: Mapped[str] = mapped_column(String(10), unique=True, nullable=False)
 
     # Other fields
-    subcategory_id: Mapped[Optional[int]] = mapped_column(Integer)
-    category_id: Mapped[Optional[int]] = mapped_column(Integer)
-    ad_type: Mapped[Optional[str]] = mapped_column(String(20))
     price: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(10, 2))
     property_type: Mapped[Optional[str]] = mapped_column(String(50))
     rooms_count: Mapped[Optional[Decimal]] = mapped_column(DECIMAL(3, 1))
     square_meter: Mapped[Optional[int]] = mapped_column(Integer)
-    cover_image_url: Mapped[Optional[str]] = mapped_column(TEXT)
-    video_url: Mapped[Optional[str]] = mapped_column(TEXT)
-    city: Mapped[Optional[str]] = mapped_column(String(100))
-    area: Mapped[Optional[str]] = mapped_column(String(100))
-    neighborhood_text: Mapped[Optional[str]] = mapped_column(String(150)) # Raw text from source
     street: Mapped[Optional[str]] = mapped_column(String(150))
     house_number: Mapped[Optional[str]] = mapped_column(String(20)) # Varchar for '10א' etc.
     floor: Mapped[Optional[int]] = mapped_column(Integer)
@@ -133,11 +150,6 @@ class Listing(Base):
     latitude: Mapped[Optional[float]] = mapped_column(Float)
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()) 
-    is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-
-    # Many-to-One relationships
-    neighborhood: Mapped[Optional["Neighborhood"]] = relationship(back_populates="listings")
-    property_condition: Mapped[Optional["PropertyCondition"]] = relationship(back_populates="listings")
 
     # One-to-Many relationship to Images
     images: Mapped[List["Image"]] = relationship(back_populates="listing", cascade="all, delete-orphan")
@@ -147,6 +159,13 @@ class Listing(Base):
         secondary=listing_tags_association, back_populates="listings"
     )
 
+    # One-to-One relationship to ListingMetadata
+    listing_metadata: Mapped[Optional["ListingMetadata"]] = relationship(
+        "ListingMetadata", 
+        foreign_keys="ListingMetadata.listing_id",
+        uselist=False
+    )
+
     favorited_by = relationship("Favorite", back_populates="listing")
 
     # Add ViewHistory model to track when users viewed apartments
@@ -154,22 +173,41 @@ class Listing(Base):
         "ViewHistory", back_populates="listing"
     )
 
+    @property
+    def cover_image_url(self) -> Optional[str]:
+        """Get cover image URL from metadata."""
+        return self.listing_metadata.cover_image_url if self.listing_metadata else None
+
+    @property 
+    def is_active(self) -> bool:
+        """Get active status from metadata."""
+        return self.listing_metadata.is_active if self.listing_metadata else True
+
+    @property
+    def property_condition(self) -> Optional["PropertyCondition"]:
+        """Get property condition from metadata."""
+        return self.listing_metadata.property_condition if self.listing_metadata else None
+
+    @property
+    def neighborhood(self) -> Optional["Neighborhood"]:
+        """Get neighborhood from metadata."""
+        return self.listing_metadata.neighborhood if self.listing_metadata else None
+
     def __repr__(self):
-        return f"<Listing(order_id={self.order_id}, token='{self.token}')>"
-
-
+        return f"<Listing(id={self.listing_id}, yad2_url_token='{self.yad2_url_token}')>"
+    
 class Image(Base):
     __tablename__ = "images"
 
     image_id: Mapped[int] = mapped_column(Integer, primary_key=True) # Serial handled by DB
-    listing_order_id: Mapped[int] = mapped_column(BIGINT, ForeignKey("listings.order_id", ondelete="CASCADE"), nullable=False)
+    listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.listing_id", ondelete="CASCADE"), nullable=False)
     image_url: Mapped[str] = mapped_column(TEXT, nullable=False)
 
     # Many-to-One relationship back to Listing
     listing: Mapped["Listing"] = relationship(back_populates="images")
 
     def __repr__(self):
-        return f"<Image(id={self.image_id}, listing_id={self.listing_order_id})>"
+        return f"<Image(id={self.image_id}, listing_id={self.listing_id})>"
 
 # --- Enums ---
 class PaceOfLife(str, PyEnum):
@@ -235,13 +273,12 @@ class UserPreferences(Base):
     owner: Mapped["User"] = relationship(back_populates="preferences")
 
 
-
 class Favorite(Base):
     __tablename__ = "favorites"
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), nullable=False, index=True)
-    listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.order_id"), nullable=False)
+    listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.listing_id"), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime, default=datetime.now)
     
     listing: Mapped["Listing"] = relationship("Listing", back_populates="favorited_by")
@@ -253,7 +290,7 @@ class ViewHistory(Base):
     
     id: Mapped[int] = mapped_column(Integer, primary_key=True, index=True)
     user_id: Mapped[str] = mapped_column(String, ForeignKey("users.firebase_uid"), nullable=False, index=True)
-    listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.order_id"), nullable=False, index=True)
+    listing_id: Mapped[int] = mapped_column(Integer, ForeignKey("listings.listing_id"), nullable=False, index=True)
     viewed_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
     
     # Relationships
@@ -293,13 +330,13 @@ class UserFilters(Base):
     
     def __repr__(self):
         return f"<UserFilters(user_id={self.user_id}, type={self.type})>"
+
 # Neighborhood Features Model for Recommendations
 class NeighborhoodFeatures(Base):
     """Model for neighborhood feature vectors."""
     __tablename__ = "neighborhood_features"
     
-    yad2_hood_id: Mapped[int] = mapped_column(primary_key=True)
-    hebrew_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    neighborhood_id: Mapped[int] = mapped_column(Integer, ForeignKey("neighborhoods.id", ondelete="CASCADE"), primary_key=True)
     
     # Individual feature scores (0-1 scale)
     cultural_level: Mapped[Optional[float]] = mapped_column(Float)
@@ -312,6 +349,7 @@ class NeighborhoodFeatures(Base):
     peaceful_level: Mapped[Optional[float]] = mapped_column(Float)
     shopping_level: Mapped[Optional[float]] = mapped_column(Float)
     safety_level: Mapped[Optional[float]] = mapped_column(Float)
+    nightlife_level: Mapped[Optional[float]] = mapped_column(Float)
     
     # Combined feature vector for ML calculations
     feature_vector: Mapped[Optional[List[float]]] = mapped_column(ARRAY(Float))
@@ -338,6 +376,7 @@ class UserPreferenceVector(Base):
     peaceful_level: Mapped[float] = mapped_column(Float, nullable=False)
     shopping_level: Mapped[float] = mapped_column(Float, nullable=False)
     safety_level: Mapped[float] = mapped_column(Float, nullable=False)
+    nightlife_level: Mapped[float] = mapped_column(Float, nullable=False)
     
     # Combined preference vector for ML calculations  
     preference_vector: Mapped[List[float]] = mapped_column(ARRAY(Float), nullable=False)

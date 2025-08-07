@@ -43,8 +43,8 @@ const FavoritesPage = () => {
     console.log("Listings details:", listings);
 
     const handleCardClick = (listing) => {
-        if (listing && listing.token && !isEditing) {
-            navigate(`/favorites/${listing.order_id}`);
+        if (listing && listing.yad2_url_token && !isEditing) {
+            navigate(`/favorites/${listing.listing_id}`);
         }
     };
 

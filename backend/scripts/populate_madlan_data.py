@@ -4,7 +4,7 @@ Script to populate neighborhoods table with Madlan metrics data.
 This script will:
 1. Load neighborhood data from the JSON mapping file
 2. Use MadlanScraper to get metrics for each neighborhood
-3. Update the database with the scraped metrics
+3. Update the database with the scraped metrics in separate columns
 """
 
 import os
@@ -12,13 +12,14 @@ import sys
 import json
 from datetime import datetime, UTC
 from typing import Dict, Any, Optional
+import re
 
 # Add the parent directory to sys.path to import modules
 sys.path.append(os.path.join(os.path.dirname(__file__), '..'))
 
 from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker, Session
-from src.database.models import Neighborhood
+from src.database.models import Neighborhood, NeighborhoodMetrics
 from data.scrapers.madlan_scraper import MadlanScraper
 from dotenv import load_dotenv
 
@@ -47,34 +48,50 @@ def parse_madlan_metrics(metrics: Dict[str, Any]) -> Dict[str, Any]:
     """Parse and extract specific metrics from the raw Madlan data."""
     parsed = {
         "overview": metrics.get("סקירה כללית"),
-        "avg_price_per_sqm": None,
-        "price_trend": None,
-        "demand_level": None,
-        "supply_level": None
+        "social_economic_index": None,
+        "avg_sale_price": None,
+        "avg_rental_price": None,
+        "popular_political_party": None,
+        "school_rating": None,
     }
     
     # Try to extract numeric values from price-related metrics
     for key, value in metrics.items():
-        if "מחיר" in key and "מ״ר" in key:  # Price per sqm
-            # Extract numbers from Hebrew text
-            import re
+        if "מדד חברתי כלכלי" in key: # ?/10
             numbers = re.findall(r'[\d,]+', str(value))
             if numbers:
                 try:
                     # Remove commas and convert to float
-                    parsed["avg_price_per_sqm"] = float(numbers[0].replace(',', ''))
+                    parsed["social_economic_index"] = float(numbers[0].replace(',', ''))
+                except (ValueError, IndexError):
+                    pass
+        elif "מחיר ממוצע לקניה" in key: # ₪100000 for example
+            numbers = re.findall(r'[\d,]+', str(value))
+            if numbers:
+                try:
+                    parsed["avg_sale_price"] = float(numbers[0].replace(',', ''))
+                except (ValueError, IndexError):
+                    pass
+        elif "מחיר ממוצע לשכירות" in key: # ₪100000 for example
+            numbers = re.findall(r'[\d,]+', str(value))
+            if numbers:
+                try:
+                    parsed["avg_rental_price"] = float(numbers[0].replace(',', ''))
+                except (ValueError, IndexError):
+                    pass
+        elif "המפלגה הפופולרית" in key: # Likud, Labor, etc.
+            try:
+                parsed["popular_political_party"] = str(value)
+            except (ValueError, IndexError):
+                pass
+        elif "דירוג בתי הספר בשכונה" in key: # ?/10
+            numbers = re.findall(r'[\d,]+', str(value))
+            if numbers:
+                try:
+                    parsed["school_rating"] = float(numbers[0].replace(',', ''))
                 except (ValueError, IndexError):
                     pass
         
-        if "מגמת מחירים" in key or "מגמה" in key:  # Price trend
-            parsed["price_trend"] = str(value)[:50]  # Limit to 50 chars
-            
-        if "ביקוש" in key:  # Demand
-            parsed["demand_level"] = str(value)[:50]
-            
-        if "היצע" in key:  # Supply
-            parsed["supply_level"] = str(value)[:50]
-    
     return parsed
 
 
@@ -85,10 +102,11 @@ def update_neighborhood_madlan_data(
     scraped_data: Dict[str, Any],
     scraped_with_madlan_name: bool
 ) -> bool:
-    """Update a neighborhood record with Madlan data."""
+    """Update a neighborhood record with Madlan data in separate columns."""
     try:
+        # Find the neighborhood by its new ID field
         neighborhood = db.query(Neighborhood).filter(
-            Neighborhood.yad2_hood_id == neighborhood_id
+            Neighborhood.id == neighborhood_id
         ).first()
         
         if not neighborhood:
@@ -98,15 +116,22 @@ def update_neighborhood_madlan_data(
         # Parse the metrics
         parsed_metrics = parse_madlan_metrics(scraped_data)
         
-        # Update the neighborhood record
-        neighborhood.madlan_name = madlan_name
-        neighborhood.madlan_metrics = scraped_data
-        neighborhood.madlan_overview = parsed_metrics["overview"]
-        neighborhood.madlan_avg_price_per_sqm = parsed_metrics["avg_price_per_sqm"]
-        neighborhood.madlan_price_trend = parsed_metrics["price_trend"]
-        neighborhood.madlan_demand_level = parsed_metrics["demand_level"]
-        neighborhood.madlan_supply_level = parsed_metrics["supply_level"]
-        neighborhood.madlan_last_scraped = datetime.now(UTC)
+        # Get or create the neighborhood metrics record
+        neighborhood_metrics = db.query(NeighborhoodMetrics).filter(
+            NeighborhoodMetrics.neighborhood_id == neighborhood_id
+        ).first()
+        
+        if not neighborhood_metrics:
+            neighborhood_metrics = NeighborhoodMetrics(neighborhood_id=neighborhood_id)
+            db.add(neighborhood_metrics)
+        
+        # Update the neighborhood metrics record with Madlan data
+        neighborhood_metrics.overview = parsed_metrics["overview"]
+        neighborhood_metrics.social_economic_index = parsed_metrics["social_economic_index"]
+        neighborhood_metrics.avg_sale_price = parsed_metrics["avg_sale_price"]
+        neighborhood_metrics.avg_rental_price = parsed_metrics["avg_rental_price"]
+        neighborhood_metrics.popular_political_party = parsed_metrics["popular_political_party"]
+        neighborhood_metrics.school_rating = parsed_metrics["school_rating"]
         
         db.commit()
         

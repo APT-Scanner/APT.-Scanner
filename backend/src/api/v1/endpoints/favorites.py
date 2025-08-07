@@ -6,7 +6,7 @@ from sqlalchemy import and_
 from typing import List
 import logging
 from src.database.postgresql_db import get_db
-from src.database.models import Favorite, Listing
+from src.database.models import Favorite, Listing, ListingMetadata
 from src.database.schemas import FavoriteSchema
 from src.middleware.auth import verify_firebase_user
 from data.scrapers.yad2_scraper import is_listing_still_alive
@@ -34,7 +34,7 @@ async def add_favorites(
     
     stmt = select(Favorite).where(and_(
         Favorite.user_id == user_id,
-        Favorite.listing_id == listing.order_id
+        Favorite.listing_id == listing.listing_id
     ))
     result = await db.execute(stmt)
     existing = result.scalar_one_or_none()
@@ -44,7 +44,7 @@ async def add_favorites(
     
     new_favorite = Favorite(
         user_id=user_id,
-        listing_id=listing.order_id
+        listing_id=listing.listing_id
     )
 
     db.add(new_favorite)
@@ -72,7 +72,9 @@ async def get_favorites(
         .where(Favorite.user_id == user_id)
         .options(
             selectinload(Favorite.listing)
-            .selectinload(Listing.neighborhood)
+            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.neighborhood),
+            selectinload(Favorite.listing)
+            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.property_condition)
         )
     )
     
@@ -97,12 +99,17 @@ async def sync_favorites_status(
     """
     user_id = current_user["user_id"]
     
+    # Join with ListingMetadata to get is_active status
     stmt = (
         select(Favorite)
+        .join(Listing, Favorite.listing_id == Listing.listing_id)
+        .join(ListingMetadata, Listing.listing_id == ListingMetadata.listing_id, isouter=True)
         .where(Favorite.user_id == user_id)
         .options(
             selectinload(Favorite.listing)
-            .selectinload(Listing.neighborhood)
+            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.neighborhood),
+            selectinload(Favorite.listing)
+            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.property_condition)
         )
     )
     
@@ -111,11 +118,19 @@ async def sync_favorites_status(
     
     updated = False
     for favorite in favorites:
-        # We only check listings that are currently marked as active
-        if favorite.listing and favorite.listing.is_active:
-            if not is_listing_still_alive(favorite.listing.token):
-                favorite.listing.is_active = False
-                updated = True
+        if favorite.listing:
+            # Get the listing metadata to check is_active status
+            metadata_stmt = select(ListingMetadata).where(
+                ListingMetadata.listing_id == favorite.listing.listing_id
+            )
+            metadata_result = await db.execute(metadata_stmt)
+            metadata = metadata_result.scalar_one_or_none()
+            
+            # We only check listings that are currently marked as active
+            if metadata and metadata.is_active:
+                if not is_listing_still_alive(favorite.listing.yad2_url_token):
+                    metadata.is_active = False
+                    updated = True
     
     if updated:
         await db.commit()

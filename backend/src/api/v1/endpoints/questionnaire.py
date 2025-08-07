@@ -152,7 +152,7 @@ async def get_questionnaire_status(
 @router.get("/basic-questions-count",
             summary="Get the number of basic questions",
             response_model=int)
-async def get_basic_questions_count(
+async def basic_questions_count(
     questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
 ):
     """Get the number of basic questions."""

@@ -11,9 +11,9 @@ import { LoadingSpinner } from '../components/LoadingSpinner';
 
 
 const FavoritesApartmentDetails = () => {
-    const { token } = useParams();
+    const { listing_id } = useParams();
     const navigate = useNavigate();
-    const { apartment, loading, error } = useApartment(token);
+    const { apartment, loading, error } = useApartment(listing_id);
 
     console.log("Apartment details:", apartment);
 
@@ -26,7 +26,7 @@ const FavoritesApartmentDetails = () => {
     }
 
     if (!apartment) {
-        return <div className={styles.errorContainer}>No apartment found with this token</div>;
+        return <div className={styles.errorContainer}>No apartment found with this ID</div>;
     }
 
     const handleBackButtonClick = () => {
@@ -45,7 +45,7 @@ const FavoritesApartmentDetails = () => {
                 <AnimatePresence mode="popLayout">
                     {apartment && (
                         <AnimatedApartmentCard
-                            key={apartment.order_id}
+                            key={apartment.listing_id}
                             apartment={apartment}
                             disableSwipe={true}
                         />

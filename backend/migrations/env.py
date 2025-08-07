@@ -9,9 +9,9 @@ from alembic import context
 import sys
 import os
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
-from src.database.postgresql_db import Base  
 
-from src.database.models import *  
+from src.database.postgresql_db import Base
+from src.database.models import *
 
 load_dotenv()
 
@@ -36,7 +36,7 @@ def run_migrations_offline() -> None:
     script output.
 
     """
-    url = os.getenv("DATABASE_URL")
+    url = config.get_main_option("sqlalchemy.url")
     context.configure(
         url=url,
         target_metadata=target_metadata,
@@ -49,17 +49,24 @@ def run_migrations_offline() -> None:
 
 
 def run_migrations_online() -> None:
-    """Run migrations in 'online' mode."""
-    # Override sqlalchemy.url in alembic.ini
-    config_section = config.get_section(config.config_ini_section)
-    config_section["sqlalchemy.url"] = os.getenv("DATABASE_URL")
+    """Run migrations in 'online' mode.
+
+    In this scenario we need to create an Engine
+    and associate a connection with the context.
+
+    """
+    # Get the database URL from env 
+    database_url = os.getenv("DATABASE_URL")
+    if database_url and database_url.startswith("postgresql+asyncpg://"):
+        # Convert to sync for migrations
+        database_url = database_url.replace("postgresql+asyncpg://", "postgresql://")
     
-    # Add SSL settings for Supabase
+    config.set_main_option("sqlalchemy.url", database_url)
+    
     connectable = engine_from_config(
-        config_section,
+        config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
-        connect_args={"sslmode": "require"}
     )
 
     with connectable.connect() as connection:
@@ -69,6 +76,7 @@ def run_migrations_online() -> None:
 
         with context.begin_transaction():
             context.run_migrations()
+
 
 if context.is_offline_mode():
     run_migrations_offline()

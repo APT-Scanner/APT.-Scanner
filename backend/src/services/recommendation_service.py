@@ -1,27 +1,28 @@
 """
 Neighborhood Recommendation Service
-Provides neighborhood recommendations based on user questionnaire responses.
+Provides neighborhood recommendations based on user questionnaire responses and price preferences.
 """
 
 import numpy as np
 from typing import Dict, List, Optional
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, and_
+from sqlalchemy import select, and_, func
+from sqlalchemy.orm import selectinload
 import logging
 
-from src.database.models import Listing, Neighborhood
+from src.database.models import Listing, Neighborhood, NeighborhoodMetrics, NeighborhoodMetadata, ListingMetadata, UserFilters
 from src.services.questionnaire_service import QuestionnaireService
 from src.database.models import NeighborhoodFeatures, UserPreferenceVector
 
 logger = logging.getLogger(__name__)
 
 class NeighborhoodRecommendationService:
-    """Service for generating neighborhood recommendations based on user preferences."""
+    """Service for generating neighborhood recommendations based on user preferences and budget."""
     
     def __init__(self):
         self.questionnaire_service = QuestionnaireService()
         
-        # Feature names in order (matching create_neighborhood_features.py)
+        # Feature names in order (matching the NeighborhoodFeatures model)
         self.feature_names = [
             'cultural_level',           # 0
             'religiosity_level',        # 1  
@@ -32,7 +33,8 @@ class NeighborhoodRecommendationService:
             'parks_level',              # 6
             'peaceful_level',           # 7
             'shopping_level',           # 8
-            'safety_level'              # 9
+            'safety_level',             # 9
+            'nightlife_level'           # 10 - Added from the updated model
         ]
         
         # Importance scale mapping
@@ -63,7 +65,7 @@ class NeighborhoodRecommendationService:
         top_k: int = 3
     ) -> List[Dict]:
         """
-        Get top neighborhood recommendations for a user based on their questionnaire responses.
+        Get top neighborhood recommendations for a user based on their questionnaire responses and budget.
         
         Args:
             db: Database session
@@ -74,7 +76,10 @@ class NeighborhoodRecommendationService:
             List of recommended neighborhoods with scores and sample listings
         """
         try:
-            # First, try to get cached preference vector from PostgreSQL
+            # Get user's price preferences
+            user_price_filters = await self._get_user_price_filters(db, user_id)
+            
+            # Get preference vector (cached or calculated)
             preference_vector = await self._get_cached_preference_vector(db, user_id)
             
             if preference_vector is None:
@@ -91,16 +96,20 @@ class NeighborhoodRecommendationService:
                 logger.info(f"Using cached preference vector for user {user_id}: {preference_vector}")
             
             # Get neighborhood features from database
-            neighborhood_features = await self._get_neighborhood_features(db)
+            neighborhood_features = await self._get_neighborhood_features_with_prices(db)
             if not neighborhood_features:
                 logger.error("No neighborhood features found in database")
                 return []
             
-            # Score neighborhoods
-            scored_neighborhoods = self._score_neighborhoods(neighborhood_features, preference_vector)
+            # Score neighborhoods with enhanced algorithm
+            scored_neighborhoods = self._score_neighborhoods_with_price(
+                neighborhood_features, 
+                preference_vector, 
+                user_price_filters
+            )
             
             # Get top recommendations
-            top_neighborhoods = sorted(scored_neighborhoods, key=lambda x: x['score'], reverse=True)[:top_k]
+            top_neighborhoods = sorted(scored_neighborhoods, key=lambda x: x['total_score'], reverse=True)[:top_k]
             
             # Enrich with listings and additional info
             recommendations = await self._enrich_recommendations(db, top_neighborhoods)
@@ -111,6 +120,32 @@ class NeighborhoodRecommendationService:
         except Exception as e:
             logger.error(f"Error generating recommendations for user {user_id}: {e}", exc_info=True)
             return []
+
+    async def _get_user_price_filters(self, db: AsyncSession, user_id: str) -> Optional[Dict]:
+        """Get user's price preferences from UserFilters."""
+        try:
+            result = await db.execute(
+                select(UserFilters).where(UserFilters.user_id == user_id)
+            )
+            filters = result.scalar_one_or_none()
+            
+            if filters:
+                return {
+                    'price_min': filters.price_min,
+                    'price_max': filters.price_max,
+                    'type': filters.type or 'rent'
+                }
+            
+            # Default price range if no filters set
+            return {
+                'price_min': 4000,
+                'price_max': 7000,
+                'type': 'rent'
+            }
+            
+        except Exception as e:
+            logger.error(f"Error fetching user price filters for {user_id}: {e}")
+            return {'price_min': 2000, 'price_max': 8000, 'type': 'rent'}
     
     def _create_preference_vector(self, responses: Dict[str, any]) -> np.ndarray:
         """Convert questionnaire responses to preference vector."""
@@ -177,16 +212,19 @@ class NeighborhoodRecommendationService:
             importance = self.importance_scale.get(responses['family_activities_nearby'], 0.5)
             preferences['communality_level'] = max(preferences['communality_level'], importance)
         
-        # Nightlife -> cultural_level and peaceful_level (inverse)
+        # Nightlife -> nightlife_level and peaceful_level (inverse)
         if 'nightlife_proximity' in responses:
             response = responses['nightlife_proximity']
             if response == 'Yes, I want to be in the center of the action':
+                preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.9)
                 preferences['cultural_level'] = max(preferences['cultural_level'], 0.9)
                 preferences['peaceful_level'] = min(preferences['peaceful_level'], 0.3)
             elif response == 'Close but not too close':
+                preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.6)
                 preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
                 preferences['peaceful_level'] = 0.6
             elif response == 'As far as possible':
+                preferences['nightlife_level'] = min(preferences['nightlife_level'], 0.2)
                 preferences['cultural_level'] = min(preferences['cultural_level'], 0.2)
                 preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.9)
         
@@ -234,6 +272,7 @@ class NeighborhoodRecommendationService:
             preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
             preferences['shopping_level'] = max(preferences['shopping_level'], 0.6)
             preferences['mobility_level'] = max(preferences['mobility_level'], 0.6)
+            preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.6)
             
         elif 'With a partner' in housing_purpose:
             preferences['cultural_level'] = max(preferences['cultural_level'], 0.6)
@@ -246,25 +285,37 @@ class NeighborhoodRecommendationService:
             preferences['parks_level'] = max(preferences['parks_level'], 0.7)
             preferences['peaceful_level'] = max(preferences['peaceful_level'], 0.7)
             preferences['communality_level'] = max(preferences['communality_level'], 0.6)
+            preferences['nightlife_level'] = min(preferences['nightlife_level'], 0.3)  # Families typically avoid nightlife areas
             
         elif 'With roommates' in housing_purpose:
             preferences['cultural_level'] = max(preferences['cultural_level'], 0.7)
             preferences['shopping_level'] = max(preferences['shopping_level'], 0.6)
             preferences['mobility_level'] = max(preferences['mobility_level'], 0.7)
+            preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.7)
     
-    async def _get_neighborhood_features(self, db: AsyncSession) -> List[Dict]:
-        """Get neighborhood features from database."""
+    async def _get_neighborhood_features_with_prices(self, db: AsyncSession) -> List[Dict]:
+        """Get neighborhood features with average rental prices from database."""
         try:
-            result = await db.execute(select(NeighborhoodFeatures))
-            features = result.scalars().all()
+            # Join NeighborhoodFeatures with Neighborhood and NeighborhoodMetrics to get prices
+            result = await db.execute(
+                select(
+                    NeighborhoodFeatures,
+                    Neighborhood.hebrew_name,
+                    NeighborhoodMetrics.avg_rental_price
+                )
+                .join(Neighborhood, NeighborhoodFeatures.neighborhood_id == Neighborhood.id)
+                .join(NeighborhoodMetrics, Neighborhood.id == NeighborhoodMetrics.neighborhood_id, isouter=True)
+            )
+            features_with_data = result.fetchall()
             
             neighborhood_data = []
-            for feature in features:
+            for feature, hebrew_name, avg_rental_price in features_with_data:
                 if feature.feature_vector:
                     neighborhood_data.append({
-                        'yad2_hood_id': feature.yad2_hood_id,
-                        'hebrew_name': feature.hebrew_name,
+                        'neighborhood_id': feature.neighborhood_id,
+                        'hebrew_name': hebrew_name,
                         'feature_vector': np.array(feature.feature_vector),
+                        'avg_rental_price': float(avg_rental_price) if avg_rental_price else None,
                         'individual_scores': {
                             'cultural_level': feature.cultural_level,
                             'religiosity_level': feature.religiosity_level,
@@ -275,37 +326,193 @@ class NeighborhoodRecommendationService:
                             'parks_level': feature.parks_level,
                             'peaceful_level': feature.peaceful_level,
                             'shopping_level': feature.shopping_level,
-                            'safety_level': feature.safety_level
+                            'safety_level': feature.safety_level,
+                            'nightlife_level': feature.nightlife_level  # Added nightlife level
                         }
                     })
             
             return neighborhood_data
             
         except Exception as e:
-            logger.error(f"Error fetching neighborhood features: {e}", exc_info=True)
+            logger.error(f"Error fetching neighborhood features with prices: {e}", exc_info=True)
             return []
-    
-    def _score_neighborhoods(self, neighborhoods: List[Dict], user_preferences: np.ndarray) -> List[Dict]:
-        """Score neighborhoods based on user preferences."""
+        
+    def _calculate_price_affordability_score(
+        self,
+        avg_rental_price: Optional[float],
+        user_price_range: Dict[str, float]
+    ) -> float:
+        if not avg_rental_price:
+            return 0.3  # neutral when no price data
+
+        user_min = user_price_range["price_min"]
+        user_max = user_price_range["price_max"]
+        user_mid = (user_min + user_max) / 2
+        user_range = user_max - user_min or 1
+
+        # Perfect zone
+        if user_min <= avg_rental_price <= user_max:
+            distance_from_mid = abs(avg_rental_price - user_mid)
+            normalized_distance = distance_from_mid / (user_range / 2)
+            return max(0.75, 1.0 - normalized_distance * 0.25)
+
+        buffer = 0.2  # 20% buffer zone, still penalized harder now
+
+        if avg_rental_price < user_min:
+            limit = user_min * (1 - buffer)
+            if avg_rental_price >= limit:
+                # now penalize more even in buffer zone
+                underrun = (user_min - avg_rental_price) / user_min
+                return max(0.4, 0.6 - underrun * 1.2)
+            underrun = (limit - avg_rental_price) / user_min
+            return max(0.05, 0.4 - underrun * 1.5)
+
+        else:
+            limit = user_max * (1 + buffer)
+            if avg_rental_price <= limit:
+                overrun = (avg_rental_price - user_max) / user_max
+                return max(0.4, 0.6 - overrun * 1.2)
+            overrun = (avg_rental_price - limit) / user_max
+            return max(0.05, 0.4 - overrun * 1.5)
+
+
+        
+    def _score_neighborhoods_with_price(
+        self, 
+        neighborhoods: List[Dict], 
+        user_preferences: np.ndarray, 
+        user_price_range: Optional[Dict]
+    ) -> List[Dict]:
+        """Enhanced scoring that combines feature matching with price affordability."""
         scored_neighborhoods = []
         
-        # Normalize user preferences to sum to 1
-        normalized_preferences = user_preferences / np.sum(user_preferences)
+        # Ensure user preferences are valid
+        if np.sum(user_preferences) == 0 or np.any(np.isnan(user_preferences)):
+            # Use default balanced preferences if user preferences are invalid
+            user_preferences = np.full(len(self.feature_names), 0.5)
+            logger.warning("Invalid user preferences detected, using default balanced preferences")
+        
+        # Keep original preferences for realistic weighting (don't normalize to sum=1)
+        # Just ensure they're in 0-1 range
+        user_preferences = np.clip(user_preferences, 0, 1)
+        
+        # Weight for balancing feature score vs price score
+        feature_weight = 0.7  # 70% feature matching
+        price_weight = 0.3    # 30% price affordability
         
         for neighborhood in neighborhoods:
-            # Calculate weighted score using dot product
-            score = np.dot(neighborhood['feature_vector'], normalized_preferences)
+            # Ensure feature vector is valid
+            feature_vector = neighborhood.get('feature_vector', [])
+            if len(feature_vector) == 0 or len(feature_vector) != len(user_preferences):
+                # Create default feature vector if missing
+                feature_vector = [0.5] * len(user_preferences)
+                logger.warning(f"Invalid feature vector for neighborhood {neighborhood.get('neighborhood_id')}, using default")
+            
+            # Convert to numpy array and ensure no NaN values
+            feature_vector = np.array(feature_vector)
+            if np.any(np.isnan(feature_vector)):
+                feature_vector = np.nan_to_num(feature_vector, nan=0.5)
+            
+            # Calculate realistic feature matching score
+            # Use weighted average of how well each feature matches user preference
+            feature_matches = []
+            total_weight = 0
+            
+            for i, (neighborhood_val, user_pref) in enumerate(zip(feature_vector, user_preferences)):
+                # Calculate match quality: 1.0 - |difference| gives us similarity
+                match_quality = 1.0 - abs(neighborhood_val - user_pref)
+                # Weight by user preference strength (higher pref = more important match)
+                weight = user_pref if user_pref > 0.1 else 0.1  # Minimum weight to avoid zero
+                feature_matches.append(match_quality * weight)
+                total_weight += weight
+            
+            # Calculate weighted average match score
+            if total_weight > 0:
+                feature_score = sum(feature_matches) / total_weight
+            else:
+                feature_score = 0.5
+            
+            # Scale to make scores more meaningful (typically will be 0.7-1.0 range naturally)
+            # Add slight boost to make good matches feel rewarding
+            feature_score = feature_score * 1.1  # Boost by 10%
+            feature_score = min(1.0, feature_score)  # Cap at 100%
+            
+            # Ensure feature score is valid
+            if np.isnan(feature_score) or np.isinf(feature_score):
+                feature_score = 0.5  # Default to 50% - neutral match
+                logger.warning(f"Invalid feature score for neighborhood {neighborhood.get('neighborhood_id')}, using default")
+            
+            # Calculate price affordability score
+            price_score = 1.0  # Default if no price range provided
+            if user_price_range:
+                price_score = self._calculate_price_affordability_score(
+                    neighborhood['avg_rental_price'], 
+                    user_price_range
+                )
+            
+            # Combined total score
+            total_score = (feature_score * feature_weight) + (price_score * price_weight)
+            
+            # Ensure total score is valid
+            if np.isnan(total_score) or np.isinf(total_score):
+                total_score = 0.5  # Default to 50% - neutral score
+                logger.warning(f"Invalid total score for neighborhood {neighborhood.get('neighborhood_id')}, using default")
             
             scored_neighborhoods.append({
-                'yad2_hood_id': neighborhood['yad2_hood_id'],
+                'neighborhood_id': neighborhood['neighborhood_id'],
                 'hebrew_name': neighborhood['hebrew_name'],
-                'score': float(score),
+                'feature_score': float(feature_score),
+                'price_score': float(price_score),
+                'total_score': float(total_score),
+                'avg_rental_price': neighborhood['avg_rental_price'],
                 'individual_scores': neighborhood['individual_scores'],
-                'user_preferences': user_preferences.tolist(),
-                'match_details': self._get_match_details(neighborhood['individual_scores'], user_preferences)
+                'user_preferences': user_preferences.tolist(),  # Keep original for debugging
+                'match_details': self._get_match_details(neighborhood['individual_scores'], user_preferences),
+                'price_analysis': self._get_price_analysis(
+                    neighborhood['avg_rental_price'], 
+                    user_price_range
+                ) if user_price_range else None
             })
         
         return scored_neighborhoods
+    
+    def _get_price_analysis(self, avg_rental_price: Optional[float], user_price_range: Dict) -> Dict:
+        """Get detailed price analysis for explanation."""
+        if not avg_rental_price:
+            return {
+                'status': 'unknown',
+                'message': 'Price data not available',
+                'affordability': 'unknown'
+            }
+        
+        user_min = user_price_range['price_min']
+        user_max = user_price_range['price_max']
+        
+        if user_min <= avg_rental_price <= user_max:
+            percentage_of_budget = (avg_rental_price / user_max) * 100
+            return {
+                'status': 'affordable',
+                'message': f'Within budget (₪{avg_rental_price:,.0f})',
+                'affordability': 'perfect' if percentage_of_budget <= 80 else 'good',
+                'budget_percentage': round(percentage_of_budget, 1)
+            }
+        elif avg_rental_price < user_min:
+            return {
+                'status': 'below_range',
+                'message': f'Below expected range (₪{avg_rental_price:,.0f})',
+                'affordability': 'very_affordable',
+                'savings_potential': user_min - avg_rental_price
+            }
+        else:
+            excess = avg_rental_price - user_max
+            excess_percentage = (excess / user_max) * 100
+            return {
+                'status': 'above_budget',
+                'message': f'Above budget (₪{avg_rental_price:,.0f})',
+                'affordability': 'expensive',
+                'excess_amount': excess,
+                'excess_percentage': round(excess_percentage, 1)
+            }
     
     def _get_match_details(self, neighborhood_scores: Dict, user_preferences: np.ndarray) -> Dict:
         """Get detailed match information for explanation."""
@@ -345,23 +552,28 @@ class NeighborhoodRecommendationService:
         for neighborhood in neighborhoods:
             try:
                 # Get neighborhood info
-                neighborhood_info = await self._get_neighborhood_info(db, neighborhood['yad2_hood_id'])
+                neighborhood_info = await self._get_neighborhood_info(db, neighborhood['neighborhood_id'])
                 
                 # Get sample listings
                 sample_listings = await self._get_sample_listings(
-                    db, neighborhood['yad2_hood_id'], limit=3
+                    db, neighborhood['neighborhood_id'], limit=3
                 )
                 
                 # Count total available listings
                 total_listings = await self._count_available_listings(
-                    db, neighborhood['yad2_hood_id']
+                    db, neighborhood['neighborhood_id']
                 )
                 
                 enriched_recommendations.append({
-                    'neighborhood_id': neighborhood['yad2_hood_id'],
+                    'neighborhood_id': neighborhood['neighborhood_id'],
                     'hebrew_name': neighborhood['hebrew_name'],
                     'english_name': neighborhood_info.get('english_name') if neighborhood_info else None,
-                    'score': neighborhood['score'],
+                    'score': neighborhood['total_score'],  # Frontend expects this field for match percentage
+                    'total_score': neighborhood['total_score'],
+                    'feature_score': neighborhood['feature_score'],
+                    'price_score': neighborhood['price_score'],
+                    'avg_rental_price': neighborhood['avg_rental_price'],
+                    'price_analysis': neighborhood.get('price_analysis'),
                     'match_details': neighborhood['match_details'],
                     'individual_scores': neighborhood['individual_scores'],
                     'sample_listings': sample_listings,
@@ -370,25 +582,30 @@ class NeighborhoodRecommendationService:
                 })
                 
             except Exception as e:
-                logger.error(f"Error enriching neighborhood {neighborhood['yad2_hood_id']}: {e}")
+                logger.error(f"Error enriching neighborhood {neighborhood['neighborhood_id']}: {e}")
                 continue
         
         return enriched_recommendations
     
-    async def _get_neighborhood_info(self, db: AsyncSession, yad2_hood_id: int) -> Optional[Dict]:
+    async def _get_neighborhood_info(self, db: AsyncSession, neighborhood_id: int) -> Optional[Dict]:
         """Get additional neighborhood information."""
         try:
             result = await db.execute(
-                select(Neighborhood).where(Neighborhood.yad2_hood_id == yad2_hood_id)
+                select(Neighborhood)
+                .options(
+                    selectinload(Neighborhood.metrics),
+                    selectinload(Neighborhood.meta_data)
+                )
+                .where(Neighborhood.id == neighborhood_id)
             )
             neighborhood = result.scalar_one_or_none()
             
             if neighborhood:
                 return {
                     'english_name': neighborhood.english_name,
-                    'avg_rent_price': float(neighborhood.avg_rent_price) if neighborhood.avg_rent_price else None,
-                    'avg_purchase_price': float(neighborhood.avg_purchase_price) if neighborhood.avg_purchase_price else None,
-                    'general_overview': neighborhood.general_overview,
+                    'avg_rent_price': float(neighborhood.metrics.avg_rental_price) if neighborhood.metrics and neighborhood.metrics.avg_rental_price else None,
+                    'avg_purchase_price': float(neighborhood.metrics.avg_sale_price) if neighborhood.metrics and neighborhood.metrics.avg_sale_price else None,
+                    'overview': neighborhood.meta_data.overview if neighborhood.meta_data else None,
                     'latitude': neighborhood.latitude,
                     'longitude': neighborhood.longitude
                 }
@@ -396,37 +613,41 @@ class NeighborhoodRecommendationService:
             return None
             
         except Exception as e:
-            logger.error(f"Error fetching neighborhood info for {yad2_hood_id}: {e}")
+            logger.error(f"Error fetching neighborhood info for {neighborhood_id}: {e}")
             return None
     
     async def _get_sample_listings(
         self, 
         db: AsyncSession, 
-        yad2_hood_id: int, 
+        neighborhood_id: int, 
         limit: int = 3
     ) -> List[Dict]:
         """Get sample listings for a neighborhood."""
         try:
-            query = select(Listing).where(
+            # Join with ListingMetadata to get is_active and cover_image_url
+            query = select(Listing, ListingMetadata).join(
+                ListingMetadata, Listing.listing_id == ListingMetadata.listing_id, isouter=True
+            ).join(
+                Neighborhood, ListingMetadata.neighborhood_id == Neighborhood.id, isouter=True
+            ).where(
                 and_(
-                    Listing.neighborhood_id == yad2_hood_id,
-                    Listing.is_active == True
+                    Neighborhood.id == neighborhood_id,
+                    ListingMetadata.is_active == True
                 )
-            )
+            ).limit(limit)
             
-            query = query.limit(limit)
             result = await db.execute(query)
-            listings = result.scalars().all()
+            listing_data = result.fetchall()
             
             sample_listings = []
-            for listing in listings:
+            for listing, metadata in listing_data:
                 sample_listings.append({
-                    'order_id': listing.order_id,
-                    'token': listing.token,
+                    'listing_id': listing.listing_id,
+                    'yad2_url_token': listing.yad2_url_token,
                     'price': float(listing.price) if listing.price else None,
                     'rooms_count': float(listing.rooms_count) if listing.rooms_count else None,
                     'square_meter': listing.square_meter,
-                    'cover_image_url': listing.cover_image_url,
+                    'cover_image_url': metadata.cover_image_url if metadata else None,
                     'street': listing.street,
                     'house_number': listing.house_number,
                     'floor': listing.floor
@@ -435,22 +656,24 @@ class NeighborhoodRecommendationService:
             return sample_listings
             
         except Exception as e:
-            logger.error(f"Error fetching sample listings for neighborhood {yad2_hood_id}: {e}")
+            logger.error(f"Error fetching sample listings for neighborhood {neighborhood_id}: {e}")
             return []
     
     async def _count_available_listings(
         self, 
         db: AsyncSession, 
-        yad2_hood_id: int, 
+        neighborhood_id: int, 
     ) -> int:
         """Count total available listings for a neighborhood."""
         try:
-            from sqlalchemy import func
-            
-            query = select(func.count(Listing.order_id)).where(
+            query = select(func.count(Listing.listing_id)).join(
+                ListingMetadata, Listing.listing_id == ListingMetadata.listing_id
+            ).join(
+                Neighborhood, ListingMetadata.neighborhood_id == Neighborhood.id
+            ).where(
                 and_(
-                    Listing.neighborhood_id == yad2_hood_id,
-                    Listing.is_active == True
+                    Neighborhood.id == neighborhood_id,
+                    ListingMetadata.is_active == True
                 )
             )
             
@@ -459,7 +682,7 @@ class NeighborhoodRecommendationService:
             return count or 0
             
         except Exception as e:
-            logger.error(f"Error counting listings for neighborhood {yad2_hood_id}: {e}")
+            logger.error(f"Error counting listings for neighborhood {neighborhood_id}: {e}")
             return 0
 
     async def _get_cached_preference_vector(self, db: AsyncSession, user_id: str) -> Optional[np.ndarray]:

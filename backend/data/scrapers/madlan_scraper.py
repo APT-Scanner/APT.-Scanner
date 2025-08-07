@@ -24,6 +24,7 @@ class MadlanScraper:
         
         overview_block = soup.find("div", attrs={"data-auto": "AreaOverview-block"})
         if overview_block:
+            
             overview_text = overview_block.find("div", class_="css-ixartp")
             if overview_text:
                 metrics["סקירה כללית"] = overview_text.get_text(strip=True)

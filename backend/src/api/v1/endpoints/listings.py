@@ -10,6 +10,7 @@ from sqlalchemy import and_, delete
 from src.database.postgresql_db import get_db
 from src.database.models import (
     Listing as ListingModel, 
+    ListingMetadata as ListingMetadataModel,
     Neighborhood as NeighborhoodModel, 
     ViewHistory as ViewHistoryModel,
     Tag,
@@ -41,41 +42,59 @@ async def get_listings(
     logger.info(f"Fetching listings with filters: {filters.dict()}")
     
     try:
-        query = select(ListingModel)
+        # Join with ListingMetadata to access is_active and neighborhood info
+        query = select(ListingModel).join(
+            ListingMetadataModel, 
+            ListingModel.listing_id == ListingMetadataModel.listing_id,
+            isouter=True
+        )
         
-        query = query.where(ListingModel.is_active == True)
+        # Filter by active listings using ListingMetadata
+        query = query.where(ListingMetadataModel.is_active == True)
         
-        #if filters.type:
-        #    query = query.where(ListingModel.ad_type.ilike(f"%{filters.type}%"))
-        
+        # Filter by city - join with neighborhood through ListingMetadata
         if filters.city:
-            query = query.where(ListingModel.city == filters.city)
+            query = query.join(
+                NeighborhoodModel, 
+                ListingMetadataModel.neighborhood_id == NeighborhoodModel.id,
+                isouter=True
+            ).where(NeighborhoodModel.city == filters.city)
             
+        # Filter by neighborhood name
         if filters.neighborhood:
-            query = query.where(ListingModel.neighborhood_text == filters.neighborhood)
-            
+            if not filters.city:  # Add neighborhood join if not already added
+                query = query.join(
+                    NeighborhoodModel, 
+                    ListingMetadataModel.neighborhood_id == NeighborhoodModel.id,
+                    isouter=True
+                )
+            query = query.where(NeighborhoodModel.hebrew_name == filters.neighborhood)
+        
+        # Price filters
         query = query.where(ListingModel.price >= filters.price_min)
         query = query.where(ListingModel.price <= filters.price_max)
         
+        # Room count filters
         query = query.where(ListingModel.rooms_count >= filters.rooms_min)
         query = query.where(ListingModel.rooms_count <= filters.rooms_max)
         
+        # Size filters
         query = query.where(ListingModel.square_meter >= filters.size_min)
         query = query.where(ListingModel.square_meter <= filters.size_max)
         
+        # Options/tags filter
         if filters.options:
             options_list = filters.options.split(',')
             for option in options_list:
                 query = query.join(
                     listing_tags_association,
-                    ListingModel.order_id == listing_tags_association.c.listing_id
+                    ListingModel.listing_id == listing_tags_association.c.listing_id
                 ).join(
                     Tag,
                     Tag.tag_id == listing_tags_association.c.tag_id
-                ).where(
-                    Tag.tag_name.ilike(f"%{option}%")
-                )
+                ).where(Tag.tag_name.ilike(f"%{option.strip()}%"))
         
+        # Filter out recently viewed listings
         if filter_viewed:
             one_week_ago = datetime.now() - timedelta(days=7)
             user_id = current_user.firebase_uid
@@ -92,13 +111,14 @@ async def get_listings(
             recently_viewed_ids = [row[0] for row in result.all()]
             
             if recently_viewed_ids:
-                query = query.where(~ListingModel.order_id.in_(recently_viewed_ids))
+                query = query.where(~ListingModel.listing_id.in_(recently_viewed_ids))
         
+        # Add relationships for complete listing data
         query = query.options(
-            selectinload(ListingModel.neighborhood),
-            selectinload(ListingModel.property_condition), 
             selectinload(ListingModel.images), 
-            selectinload(ListingModel.tags) 
+            selectinload(ListingModel.tags),
+            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.property_condition),
+            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood)
         ).limit(limit)
         
         result = await db.execute(query)
@@ -126,56 +146,42 @@ async def record_listing_view(
     current_user = Depends(get_current_user)
 ):
     """
-    Records when a user views a listing to prevent showing it again for a day.
+    Records when a user views a specific listing for recommendation tracking.
     """
-    logger.info(f"Recording view for listing ID: {view_data.listing_id} by user {current_user}")
+    logger.info(f"Recording listing view for user: {current_user.firebase_uid}, listing: {view_data.listing_id}")
     
     try:
-        stmt = select(ListingModel).where(ListingModel.order_id == view_data.listing_id)
-        result = await db.execute(stmt)
-        listing = result.scalar_one_or_none()
+        # Check if listing exists
+        listing_stmt = select(ListingModel).where(ListingModel.listing_id == view_data.listing_id)
+        listing_result = await db.execute(listing_stmt)
+        listing = listing_result.scalar_one_or_none()
         
         if not listing:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"Listing with ID {view_data.listing_id} not found"
             )
-            
-        user_id = current_user.firebase_uid
         
-        one_day_ago = datetime.now() - timedelta(days=1)
-        existing_view_stmt = (
-            select(ViewHistoryModel)
-            .where(and_(
-                ViewHistoryModel.user_id == user_id,  
-                ViewHistoryModel.listing_id == view_data.listing_id,
-                ViewHistoryModel.viewed_at >= one_day_ago
-            ))
+        # Create view history entry
+        db_view = ViewHistoryModel(
+            user_id=current_user.firebase_uid,
+            listing_id=view_data.listing_id,
+            viewed_at=datetime.now()
         )
         
-        existing_result = await db.execute(existing_view_stmt)
-        existing_view = existing_result.scalar_one_or_none()
-        
-        if existing_view:
-            existing_view.viewed_at = datetime.now()
-            await db.commit()
-            return existing_view
-        
-        new_view = ViewHistoryModel(
-            user_id=user_id,  
-            listing_id=view_data.listing_id
-        )
-        
-        db.add(new_view)
+        db.add(db_view)
         await db.commit()
-        await db.refresh(new_view)
+        await db.refresh(db_view)
         
-        return new_view
-            
+        logger.info(f"Successfully recorded view for listing {view_data.listing_id} by user {current_user.firebase_uid}")
+        return db_view
+        
+    except HTTPException:
+        # Re-raise HTTP exceptions
+        raise
     except Exception as e:
-        if isinstance(e, HTTPException):
-            raise e
-        logger.error(f"Database error while recording view: {e}", exc_info=True)
+        await db.rollback()
+        logger.error(f"Database error while recording listing view: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while recording the view"
@@ -230,22 +236,21 @@ async def clear_view_history(
     current_user = Depends(get_current_user)
 ):
     """
-    Clears the user's listing view history.
+    Clears all view history for the current user.
     """
-    logger.info(f"Clearing view history for user: {current_user}")
+    logger.info(f"Clearing view history for user: {current_user.firebase_uid}")
     
     try:
         user_id = current_user.firebase_uid
         
-        stmt = (
-            delete(ViewHistoryModel)
-            .where(ViewHistoryModel.user_id == user_id) 
-        )
-        
-        await db.execute(stmt)
+        stmt = delete(ViewHistoryModel).where(ViewHistoryModel.user_id == user_id)
+        result = await db.execute(stmt)
         await db.commit()
-            
+        
+        logger.info(f"Cleared {result.rowcount} view history entries for user {user_id}")
+        
     except Exception as e:
+        await db.rollback()
         logger.error(f"Database error while clearing view history: {e}", exc_info=True)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
@@ -266,12 +271,12 @@ async def get_listing_by_id(
     
     stmt = (
         select(ListingModel)
-        .where(ListingModel.order_id == listing_id)
+        .where(ListingModel.listing_id == listing_id)
         .options(
-            selectinload(ListingModel.neighborhood),
-            selectinload(ListingModel.property_condition),
             selectinload(ListingModel.images),
-            selectinload(ListingModel.tags)
+            selectinload(ListingModel.tags),
+            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.property_condition),
+            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood)
         )
     )
     
