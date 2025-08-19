@@ -312,6 +312,7 @@ class UserFilters(Base):
     type: Mapped[Optional[str]] = mapped_column(String, nullable=True, default="rent")
     city: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     neighborhood: Mapped[Optional[str]] = mapped_column(String, nullable=True)
+    property_type: Mapped[Optional[str]] = mapped_column(String, nullable=True)
     price_min: Mapped[int] = mapped_column(Integer, nullable=False, default=500)
     price_max: Mapped[int] = mapped_column(Integer, nullable=False, default=15000)
     rooms_min: Mapped[float] = mapped_column(Float, nullable=False, default=1)

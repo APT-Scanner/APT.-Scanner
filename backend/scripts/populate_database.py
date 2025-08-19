@@ -8,7 +8,9 @@ from dotenv import load_dotenv
 from typing import Set
         
 # Load environment variables
-load_dotenv(dotenv_path='/Users/or.hershko/Desktop/APT.-Scanner/backend/.env')
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../backend
+env_path = os.path.join(BASE_DIR, ".env")
+load_dotenv(dotenv_path=env_path)
 
         
 # --- Database Connection Details ---
@@ -17,7 +19,7 @@ if not DATABASE_URL:
     raise ValueError("DATABASE_URL environment variable not set")
 
 # --- File Names ---
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
+# BASE_DIR already defined above for .env loading 
 NEIGHBORHOOD_VARIANTS_MAP_JSON = os.path.join(BASE_DIR, "data", "sources", "neighborhood_variants_map.json")
 YAD2_HOOD_MAPPING_JSON = os.path.join(BASE_DIR, "data", "sources", "yad2_hood_mapping.json")
 NEIGHBORHOOD_DETAILS_CSV = os.path.join(BASE_DIR, "data", "sources", "neighborhood_details.csv")
@@ -71,7 +73,8 @@ def populate_lookups(conn):
         logger.debug(f"Processed {len(conditions)} property conditions.")
 
         # --- Tags ---
-        tags = [
+        # Existing manual tags  
+        existing_tags = [
             (1007, '3 כיווני אוויר'), (1023, 'קרוב לפארק'), (1091, 'בהזדמנות'),
             (1006, 'נוף פתוח לעיר'), (1002, 'נכס עורפי'), (1019, 'משופצת אדריכלית'),
             (1018, 'בניין משופץ'), (1020, 'מטבח גדול'), (1092, 'חבל לפספס'),
@@ -81,6 +84,24 @@ def populate_lookups(conn):
             (1093, 'ייחודי'), (1016, 'אחריי להתחדשות עירונית'), (1000, 'חדש מקבלן'),
             (1008, '4 כיווני אוויר'),(1001, 'נכס חדש'),(1011, '4 חדרי מקלחת')
         ]
+        
+        # Additional Yad2 feature tags (using IDs from 2000+ to avoid conflicts)
+        yad2_feature_tags = [
+            (2001, 'מעלית'),           # elevator  
+            (2002, 'מיזוג'),           # airConditioner
+            (2003, 'מרפסת'),          # balcony
+            (2004, 'סורגים'),         # bars  
+            (2005, 'מחסן'),           # warehouse
+            (2006, 'גישה לנכים'),     # accessibility
+            (2007, 'משופץ'),          # renovated (general)
+            (2008, 'מרוהט'),          # furniture
+            (2009, 'חיות מחמד'),      # pets  
+            (2010, 'לשותפים'),        # forPartners
+            (2011, 'נכס בלעדי'),      # assetExclusive
+        ]
+        
+        # Combine all tags
+        tags = existing_tags + yad2_feature_tags
         execute_values(cursor,
                        "INSERT INTO tags (tag_id, tag_name) VALUES %s ON CONFLICT (tag_id) DO NOTHING",
                        tags)
@@ -97,7 +118,7 @@ def populate_lookups(conn):
             cursor.close()
 
 def populate_neighborhoods(conn):
-    """Loads data from CSV and JSON mapping, populates the neighborhoods table."""
+    """Loads data from CSV and JSON mapping, populates the neighborhoods, neighborhood_metrics, and neighborhood_metadata tables."""
     conn = get_db_connection()
     if not conn:
         logger.error("Cannot populate neighborhoods: No database connection.")
@@ -118,6 +139,8 @@ def populate_neighborhoods(conn):
 
         logger.info(f"Loading neighborhood details from {NEIGHBORHOOD_DETAILS_CSV}...")
         neighborhood_data_to_insert = []
+        metrics_data_to_insert = []
+        metadata_data_to_insert = []
         processed_count = 0
         skipped_count = 0
 
@@ -142,81 +165,90 @@ def populate_neighborhoods(conn):
                     skipped_count += 1
                     continue
 
-                data = (
-                    yad2_hood_id,
+                # Main neighborhoods table data (matches models.py Neighborhood)
+                neighborhood_data = (
+                    yad2_hood_id,  # Using yad2_hood_id as primary key for now
                     hebrew_name,
                     row.get('English Neighborhood Name'),
-                    safe_float(row.get('Average Purchase Price')),
-                    safe_float(row.get('Average Rent Price')),
-                    safe_float(row.get('Socioeconomic Index')),
-                    safe_float(row.get('School Rating')),
-                    row.get('General Overview'),
-                    safe_int(row.get('Bars_Count'), 0),
-                    safe_int(row.get('Restaurants_Count'), 0),
-                    safe_int(row.get('Clubs_Count'), 0),
-                    safe_int(row.get('Shopping_Malls_Count'), 0),
-                    safe_int(row.get('Unique_Entertainment_Count'), 0),
-                    safe_int(row.get('Primary_Schools_Count'), 0),
-                    safe_int(row.get('Elementary_Schools_Count'), 0),
-                    safe_int(row.get('Secondary_Schools_Count'), 0),
-                    safe_int(row.get('High_Schools_Count'), 0),
-                    safe_int(row.get('Universities_Count'), 0),
-                    safe_float(row.get('Closest_Beach_Distance_km')),
+                    row.get('City'),  # Adding city field
                     safe_float(row.get('Latitude')),
-                    safe_float(row.get('Longitude')),
-                    safe_int(yad2_info.get('cityId')),
-                    safe_int(yad2_info.get('areaId')),
-                    safe_int(yad2_info.get('topAreaId')),
-                    safe_int(yad2_info.get('docCount'))
+                    safe_float(row.get('Longitude'))
                 )
-                neighborhood_data_to_insert.append(data)
+                neighborhood_data_to_insert.append(neighborhood_data)
+
+                # Metrics table data (matches models.py NeighborhoodMetrics)
+                metrics_data = (
+                    yad2_hood_id,  # neighborhood_id FK
+                    safe_float(row.get('Average Purchase Price')),  # avg_sale_price
+                    safe_float(row.get('Average Rent Price')),      # avg_rental_price
+                    safe_float(row.get('Socioeconomic Index')),     # social_economic_index
+                    None,  # popular_political_party (not in CSV)
+                    safe_float(row.get('School Rating')),           # school_rating
+                    safe_float(row.get('Closest_Beach_Distance_km')) # beach_distance_km
+                )
+                metrics_data_to_insert.append(metrics_data)
+
+                # Metadata table data (matches models.py NeighborhoodMetadata)
+                metadata_data = (
+                    yad2_hood_id,  # neighborhood_id FK
+                    row.get('General Overview'),       # overview
+                    safe_int(yad2_info.get('cityId')), # external_city_id
+                    safe_int(yad2_info.get('areaId')), # external_area_id
+                    safe_int(yad2_info.get('topAreaId')) # external_top_area_id
+                )
+                metadata_data_to_insert.append(metadata_data)
                 processed_count += 1
 
         logger.info(f"Updating {processed_count} neighborhoods in the database (skipped {skipped_count})...")
+        
         if neighborhood_data_to_insert:
-            cols = [
-                'yad2_hood_id', 'hebrew_name', 'english_name', 'avg_purchase_price',
-                'avg_rent_price', 'socioeconomic_index', 'avg_school_rating',
-                'general_overview', 'bars_count', 'restaurants_count', 'clubs_count',
-                'shopping_malls_count', 'unique_entertainment_count',
-                'primary_schools_count', 'elementary_schools_count',
-                'secondary_schools_count', 'high_schools_count', 'universities_count',
-                'closest_beach_distance_km', 'latitude', 'longitude', 'yad2_city_id',
-                'yad2_area_id', 'yad2_top_area_id', 'yad2_doc_count'
-            ]
-            cols_sql = ", ".join(cols)
-            sql = f"""
-                INSERT INTO neighborhoods ({cols_sql}) VALUES %s
-                ON CONFLICT (yad2_hood_id) DO UPDATE SET
+            # Insert neighborhoods table
+            neighborhood_cols = ['id', 'hebrew_name', 'english_name', 'city', 'latitude', 'longitude']
+            neighborhood_cols_sql = ", ".join(neighborhood_cols)
+            neighborhood_sql = f"""
+                INSERT INTO neighborhoods ({neighborhood_cols_sql}) VALUES %s
+                ON CONFLICT (id) DO UPDATE SET
                     hebrew_name = EXCLUDED.hebrew_name,
                     english_name = EXCLUDED.english_name,
-                    avg_purchase_price = EXCLUDED.avg_purchase_price,
-                    avg_rent_price = EXCLUDED.avg_rent_price,
-                    socioeconomic_index = EXCLUDED.socioeconomic_index,
-                    avg_school_rating = EXCLUDED.avg_school_rating,
-                    general_overview = EXCLUDED.general_overview,
-                    bars_count = EXCLUDED.bars_count,
-                    restaurants_count = EXCLUDED.restaurants_count,
-                    clubs_count = EXCLUDED.clubs_count,
-                    shopping_malls_count = EXCLUDED.shopping_malls_count,
-                    unique_entertainment_count = EXCLUDED.unique_entertainment_count,
-                    primary_schools_count = EXCLUDED.primary_schools_count,
-                    elementary_schools_count = EXCLUDED.elementary_schools_count,
-                    secondary_schools_count = EXCLUDED.secondary_schools_count,
-                    high_schools_count = EXCLUDED.high_schools_count,
-                    universities_count = EXCLUDED.universities_count,
-                    closest_beach_distance_km = EXCLUDED.closest_beach_distance_km,
+                    city = EXCLUDED.city,
                     latitude = EXCLUDED.latitude,
                     longitude = EXCLUDED.longitude,
-                    yad2_city_id = EXCLUDED.yad2_city_id,
-                    yad2_area_id = EXCLUDED.yad2_area_id,
-                    yad2_top_area_id = EXCLUDED.yad2_top_area_id,
-                    yad2_doc_count = EXCLUDED.yad2_doc_count,
                     updated_at = NOW()
             """
-            execute_values(cursor, sql, neighborhood_data_to_insert, page_size=500)
+            execute_values(cursor, neighborhood_sql, neighborhood_data_to_insert, page_size=500)
+            
+            # Insert neighborhood_metrics table
+            metrics_cols = ['neighborhood_id', 'avg_sale_price', 'avg_rental_price', 'social_economic_index', 'popular_political_party', 'school_rating', 'beach_distance_km']
+            metrics_cols_sql = ", ".join(metrics_cols)
+            metrics_sql = f"""
+                INSERT INTO neighborhood_metrics ({metrics_cols_sql}) VALUES %s
+                ON CONFLICT (neighborhood_id) DO UPDATE SET
+                    avg_sale_price = EXCLUDED.avg_sale_price,
+                    avg_rental_price = EXCLUDED.avg_rental_price,
+                    social_economic_index = EXCLUDED.social_economic_index,
+                    popular_political_party = EXCLUDED.popular_political_party,
+                    school_rating = EXCLUDED.school_rating,
+                    beach_distance_km = EXCLUDED.beach_distance_km,
+                    updated_at = NOW()
+            """
+            execute_values(cursor, metrics_sql, metrics_data_to_insert, page_size=500)
+            
+            # Insert neighborhood_metadata table
+            metadata_cols = ['neighborhood_id', 'overview', 'external_city_id', 'external_area_id', 'external_top_area_id']
+            metadata_cols_sql = ", ".join(metadata_cols)
+            metadata_sql = f"""
+                INSERT INTO neighborhood_metadata ({metadata_cols_sql}) VALUES %s
+                ON CONFLICT (neighborhood_id) DO UPDATE SET
+                    overview = EXCLUDED.overview,
+                    external_city_id = EXCLUDED.external_city_id,
+                    external_area_id = EXCLUDED.external_area_id,
+                    external_top_area_id = EXCLUDED.external_top_area_id,
+                    updated_at = NOW()
+            """
+            execute_values(cursor, metadata_sql, metadata_data_to_insert, page_size=500)
+            
             conn.commit()
-            logger.info("Neighborhoods table updated successfully.")
+            logger.info("Neighborhoods, metrics, and metadata tables updated successfully.")
             return True
         else:
             logger.info("No valid neighborhood data found to update.")
@@ -224,7 +256,7 @@ def populate_neighborhoods(conn):
 
     except (psycopg2.Error, FileNotFoundError, json.JSONDecodeError, csv.Error, KeyError) as e:
         conn.rollback()
-        logger.exception(f"Error updating neighborhoods table: {e}")
+        logger.exception(f"Error updating neighborhoods tables: {e}")
         return False
     finally:
         if cursor:
@@ -256,10 +288,10 @@ def create_neighborhood_lookup(conn):
     neighborhood_name_to_id = {}
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cursor.execute("SELECT yad2_hood_id, hebrew_name FROM neighborhoods WHERE hebrew_name IS NOT NULL")
+        cursor.execute("SELECT id, hebrew_name FROM neighborhoods WHERE hebrew_name IS NOT NULL")
         rows = cursor.fetchall()
         for row in rows:
-            neighborhood_name_to_id[row['hebrew_name']] = row['yad2_hood_id']
+            neighborhood_name_to_id[row['hebrew_name']] = row['id']
         logger.info(f"Created lookup for {len(neighborhood_name_to_id)} canonical neighborhoods.")
     except psycopg2.Error as e:
         logger.exception(f"Error fetching neighborhoods from DB: {e}")
@@ -280,13 +312,13 @@ def get_neighborhood_id_from_listing(listing_dict, neighborhood_name_to_id, vari
             if canonical_name_from_map:
                 neighborhood_id = neighborhood_name_to_id.get(canonical_name_from_map)
                 if not neighborhood_id:
-                    logger.warning(f"Mapped canonical name '{canonical_name_from_map}' for variant '{raw_hood_name}' not found in DB lookup (listing {listing_dict.get('order_id')}). Setting neighborhood_id to NULL.")
+                    logger.warning(f"Mapped canonical name '{canonical_name_from_map}' for variant '{raw_hood_name}' not found in DB lookup (listing {listing_dict.get('listing_id')}). Setting neighborhood_id to NULL.")
 
     if neighborhood_id is None:
         if raw_hood_name: 
-            logger.warning(f"Neighborhood ID not found for raw name '{raw_hood_name}' (listing {listing_dict.get('order_id')}) after checking direct match and variant map. Setting neighborhood_id to NULL.")
+            logger.warning(f"Neighborhood ID not found for raw name '{raw_hood_name}' (listing {listing_dict.get('listing_id')}) after checking direct match and variant map. Setting neighborhood_id to NULL.")
         else:
-                logger.warning(f"Raw neighborhood name was missing for listing {listing_dict.get('order_id')}. Setting neighborhood_id to NULL.")
+                logger.warning(f"Raw neighborhood name was missing for listing {listing_dict.get('listing_id')}. Setting neighborhood_id to NULL.")
         unmapped_listings_count += 1
     return neighborhood_id, unmapped_listings_count
 
@@ -297,7 +329,7 @@ def fetch_existing_ids(conn, table, column) -> Set:
         return {row[0] for row in cur.fetchall()}
     
 def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags_list, conn, variant_to_canonical_map):
-    """Inserts listings into the database."""
+    """Inserts listings into the database using the new schema with separate Listing and ListingMetadata tables."""
     logger.info(f"Processing {len(listings_list)} listings for DB update/insert...")
     listings_to_insert_update = []
     processed_listings_count = 0
@@ -310,28 +342,48 @@ def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags
         listings_to_insert_update.append(listing_dict)
 
     if listings_to_insert_update:
+        # Prepare data for main listings table
         listing_cols = [
-            'order_id', 'token', 'neighborhood_id', 'property_condition_id',
-            'subcategory_id', 'category_id', 'ad_type', 'price',
-            'property_type', 'rooms_count', 'square_meter',
-            'cover_image_url', 'video_url', 'city', 'area',
-            'neighborhood_text', 'street', 'house_number', 'floor',
-            'longitude', 'latitude', 'is_active'
+            'listing_id', 'yad2_url_token', 'price', 'property_type', 
+            'rooms_count', 'square_meter', 'street', 'house_number', 
+            'floor', 'longitude', 'latitude'
         ]
         listing_tuples = [[l.get(col) for col in listing_cols] for l in listings_to_insert_update]
-        cols_sql = ", ".join(listing_cols)
-        placeholders = ", ".join(["%s"] * len(listing_cols))
-        update_set_sql = ", ".join(
-            [f"{col} = EXCLUDED.{col}" for col in listing_cols if col not in ('order_id', 'is_active')]
-        ) + ", updated_at = NOW(), is_active = TRUE"
-        sql_listings = f"""
-            INSERT INTO listings ({cols_sql}) VALUES ({placeholders})
-            ON CONFLICT (order_id) DO UPDATE SET {update_set_sql}
-        """
-
+        
+        # Prepare data for listing_metadata table
+        metadata_cols = [
+            'listing_id', 'neighborhood_id', 'category_id', 'subcategory_id',
+            'ad_type', 'property_condition_id', 'cover_image_url', 'video_url', 'is_active'
+        ]
+        metadata_tuples = [[l.get(col) for col in metadata_cols] for l in listings_to_insert_update]
+        
         try:
+            # Insert into main listings table
+            listing_cols_sql = ", ".join(listing_cols)
+            listing_placeholders = ", ".join(["%s"] * len(listing_cols))
+            listing_update_set_sql = ", ".join(
+                [f"{col} = EXCLUDED.{col}" for col in listing_cols if col != 'listing_id']
+            ) + ", updated_at = NOW()"
+            sql_listings = f"""
+                INSERT INTO listings ({listing_cols_sql}) VALUES ({listing_placeholders})
+                ON CONFLICT (listing_id) DO UPDATE SET {listing_update_set_sql}
+            """
             cursor.executemany(sql_listings, listing_tuples)
+            
+            # Insert into listing_metadata table
+            metadata_cols_sql = ", ".join(metadata_cols)
+            metadata_placeholders = ", ".join(["%s"] * len(metadata_cols))
+            metadata_update_set_sql = ", ".join(
+                [f"{col} = EXCLUDED.{col}" for col in metadata_cols if col != 'listing_id']
+            ) + ", updated_at = NOW()"
+            sql_metadata = f"""
+                INSERT INTO listing_metadata ({metadata_cols_sql}) VALUES ({metadata_placeholders})
+                ON CONFLICT (listing_id) DO UPDATE SET {metadata_update_set_sql}
+            """
+            cursor.executemany(sql_metadata, metadata_tuples)
+            
             logger.info(f"Upserted {processed_listings_count} listings ({unmapped_listings_count} remain unmapped).")
+            
         except (psycopg2.Error, TypeError) as e:
             conn.rollback()
             logger.exception(f"Error during listing upsert: {e}")
@@ -344,22 +396,24 @@ def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags
                         valid_ids = fetch_existing_ids(conn, "property_conditions", "condition_id")
                         for l in listings_to_insert_update:
                             if l.get("property_condition_id") not in valid_ids:
-                                logger.info(f"Nullifying invalid property_condition_id in listing {l.get('order_id')}")
+                                logger.info(f"Nullifying invalid property_condition_id in listing {l.get('listing_id')}")
                                 l["property_condition_id"] = None
                     except Exception as ce:
-                        logger.exception("Error fixing property_condition_id: {ce}")
+                        logger.exception(f"Error fixing property_condition_id: {ce}")
 
                 elif "tag_id" in str(e):
                     try:
                         valid_ids = fetch_existing_ids(conn, "tags", "tag_id")
                         listing_tags_list[:] = [lt for lt in listing_tags_list if lt.get("tag_id") in valid_ids]
                     except Exception as ce:
-                        logger.exception("Error fixing tag_id: {ce}")
+                        logger.exception(f"Error fixing tag_id: {ce}")
 
-                # Attempt second insert
+                # Attempt second insert with fixed data
                 listing_tuples = [[l.get(col) for col in listing_cols] for l in listings_to_insert_update]
+                metadata_tuples = [[l.get(col) for col in metadata_cols] for l in listings_to_insert_update]
                 try:
                     cursor.executemany(sql_listings, listing_tuples)
+                    cursor.executemany(sql_metadata, metadata_tuples)
                     conn.commit()
                     logger.info("Retry successful after FK fix.")
                 except Exception as retry_e:
@@ -367,37 +421,38 @@ def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags
                     logger.exception("Retry after FK fix failed.")
             elif isinstance(e, TypeError):
                 logger.error("Likely column count mismatch.")
-                logger.debug(f"Tuple: {listing_tuples[0] if listing_tuples else 'N/A'}")
+                logger.debug(f"Listing tuple: {listing_tuples[0] if listing_tuples else 'N/A'}")
+                logger.debug(f"Metadata tuple: {metadata_tuples[0] if metadata_tuples else 'N/A'}")
 
 def insert_images(cursor, images_list):
     """Inserts images into the database."""
     if images_list:
         logger.info(f"Inserting {len(images_list)} image records...")
-        img_tuples = [(i.get('listing_order_id'), i.get('image_url'))
-                    for i in images_list if i.get('listing_order_id') and i.get('image_url')]
+        img_tuples = [(i.get('listing_id'), i.get('image_url'))
+                    for i in images_list if i.get('listing_id') and i.get('image_url')]
         if img_tuples:
             execute_values(cursor,
-                        "INSERT INTO images (listing_order_id, image_url) VALUES %s ON CONFLICT DO NOTHING",
+                        "INSERT INTO images (listing_id, image_url) VALUES %s ON CONFLICT DO NOTHING",
                         img_tuples, page_size=500)
             logger.debug("Image insertion attempt complete.")
 
 def insert_listing_tags(cursor, listing_tags_list):
-    """Inserts listing-tag relationships into the database."""
+    """Inserts listing-tag relationships into the database using the association table."""
     if listing_tags_list:
         logger.info(f"Inserting {len(listing_tags_list)} listing-tag relationships...")
-        lt_tuples = [(lt.get('listing_order_id'), lt.get('tag_id'))
-                        for lt in listing_tags_list if lt.get('listing_order_id') and lt.get('tag_id')]
+        lt_tuples = [(lt.get('listing_id'), lt.get('tag_id'))
+                        for lt in listing_tags_list if lt.get('listing_id') and lt.get('tag_id')]
         if lt_tuples:
             try:
                 execute_values(cursor,
-                                "INSERT INTO listing_tags (listing_order_id, tag_id) VALUES %s ON CONFLICT (listing_order_id, tag_id) DO NOTHING",
+                                "INSERT INTO listing_tags (listing_id, tag_id) VALUES %s ON CONFLICT (listing_id, tag_id) DO NOTHING",
                                 lt_tuples, page_size=1000)
                 logger.debug("Listing-tag insertion attempt complete.")
             except Exception as e:
                 logger.exception(f"Error during listing-tag insertion: {e}")
                 logger.debug(f"Second attempt to insert listing-tag relationships: {lt_tuples}")
                 execute_values(cursor,
-                                "INSERT INTO listing_tags (listing_order_id, tag_id) VALUES %s ON CONFLICT (listing_order_id, tag_id) DO NOTHING",
+                                "INSERT INTO listing_tags (listing_id, tag_id) VALUES %s ON CONFLICT (listing_id, tag_id) DO NOTHING",
                                 lt_tuples, page_size=1000)
 
 def populate_listings(listings_data):
@@ -466,8 +521,8 @@ def ensure_neighborhoods_exist(conn, listings_data, variant_to_canonical_map):
     
     cursor = conn.cursor(cursor_factory=RealDictCursor)
     try:
-        cursor.execute("SELECT yad2_hood_id, hebrew_name FROM neighborhoods")
-        db_neighborhoods = {row['hebrew_name']: row['yad2_hood_id'] for row in cursor.fetchall()}
+        cursor.execute("SELECT id, hebrew_name FROM neighborhoods")
+        db_neighborhoods = {row['hebrew_name']: row['id'] for row in cursor.fetchall()}
         logger.info(f"Found {len(db_neighborhoods)} existing neighborhoods in database")
         
         canonical_neighborhoods = set()

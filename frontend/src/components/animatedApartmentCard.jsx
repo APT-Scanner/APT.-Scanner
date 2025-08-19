@@ -23,7 +23,7 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete, disableS
                         damping: 40,
                         onComplete: () => {
                             if (onSwipeComplete) {
-                            onSwipeComplete(swipeDirection, apartment.order_id);
+                            onSwipeComplete(swipeDirection, apartment.listing_id);
                             }
                         },
                     });
@@ -152,7 +152,7 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete, disableS
                     </div>
                 )}
                 <div className={styles.cardInfo}>
-                    <h3>{`${apartment.street}, ${apartment.city}`}</h3>
+                    <h3>{`${apartment.street}, ${apartment.neighborhood.city}`}</h3>
                     <p>{Math.floor(apartment.price)}₪/month</p>
                 </div>
             </div>
@@ -171,7 +171,7 @@ const AnimatedApartmentCard = forwardRef(({ apartment, onSwipeComplete, disableS
                     
                     <img 
                         src={images[currentImageIndex]} 
-                        alt={`${apartment.street}, ${apartment.city}`} 
+                        alt={`${apartment.street}, ${apartment.neighborhood.city}`} 
                         className={styles.fullscreenImage}
                         onClick={handleImageClick}
                     />

@@ -19,19 +19,20 @@ import furnishedIcon from '../assets/icons/image 31.png';
 import RangeSlider from '../components/rangeSlider'; 
 
 
+// All Yad2 features now available in database
 const moreOptionsConfig = [
-    { id: 'shelter', label: 'Shelter', icon: shelterIcon },
-    { id: 'elevator', label: 'Elevator', icon: elevatorIcon },
-    { id: 'parking', label: 'Parking', icon: parkingIcon },
-    { id: 'storage', label: 'Storage', icon: storageIcon },
-    { id: 'ac', label: 'A/C', icon: acIcon },
-    { id: 'balcony', label: 'Balcony', icon: balconyIcon },
-    { id: 'bars', label: 'Bars', icon: barsIcon },
-    { id: 'accessible', label: 'Accessible', icon: accessibleIcon },
-    { id: 'renovated', label: 'Renovated', icon: renovatedIcon },
-    { id: 'roommates', label: 'Roommates', icon: roommatesIcon },
-    { id: 'petFriendly', label: 'Pet-friendly', icon: petFriendlyIcon },
-    { id: 'furnished', label: 'Furnished', icon: furnishedIcon },
+    { id: 'shelter', label: 'Shelter (ממ"ד)', icon: shelterIcon },
+    { id: 'elevator', label: 'Elevator (מעלית)', icon: elevatorIcon },
+    { id: 'parking', label: 'Parking (חניה)', icon: parkingIcon },
+    { id: 'warehouse', label: 'Storage (מחסן)', icon: storageIcon },
+    { id: 'airConditioner', label: 'A/C (מיזוג)', icon: acIcon },
+    { id: 'balcony', label: 'Balcony (מרפסת)', icon: balconyIcon },
+    { id: 'bars', label: 'Bars (סורגים)', icon: barsIcon },
+    { id: 'accessibility', label: 'Accessible (גישה לנכים)', icon: accessibleIcon },
+    { id: 'renovated', label: 'Renovated (משופץ)', icon: renovatedIcon },
+    { id: 'forPartners', label: 'Roommates (לשותפים)', icon: roommatesIcon },
+    { id: 'pets', label: 'Pet-friendly (חיות מחמד)', icon: petFriendlyIcon },
+    { id: 'furniture', label: 'Furnished (מרוהט)', icon: furnishedIcon },
 ];
 
 const MIN_PRICE = 500;

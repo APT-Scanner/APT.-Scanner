@@ -37,6 +37,7 @@ async def create_user_filters(db: AsyncSession, user_id: str, filters_data: User
         type=filters_data.type,
         city=filters_data.city,
         neighborhood=filters_data.neighborhood,
+        property_type=getattr(filters_data, 'property_type', None) if hasattr(filters_data, 'property_type') else None,
         price_min=filters_data.price_min,
         price_max=filters_data.price_max,
         rooms_min=filters_data.rooms_min,

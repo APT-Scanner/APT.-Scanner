@@ -31,11 +31,15 @@ def get_engine():
         ssl_context.check_hostname = False
         ssl_context.verify_mode = ssl.CERT_NONE
 
-        # Supabase connection with SSL config
+        # Supabase connection with SSL config and connection pooling
         engine = create_async_engine(
             DATABASE_URL, 
             echo=True,
-            connect_args={"ssl": ssl_context}
+            connect_args={"ssl": ssl_context},
+            pool_size=20,
+            max_overflow=0,
+            pool_pre_ping=True,
+            pool_recycle=3600  # Recycle connections every hour
         )
     return engine
 

@@ -269,13 +269,16 @@ class UserFiltersBase(BaseModel):
     type: Optional[str] = Field("rent", description="Type of listing (rent or sale)")
     city: Optional[str] = Field(None, description="City name")
     neighborhood: Optional[str] = Field(None, description="Neighborhood name")
-    price_min: int = Field(500, description="Minimum price")
-    price_max: int = Field(15000, description="Maximum price")
-    rooms_min: float = Field(1, description="Minimum number of rooms")
-    rooms_max: float = Field(8, description="Maximum number of rooms")
-    size_min: int = Field(10, description="Minimum size in square meters")
-    size_max: int = Field(500, description="Maximum size in square meters")
+    property_type: Optional[str] = Field(None, description="Property type filter")
+    price_min: int = Field(500, description="Minimum price", alias="priceMin")
+    price_max: int = Field(15000, description="Maximum price", alias="priceMax")
+    rooms_min: float = Field(1, description="Minimum number of rooms", alias="roomsMin")
+    rooms_max: float = Field(8, description="Maximum number of rooms", alias="roomsMax")
+    size_min: int = Field(10, description="Minimum size in square meters", alias="sizeMin")
+    size_max: int = Field(500, description="Maximum size in square meters", alias="sizeMax")
     options: Optional[str] = Field(None, description="Comma-separated list of filter options")
+    
+    model_config = ConfigDict(populate_by_name=True)  # Allow both field names and aliases
 
 class UserFiltersCreate(UserFiltersBase):
     pass
@@ -288,4 +291,4 @@ class UserFiltersSchema(UserFiltersBase):
     created_at: datetime
     updated_at: datetime
     
-    model_config = ConfigDict(from_attributes=True)
+    model_config = ConfigDict(from_attributes=True, extra='ignore')

@@ -101,7 +101,7 @@ async def update_neighborhood_names():
                     if original_name != canonical_name:
                         listing.neighborhood_text = canonical_name
                         updated_count += 1
-                        print(f"Updating '{original_name}' to '{canonical_name}' for listing ID {listing.order_id}")
+                        print(f"Updating '{original_name}' to '{canonical_name}' for listing ID {listing.listing_id}")
 
             if updated_count > 0:
                 print(f"\nCommitting {updated_count} changes to the database...")

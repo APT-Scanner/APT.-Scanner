@@ -120,9 +120,13 @@ async def get_cities(db: AsyncSession = Depends(get_db)):
     """
     Get all available cities.
     """
-    #cities = await filters_service.get_cities_list(db)
-    cities = ["תל אביב יפו"]
-    return cities
+    try:
+        cities = await filters_service.get_cities_list(db)
+        return cities
+    except Exception as e:
+        logger.error(f"Error fetching cities: {e}")
+        # Fallback to hardcoded list if database query fails
+        return ["תל אביב יפו"]
 
 @router.get(
     "/neighborhoods",
@@ -137,5 +141,9 @@ async def get_neighborhoods(
     """
     Get all neighborhoods names for a specific city.
     """
-    neighborhoods = await filters_service.get_neighborhoods_list(db, city)
-    return neighborhoods
+    try:
+        neighborhoods = await filters_service.get_neighborhoods_list(db, city)
+        return neighborhoods
+    except Exception as e:
+        logger.error(f"Error fetching neighborhoods for city {city}: {e}")
+        return []

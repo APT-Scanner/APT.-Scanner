@@ -84,7 +84,7 @@ const ApartmentSwipePage = () => {
     const currentApartment = apartments.length > 0 ? apartments[0] : null;
 
     const handleSwipeAction = useCallback((actionType, apartmentOrderId) => {
-        setApartments(prev => prev.filter(apt => apt.order_id !== apartmentOrderId));
+        setApartments(prev => prev.filter(apt => apt.listing_id !== apartmentOrderId));
         
         recordView(apartmentOrderId);
         
@@ -103,7 +103,7 @@ const ApartmentSwipePage = () => {
     const triggerButtonSwipe = (direction) => {
         if (!currentApartment) return;
         const actionType = direction === 'right' ? 'like' : 'dislike';
-        handleSwipeAction(actionType, currentApartment.order_id);
+        handleSwipeAction(actionType, currentApartment.listing_id);
     };
 
     const toggleDetailsPanel = () => {
@@ -271,7 +271,7 @@ const ApartmentSwipePage = () => {
                     <AnimatePresence mode="popLayout">
                         {currentApartment && !detailsExpanded && (
                             <AnimatedApartmentCard
-                                key={currentApartment.order_id}
+                                key={currentApartment.listing_id}
                                 apartment={currentApartment}
                                 onSwipeComplete={handleCardSwipeComplete}
                             />

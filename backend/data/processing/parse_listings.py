@@ -103,8 +103,8 @@ def parse_listings(raw_data):
 
         # Prepare listing dictionary matching the DB schema
         listing_entry = {
-            'order_id': order_id,
-            'token': token,
+            'listing_id': order_id,
+            'yad2_url_token': token,
             'subcategory_id': listing.get('subcategoryId'),
             'category_id': listing.get('categoryId'),
             'ad_type': listing.get('adType'),
@@ -133,7 +133,7 @@ def parse_listings(raw_data):
             for img_url in image_urls:
                 if img_url: # Ensure URL is not empty
                     images_data.append({
-                        'listing_order_id': order_id,
+                        'listing_id': order_id,
                         'image_url': img_url
                     })
 
@@ -150,7 +150,7 @@ def parse_listings(raw_data):
                         tags_data.append({'tag_id': tag_id, 'tag_name': tag_name})
                         processed_tag_ids.add(tag_id)
                     listing_tags_data.append({
-                        'listing_order_id': order_id,
+                        'listing_id': order_id,
                         'tag_id': tag_id,
                     })
 

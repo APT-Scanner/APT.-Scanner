@@ -38,7 +38,7 @@ const ApartmentDetailSheet = ({ apartment }) => {
         ? [apartment.latitude, apartment.longitude]
         : [32.0853, 34.7818]; 
 
-    const mapKey = `${apartment.id || apartment.order_id}-${position.join(',')}`; 
+    const mapKey = `${apartment.listing_id}-${position.join(',')}`; 
 
     // Format date if available
     const formatDate = (dateString) => {
@@ -73,7 +73,7 @@ const ApartmentDetailSheet = ({ apartment }) => {
                 </div>
                 <h3 className={styles.address}>
                     <Landmark size={16} className={styles.headerIcon} />
-                    {`City: ${apartment.city || ''}`}
+                    {`City: ${apartment.neighborhood.city || ''}`}
                 </h3>
                 <h3 className={styles.address}>
                     <MapPin size={16} className={styles.headerIcon} />
@@ -81,7 +81,7 @@ const ApartmentDetailSheet = ({ apartment }) => {
                 </h3>
                 <h3 className={styles.address}>
                     <Map size={16} className={styles.headerIcon} />
-                    {`Neighborhood: ${apartment.neighborhood_text || ''}`}
+                    {`Neighborhood: ${apartment.neighborhood.hebrew_name || ''}`}
                 </h3>
                 <h3 className={styles.address}>
                     <Hash size={16} className={styles.headerIcon} />

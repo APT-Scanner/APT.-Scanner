@@ -57,7 +57,7 @@ async def get_current_user(
 
     if not user:
         raise HTTPException(
-            status_code=status.HTTP_404_NOT_FOUND,
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="User not found in database. Registration may not be complete."
         )
 

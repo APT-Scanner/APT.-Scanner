@@ -68,7 +68,7 @@ class Yad2Scraper:
         "balcony": "מרפסת",
         "shelter": "ממ״ד",
         "bars": "סורגים",
-        "warhouse": "מחסן",
+        "warehouse": "מחסן",
         "accessibility": "גישה לנכים",
         "renovated": "משופץ",
         "furniture": "מרוהט", 
@@ -232,7 +232,7 @@ class Yad2Scraper:
         - balcony: bool - Has balcony
         - shelter: bool - Has shelter
         - bars: bool - Has bars
-        - warhouse: bool - Has warehouse
+        - warehouse: bool - Has warehouse
         - accessibility: bool - Is accessible
         - renovated: bool - Is renovated
         - furniture: bool - Has furniture
@@ -359,7 +359,7 @@ class Yad2Scraper:
             "balcony": "balcony",
             "shelter": "shelter",
             "bars": "bars",
-            "warhouse": "warhouse",
+            "warehouse": "warehouse",
             "accessibility": "accessibility",
             "renovated": "renovated",
             "furniture": "furniture",

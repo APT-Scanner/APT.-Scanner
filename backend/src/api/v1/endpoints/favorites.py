@@ -6,7 +6,7 @@ from sqlalchemy import and_
 from typing import List
 import logging
 from src.database.postgresql_db import get_db
-from src.database.models import Favorite, Listing, ListingMetadata
+from src.database.models import Favorite, Listing, ListingMetadata, Neighborhood
 from src.database.schemas import FavoriteSchema
 from src.middleware.auth import verify_firebase_user
 from data.scrapers.yad2_scraper import is_listing_still_alive
@@ -27,10 +27,18 @@ async def add_favorites(
 ):
     """Add a listing to user's favorites"""
     user_id = current_user["user_id"]
+    
+    # Validate listing_id
+    if not listing_id or listing_id <= 0:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid listing ID")
 
-    listing = await db.get(Listing, listing_id)
-    if not listing:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Listing not found")
+    try:
+        listing = await db.get(Listing, listing_id)
+        if not listing:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Listing not found")
+    except Exception as e:
+        logger.error(f"Database error while fetching listing {listing_id}: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error accessing listing")
     
     stmt = select(Favorite).where(and_(
         Favorite.user_id == user_id,
@@ -67,20 +75,30 @@ async def get_favorites(
     """Get all favorites for the current user. Does not update listing status."""
     user_id = current_user["user_id"]
     
-    stmt = (
-        select(Favorite)
-        .where(Favorite.user_id == user_id)
-        .options(
-            selectinload(Favorite.listing)
-            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.neighborhood),
-            selectinload(Favorite.listing)
-            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.property_condition)
+    try:
+        stmt = (
+            select(Favorite)
+            .where(Favorite.user_id == user_id)
+            .options(
+                selectinload(Favorite.listing)
+                .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.neighborhood).selectinload(Neighborhood.metrics),
+                selectinload(Favorite.listing)
+                .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.neighborhood).selectinload(Neighborhood.meta_data),
+                selectinload(Favorite.listing)
+                .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.property_condition)
+            )
         )
-    )
-    
-    result = await db.execute(stmt)
-    favorites = result.scalars().all()
-    return favorites
+        
+        result = await db.execute(stmt)
+        favorites = result.scalars().all()
+        return favorites
+        
+    except Exception as e:
+        logger.error(f"Database error while fetching favorites for user {user_id}: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error retrieving favorites. Please try again."
+        )
 
 
 @router.put(
@@ -107,7 +125,9 @@ async def sync_favorites_status(
         .where(Favorite.user_id == user_id)
         .options(
             selectinload(Favorite.listing)
-            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.neighborhood),
+            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.neighborhood).selectinload(Neighborhood.metrics),
+            selectinload(Favorite.listing)
+            .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.neighborhood).selectinload(Neighborhood.meta_data),
             selectinload(Favorite.listing)
             .selectinload(Listing.listing_metadata).selectinload(ListingMetadata.property_condition)
         )

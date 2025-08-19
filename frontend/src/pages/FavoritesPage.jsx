@@ -111,7 +111,7 @@ const FavoritesPage = () => {
                                 <div className={styles.favoriteInfo}>
                                     {listing ? (
                                         <>
-                                            <h3>{`${listing.street}, ${listing.city}`}</h3>
+                                            <h3>{`${listing.street}, ${listing.neighborhood.city}`}</h3>
                                             <p>{Math.floor(listing.price)}₪/month</p>
                                         </>
                                     ) : (

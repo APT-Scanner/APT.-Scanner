@@ -41,6 +41,12 @@ export const useFavorites = () => {
 
     const addFavorite = async (listingId) => {
         if (!idToken) return null;
+        
+        // Validate listingId to prevent sending undefined
+        if (!listingId || listingId === 'undefined') {
+            console.error('Invalid listing ID provided to addFavorite:', listingId);
+            return null;
+        }
 
         const payload = { listing_id: listingId };
         console.log("Sending favorite payload:", payload);

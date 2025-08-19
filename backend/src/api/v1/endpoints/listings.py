@@ -47,52 +47,66 @@ async def get_listings(
             ListingMetadataModel, 
             ListingModel.listing_id == ListingMetadataModel.listing_id,
             isouter=True
+        ).join(
+            NeighborhoodModel,
+            ListingMetadataModel.neighborhood_id == NeighborhoodModel.id,
+            isouter=True
         )
         
         # Filter by active listings using ListingMetadata
         query = query.where(ListingMetadataModel.is_active == True)
         
-        # Filter by city - join with neighborhood through ListingMetadata
-        if filters.city:
-            query = query.join(
-                NeighborhoodModel, 
-                ListingMetadataModel.neighborhood_id == NeighborhoodModel.id,
-                isouter=True
-            ).where(NeighborhoodModel.city == filters.city)
+        # Filter by city
+        if filters.city and filters.city.strip():
+            query = query.where(NeighborhoodModel.city == filters.city)
             
         # Filter by neighborhood name
-        if filters.neighborhood:
-            if not filters.city:  # Add neighborhood join if not already added
-                query = query.join(
-                    NeighborhoodModel, 
-                    ListingMetadataModel.neighborhood_id == NeighborhoodModel.id,
-                    isouter=True
-                )
+        if filters.neighborhood and filters.neighborhood.strip():
             query = query.where(NeighborhoodModel.hebrew_name == filters.neighborhood)
         
-        # Price filters
-        query = query.where(ListingModel.price >= filters.price_min)
-        query = query.where(ListingModel.price <= filters.price_max)
+        # Filter by property type
+        if hasattr(filters, 'property_type') and filters.property_type and filters.property_type.strip():
+            query = query.where(ListingModel.property_type == filters.property_type)
         
-        # Room count filters
-        query = query.where(ListingModel.rooms_count >= filters.rooms_min)
-        query = query.where(ListingModel.rooms_count <= filters.rooms_max)
+        # Price filters
+        if hasattr(filters, 'price_min') and filters.price_min is not None:
+            query = query.where(ListingModel.price >= filters.price_min)
+        if hasattr(filters, 'price_max') and filters.price_max is not None:
+            query = query.where(ListingModel.price <= filters.price_max)
+        
+        # Room count filters  
+        if hasattr(filters, 'rooms_min') and filters.rooms_min is not None:
+            query = query.where(ListingModel.rooms_count >= filters.rooms_min)
+        if hasattr(filters, 'rooms_max') and filters.rooms_max is not None:
+            query = query.where(ListingModel.rooms_count <= filters.rooms_max)
         
         # Size filters
-        query = query.where(ListingModel.square_meter >= filters.size_min)
-        query = query.where(ListingModel.square_meter <= filters.size_max)
+        if hasattr(filters, 'size_min') and filters.size_min is not None:
+            query = query.where(ListingModel.square_meter >= filters.size_min)
+        if hasattr(filters, 'size_max') and filters.size_max is not None:
+            query = query.where(ListingModel.square_meter <= filters.size_max)
         
-        # Options/tags filter
-        if filters.options:
+        # Options/tags filter with English-to-Hebrew mapping
+        if filters.options and filters.options.strip():
+            from src.utils.tag_mapping import map_english_to_hebrew_tags
+            
             options_list = filters.options.split(',')
-            for option in options_list:
-                query = query.join(
-                    listing_tags_association,
-                    ListingModel.listing_id == listing_tags_association.c.listing_id
-                ).join(
-                    Tag,
-                    Tag.tag_id == listing_tags_association.c.tag_id
-                ).where(Tag.tag_name.ilike(f"%{option.strip()}%"))
+            english_options = [option.strip() for option in options_list if option.strip()]
+            hebrew_options = map_english_to_hebrew_tags(english_options)
+            
+            logger.info(f"Mapping tags: {english_options} -> {hebrew_options}")
+            
+            # Apply each option filter separately with proper joins
+            for option in hebrew_options:
+                if option:
+                    # Use subquery to avoid multiple joins on same table
+                    # Use exact match for Hebrew tags
+                    tag_subquery = (
+                        select(listing_tags_association.c.listing_id)
+                        .join(Tag, Tag.tag_id == listing_tags_association.c.tag_id)
+                        .where(Tag.tag_name == option)
+                    )
+                    query = query.where(ListingModel.listing_id.in_(tag_subquery))
         
         # Filter out recently viewed listings
         if filter_viewed:
@@ -118,7 +132,8 @@ async def get_listings(
             selectinload(ListingModel.images), 
             selectinload(ListingModel.tags),
             selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.property_condition),
-            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood)
+            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood).selectinload(NeighborhoodModel.metrics),
+            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood).selectinload(NeighborhoodModel.meta_data)
         ).limit(limit)
         
         result = await db.execute(query)
@@ -276,7 +291,8 @@ async def get_listing_by_id(
             selectinload(ListingModel.images),
             selectinload(ListingModel.tags),
             selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.property_condition),
-            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood)
+            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood).selectinload(NeighborhoodModel.metrics),
+            selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood).selectinload(NeighborhoodModel.meta_data)
         )
     )
     

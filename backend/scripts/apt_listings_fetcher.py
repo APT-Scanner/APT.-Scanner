@@ -10,7 +10,12 @@ import time
 scraper = Yad2Scraper()
 neighborhoods_to_fetch = []
 
-with open('backend/data/sources/yad2_hood_mapping.json', 'r', encoding='utf-8') as file:
+# Get the correct path relative to this script's location
+script_dir = os.path.dirname(os.path.abspath(__file__))
+backend_dir = os.path.dirname(script_dir)
+mapping_file_path = os.path.join(backend_dir, 'data', 'sources', 'yad2_hood_mapping.json')
+
+with open(mapping_file_path, 'r', encoding='utf-8') as file:
     hood_mapping = json.load(file)
     for hood in hood_mapping:
         neighborhoods_to_fetch.append(hood['hoodId'])

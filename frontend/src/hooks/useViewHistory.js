@@ -143,7 +143,7 @@ export const useViewHistory = () => {
         if (!apartments || !Array.isArray(apartments)) return [];
         
         return apartments.filter(
-            apartment => !hasBeenViewedRecently(apartment.order_id)
+            apartment => !hasBeenViewedRecently(apartment.listing_id)
         );
     }, [hasBeenViewedRecently]);
 

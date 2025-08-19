@@ -2,19 +2,14 @@ import React, { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import {
   signInWithEmailAndPassword,
-  signInWithPopup,
-  GoogleAuthProvider,
-  FacebookAuthProvider,
 } from "firebase/auth";
 import styles from "../styles/LoginPage.module.css";
 import { auth } from "../config/firebase";
-import { FaFacebook, FaGoogle } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import { useQuestionnaireStatus } from "../hooks/useQuestionnaireStatus";
 import { LoadingSpinner } from "../components/LoadingSpinner";
 
 const LoginPage = () => {
-  const [view, setView] = useState("options");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -24,17 +19,7 @@ const LoginPage = () => {
 
 
   const handleNavigateBack = () => {
-    if (view == "emailLoginForm") {
-      setView("options");
-      setError("");
-    } else {
-      navigate(-1);
-    }
-  };
-
-  const handleContinueWithEmail = () => {
-    setView("emailLoginForm");
-    setError("");
+    navigate(-1);
   };
 
   const handleEmailLogin = async (e) => {
@@ -74,74 +59,8 @@ const LoginPage = () => {
     }
   };
 
-  const handleSocialLogin = async (providerName) => {
-    setError("");
-    setIsLoading(true);
-    let provider;
 
-    if (providerName === "google") {
-      provider = new GoogleAuthProvider();
-    } else if (providerName === "facebook") {
-      provider = new FacebookAuthProvider();
-    } else {
-      setError("Unknown Provider");
-      setIsLoading(false);
-      return;
-    }
-
-    try {
-      const result = await signInWithPopup(auth, provider);
-      console.log(`${providerName} Sign-in successful:`, result.user);
-      
-      // Check questionnaire status using hook
-      const isComplete = await checkStatus(result.user);
-      
-      if (isComplete) {
-        navigate("/apartment-swipe");
-      } else {
-        navigate("/get-started");
-      }
-      
-    } catch (error) {
-      setIsLoading(false);
-      console.error(`${providerName} Sign-in error:`, error.code, error.message);
-      
-      if (error.code === "auth/popup-closed-by-user") {
-        setError("Login process cancelled.");
-      } else if (error.code === "auth/account-exists-with-different-credential") {
-        setError("An account already exists with the same email address but different sign-in credentials. Sign in using a provider associated with this email address.");
-      } else {
-        setError(`${providerName} login failed. Please try again.`);
-      }
-    }
-  };
-
-  const renderOptionsView = () => (
-    <>
-      <h2 className={styles.subtitle}>Welcome back!</h2>
-
-      <button className={styles.emailButton} onClick={handleContinueWithEmail}>
-        Continue with email
-      </button>
-
-      <div className={styles.orSeparator}>or</div>
-
-      <button
-        className={styles.socialButton}
-        onClick={() => handleSocialLogin("facebook")}
-      >
-        <FaFacebook className={styles.socialIcon} /> Continue with Facebook
-      </button>
-      <button
-        className={styles.socialButton}
-        onClick={() => handleSocialLogin("google")}
-      >
-        <FaGoogle className={styles.socialIcon} /> Continue with Google
-      </button>
-    </>
-  );
-
-  const renderEmailFormView = () => (
+  const renderLoginForm = () => (
     <form onSubmit={handleEmailLogin} className={styles.loginForm}>
       <div className={styles.inputGroup}>
         <label htmlFor="email" className={styles.label}>
@@ -198,7 +117,7 @@ const LoginPage = () => {
           <IoMdArrowBack size={24}/>
         </button>
         <h1 className={styles.title}>Log in to your account</h1>
-        {view === "options" ? renderOptionsView() : renderEmailFormView()}
+        {renderLoginForm()}
         <p className={styles.disclaimer}>
           By using APT. Scanner, you agree to the
           <br />
