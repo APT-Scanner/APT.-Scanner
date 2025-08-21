@@ -528,6 +528,44 @@ class Yad2Scraper:
         except Exception as e:
             print(f"An unexpected error occurred: {e}")
             return None
+
+    @staticmethod
+    def get_attributes(yad2_url_token: str) -> Dict[str, Any]:
+        """
+        Get the attributes from the yad2 api
+        """
+        url = f"https://www.yad2.co.il/realestate/item/{yad2_url_token}"
+        payload = {
+            'api_key': os.getenv("SCRAPEOWL_API_KEY"),
+            'url': url,
+            'json_response': False,
+        }
+        response = requests.post("https://api.scrapeowl.com/v1/scrape", json=payload)
+        
+        if response.status_code != 200:
+            print(f"Error fetching page: {response.status_code}")
+            return {}
+        soup = BeautifulSoup(response.content, 'html.parser')
+        description_tag = soup.find('meta', attrs={'name': 'description'})
+        description = description_tag['content'] if description_tag else "לא נמצא תיאור"
+        features_section = soup.find('ul', class_='in-property-grid_inPropertyGridBox__YYDbV')
+        active_features = []
+
+        if features_section:
+            all_li_items = features_section.find_all('li', attrs={'data-testid': 'in-property-item'})
+
+            for item in all_li_items:
+                text_span = item.find('span', class_='in-property-item_text__aLvx0')
+                if text_span:
+                    feature_text = text_span.get_text(strip=True)
+
+                    if not 'in-property-item_disabled__gc5Gt' in item.get('class', []):
+                        active_features.append(feature_text)
+
+        return {
+            'description': description,
+            'active_features': active_features,
+        }
         
 def is_listing_still_alive(token: str):
     url = f"https://www.yad2.co.il/realestate/item/{token}"

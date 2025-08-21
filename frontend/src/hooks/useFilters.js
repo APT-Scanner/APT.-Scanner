@@ -54,20 +54,23 @@ export const useFilters = () => {
                     city: backendFilters.city || defaultFilters.city,
                     neighborhood: backendFilters.neighborhood || defaultFilters.neighborhood,
                     propertyType: backendFilters.property_type || defaultFilters.propertyType,
-                    priceMin: backendFilters.price_min || defaultFilters.priceMin,
-                    priceMax: backendFilters.price_max || defaultFilters.priceMax,
-                    roomsMin: backendFilters.rooms_min || defaultFilters.roomsMin,
-                    roomsMax: backendFilters.rooms_max || defaultFilters.roomsMax,
-                    sizeMin: backendFilters.size_min || defaultFilters.sizeMin,
-                    sizeMax: backendFilters.size_max || defaultFilters.sizeMax,
+                    // Handle both backend format (price_min) and alias format (priceMin)
+                    priceMin: backendFilters.priceMin || backendFilters.price_min || defaultFilters.priceMin,
+                    priceMax: backendFilters.priceMax || backendFilters.price_max || defaultFilters.priceMax,
+                    roomsMin: backendFilters.roomsMin || backendFilters.rooms_min || defaultFilters.roomsMin,
+                    roomsMax: backendFilters.roomsMax || backendFilters.rooms_max || defaultFilters.roomsMax,
+                    sizeMin: backendFilters.sizeMin || backendFilters.size_min || defaultFilters.sizeMin,
+                    sizeMax: backendFilters.sizeMax || backendFilters.size_max || defaultFilters.sizeMax,
                     options: backendFilters.options 
                         ? (typeof backendFilters.options === 'string' 
                             ? backendFilters.options.split(',').filter(Boolean)
                             : backendFilters.options)
                         : defaultFilters.options
                 };
+                console.log('📨 Backend returned priceMax:', backendFilters.priceMax);
+                console.log('🔄 Converted to frontend priceMax:', frontendFilters.priceMax);
                 setFilters(frontendFilters);
-                console.log('Loaded filters from backend:', frontendFilters);
+                console.log('✓ Loaded filters from backend:', frontendFilters);
             } else {
                 // Fallback to localStorage
                 const storageKey = `apartmentFilters-${userId}`;
@@ -123,6 +126,8 @@ export const useFilters = () => {
                     : filtersToSave.options
             };
 
+            console.log("💾 Saving to backend - price_max:", backendFilters.price_max);
+            
             // Try to save to backend first
             const response = await fetch(`${BACKEND_URL}/filters/`, {
                 method: 'PUT',
@@ -134,9 +139,11 @@ export const useFilters = () => {
             });
 
             if (response.ok) {
-                console.log('Filters saved to backend successfully');
+                console.log('✓ Filters saved to backend successfully');
             } else {
-                console.warn('Failed to save filters to backend, using localStorage fallback');
+                console.warn('✗ Failed to save filters to backend, using localStorage fallback');
+                console.log('Response status:', response.status);
+                console.log('Response text:', await response.text());
             }
         } catch (err) {
             console.error('Error saving filters to backend:', err);
@@ -166,8 +173,10 @@ export const useFilters = () => {
 
     // Update filter function
     const updateFilter = useCallback((newFilter) => {
+        console.log("🔄 updateFilter called - priceMax:", newFilter.priceMax);
         setFilters((prev) => {
             const updated = { ...prev, ...newFilter };
+            console.log("✅ Updated filters - priceMax:", updated.priceMax);
             saveFilters(updated);
             // Invalidate cached params when filters change
             filterParamsRef.current = null;

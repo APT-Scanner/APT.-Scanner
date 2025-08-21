@@ -13,8 +13,8 @@ from src.database.models import (
     ListingMetadata as ListingMetadataModel,
     Neighborhood as NeighborhoodModel, 
     ViewHistory as ViewHistoryModel,
-    Tag,
-    listing_tags_association
+    Attribute,
+    listing_attributes_association
 )
 from src.database.schemas import ListingSchema, ViewHistoryCreate, ViewHistorySchema, UserFiltersBase
 from src.middleware.auth import get_current_user
@@ -39,7 +39,7 @@ async def get_listings(
     """
     Retrieves all listings from the database with optional filtering.
     """
-    logger.info(f"Fetching listings with filters: {filters.dict()}")
+    logger.info(f"Fetching listings with filters: {filters.model_dump()}")
     
     try:
         # Join with ListingMetadata to access is_active and neighborhood info
@@ -86,27 +86,28 @@ async def get_listings(
         if hasattr(filters, 'size_max') and filters.size_max is not None:
             query = query.where(ListingModel.square_meter <= filters.size_max)
         
-        # Options/tags filter with English-to-Hebrew mapping
+        # Options/attributes filter with English-to-Hebrew mapping
         if filters.options and filters.options.strip():
-            from src.utils.tag_mapping import map_english_to_hebrew_tags
-            
+                
             options_list = filters.options.split(',')
             english_options = [option.strip() for option in options_list if option.strip()]
-            hebrew_options = map_english_to_hebrew_tags(english_options)
-            
-            logger.info(f"Mapping tags: {english_options} -> {hebrew_options}")
             
             # Apply each option filter separately with proper joins
-            for option in hebrew_options:
+            for option in english_options:
                 if option:
                     # Use subquery to avoid multiple joins on same table
-                    # Use exact match for Hebrew tags
-                    tag_subquery = (
-                        select(listing_tags_association.c.listing_id)
-                        .join(Tag, Tag.tag_id == listing_tags_association.c.tag_id)
-                        .where(Tag.tag_name == option)
+                    # Use exact match for Hebrew attributes
+                    attribute_subquery = (
+                        select(listing_attributes_association.c.listing_id)
+                        .select_from(
+                            listing_attributes_association.join(
+                                Attribute, 
+                                Attribute.attribute_id == listing_attributes_association.c.attribute_id
+                            )
+                        )
+                        .where(Attribute.attribute_name == option)
                     )
-                    query = query.where(ListingModel.listing_id.in_(tag_subquery))
+                    query = query.where(ListingModel.listing_id.in_(attribute_subquery))
         
         # Filter out recently viewed listings
         if filter_viewed:
@@ -130,7 +131,7 @@ async def get_listings(
         # Add relationships for complete listing data
         query = query.options(
             selectinload(ListingModel.images), 
-            selectinload(ListingModel.tags),
+            selectinload(ListingModel.attributes),
             selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.property_condition),
             selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood).selectinload(NeighborhoodModel.metrics),
             selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood).selectinload(NeighborhoodModel.meta_data)
@@ -289,7 +290,7 @@ async def get_listing_by_id(
         .where(ListingModel.listing_id == listing_id)
         .options(
             selectinload(ListingModel.images),
-            selectinload(ListingModel.tags),
+            selectinload(ListingModel.attributes),
             selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.property_condition),
             selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood).selectinload(NeighborhoodModel.metrics),
             selectinload(ListingModel.listing_metadata).selectinload(ListingMetadataModel.neighborhood).selectinload(NeighborhoodModel.meta_data)

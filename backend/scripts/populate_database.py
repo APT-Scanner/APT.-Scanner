@@ -1,14 +1,21 @@
 import json
 import csv
 import os
+import sys
 import psycopg2
 from psycopg2.extras import execute_values, RealDictCursor
 import logging
 from dotenv import load_dotenv
 from typing import Set
+
+# Add the backend directory to Python path so we can import from src
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(backend_dir)
+
+from src.utils.attributes_mapping import ATTRIBUTE_ID_MAPPING
         
 # Load environment variables
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))  # .../backend
+BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__))) 
 env_path = os.path.join(BASE_DIR, ".env")
 load_dotenv(dotenv_path=env_path)
 
@@ -49,73 +56,6 @@ def safe_int(value, default=None):
     except (ValueError, TypeError):
         return default
 
-def populate_lookups(conn):
-    """Populates the lookup tables (conditions, tags)."""
-    if not conn:
-        logger.error("Cannot populate lookups: No database connection.")
-        return
-    cursor = conn.cursor()
-    try:
-        logger.info("Populating/Updating lookup tables (conditions, tags)...")
-
-        # --- Property Conditions ---
-        conditions = [
-            (1, 'לא משופץ', 'Not Renovated'),
-            (2, 'משופץ', 'Renovated'),
-            (3, 'מצב טוב', 'Good Condition'),
-            (6, 'חדש מקבלן', 'New from Contractor'),
-            (4, 'שמור', 'Well-Kept'),
-            (5, 'דורש שיפוץ', 'Needs Renovation')
-        ]
-        execute_values(cursor,
-                       "INSERT INTO property_conditions (condition_id, condition_name_he, condition_name_en) VALUES %s ON CONFLICT (condition_id) DO NOTHING",
-                       conditions)
-        logger.debug(f"Processed {len(conditions)} property conditions.")
-
-        # --- Tags ---
-        # Existing manual tags  
-        existing_tags = [
-            (1007, '3 כיווני אוויר'), (1023, 'קרוב לפארק'), (1091, 'בהזדמנות'),
-            (1006, 'נוף פתוח לעיר'), (1002, 'נכס עורפי'), (1019, 'משופצת אדריכלית'),
-            (1018, 'בניין משופץ'), (1020, 'מטבח גדול'), (1092, 'חבל לפספס'),
-            (1009, 'ממ"ד'), (1004, 'נוף פתוח לים'), (1005, 'נוף פתוח לפארק'),
-            (1017, 'קרוב לים'), (1003, 'חניה'), (1012, '2 מרפסות'),
-            (1021, 'גמיש במחיר'), (1010, '3 חדרי מקלחת'),
-            (1093, 'ייחודי'), (1016, 'אחריי להתחדשות עירונית'), (1000, 'חדש מקבלן'),
-            (1008, '4 כיווני אוויר'),(1001, 'נכס חדש'),(1011, '4 חדרי מקלחת')
-        ]
-        
-        # Additional Yad2 feature tags (using IDs from 2000+ to avoid conflicts)
-        yad2_feature_tags = [
-            (2001, 'מעלית'),           # elevator  
-            (2002, 'מיזוג'),           # airConditioner
-            (2003, 'מרפסת'),          # balcony
-            (2004, 'סורגים'),         # bars  
-            (2005, 'מחסן'),           # warehouse
-            (2006, 'גישה לנכים'),     # accessibility
-            (2007, 'משופץ'),          # renovated (general)
-            (2008, 'מרוהט'),          # furniture
-            (2009, 'חיות מחמד'),      # pets  
-            (2010, 'לשותפים'),        # forPartners
-            (2011, 'נכס בלעדי'),      # assetExclusive
-        ]
-        
-        # Combine all tags
-        tags = existing_tags + yad2_feature_tags
-        execute_values(cursor,
-                       "INSERT INTO tags (tag_id, tag_name) VALUES %s ON CONFLICT (tag_id) DO NOTHING",
-                       tags)
-        logger.debug(f"Processed {len(tags)} tags.")
-        logger.debug(f"Tags: {tags}")
-
-        conn.commit()
-        logger.info("Lookup tables updated successfully.")
-    except psycopg2.Error as e:
-        conn.rollback()
-        logger.exception(f"Error updating lookup tables: {e}")
-    finally:
-        if cursor:
-            cursor.close()
 
 def populate_neighborhoods(conn):
     """Loads data from CSV and JSON mapping, populates the neighborhoods, neighborhood_metrics, and neighborhood_metadata tables."""
@@ -328,7 +268,7 @@ def fetch_existing_ids(conn, table, column) -> Set:
         cur.execute(f"SELECT {column} FROM {table}")
         return {row[0] for row in cur.fetchall()}
     
-def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags_list, conn, variant_to_canonical_map):
+def insert_listings(cursor, listings_list, neighborhood_name_to_id, conn, variant_to_canonical_map):
     """Inserts listings into the database using the new schema with separate Listing and ListingMetadata tables."""
     logger.info(f"Processing {len(listings_list)} listings for DB update/insert...")
     listings_to_insert_update = []
@@ -344,7 +284,7 @@ def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags
     if listings_to_insert_update:
         # Prepare data for main listings table
         listing_cols = [
-            'listing_id', 'yad2_url_token', 'price', 'property_type', 
+            'listing_id', 'yad2_url_token', 'price', 'property_type',
             'rooms_count', 'square_meter', 'street', 'house_number', 
             'floor', 'longitude', 'latitude'
         ]
@@ -353,9 +293,18 @@ def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags
         # Prepare data for listing_metadata table
         metadata_cols = [
             'listing_id', 'neighborhood_id', 'category_id', 'subcategory_id',
-            'ad_type', 'property_condition_id', 'cover_image_url', 'video_url', 'is_active'
+            'ad_type', 'property_condition_id', 'cover_image_url', 'video_url', 'description', 'is_active'
         ]
         metadata_tuples = [[l.get(col) for col in metadata_cols] for l in listings_to_insert_update]
+
+        # Prepare data for listing_attributes table
+        attributes_cols = [
+            'listing_id', 'attribute_id'
+        ]
+        attributes_tuples = []
+        for listing in listings_to_insert_update:
+            for attribute in listing.get('attributes', []):
+                attributes_tuples.append((listing['listing_id'], ATTRIBUTE_ID_MAPPING[attribute]))
         
         try:
             # Insert into main listings table
@@ -381,6 +330,18 @@ def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags
                 ON CONFLICT (listing_id) DO UPDATE SET {metadata_update_set_sql}
             """
             cursor.executemany(sql_metadata, metadata_tuples)
+
+            # Insert into listing_attributes table (each attribute is a separate col and the value is true or false)
+            for listing in listings_to_insert_update:
+                for attribute in listing.get('attributes', []):
+                    attributes_tuples.append((listing['listing_id'], ATTRIBUTE_ID_MAPPING[attribute]))
+            attributes_cols_sql = ", ".join(attributes_cols)
+            attributes_placeholders = ", ".join(["%s"] * len(attributes_cols))
+            sql_attributes = f"""
+                INSERT INTO listing_attributes ({attributes_cols_sql}) VALUES ({attributes_placeholders})
+                ON CONFLICT (listing_id, attribute_id) DO NOTHING
+            """
+            cursor.executemany(sql_attributes, attributes_tuples)
             
             logger.info(f"Upserted {processed_listings_count} listings ({unmapped_listings_count} remain unmapped).")
             
@@ -401,19 +362,14 @@ def insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags
                     except Exception as ce:
                         logger.exception(f"Error fixing property_condition_id: {ce}")
 
-                elif "tag_id" in str(e):
-                    try:
-                        valid_ids = fetch_existing_ids(conn, "tags", "tag_id")
-                        listing_tags_list[:] = [lt for lt in listing_tags_list if lt.get("tag_id") in valid_ids]
-                    except Exception as ce:
-                        logger.exception(f"Error fixing tag_id: {ce}")
-
                 # Attempt second insert with fixed data
                 listing_tuples = [[l.get(col) for col in listing_cols] for l in listings_to_insert_update]
                 metadata_tuples = [[l.get(col) for col in metadata_cols] for l in listings_to_insert_update]
+                attributes_tuples = [[l.get(col) for col in attributes_cols] for l in listings_to_insert_update]
                 try:
                     cursor.executemany(sql_listings, listing_tuples)
                     cursor.executemany(sql_metadata, metadata_tuples)
+                    cursor.executemany(sql_attributes, attributes_tuples)
                     conn.commit()
                     logger.info("Retry successful after FK fix.")
                 except Exception as retry_e:
@@ -436,27 +392,9 @@ def insert_images(cursor, images_list):
                         img_tuples, page_size=500)
             logger.debug("Image insertion attempt complete.")
 
-def insert_listing_tags(cursor, listing_tags_list):
-    """Inserts listing-tag relationships into the database using the association table."""
-    if listing_tags_list:
-        logger.info(f"Inserting {len(listing_tags_list)} listing-tag relationships...")
-        lt_tuples = [(lt.get('listing_id'), lt.get('tag_id'))
-                        for lt in listing_tags_list if lt.get('listing_id') and lt.get('tag_id')]
-        if lt_tuples:
-            try:
-                execute_values(cursor,
-                                "INSERT INTO listing_tags (listing_id, tag_id) VALUES %s ON CONFLICT (listing_id, tag_id) DO NOTHING",
-                                lt_tuples, page_size=1000)
-                logger.debug("Listing-tag insertion attempt complete.")
-            except Exception as e:
-                logger.exception(f"Error during listing-tag insertion: {e}")
-                logger.debug(f"Second attempt to insert listing-tag relationships: {lt_tuples}")
-                execute_values(cursor,
-                                "INSERT INTO listing_tags (listing_id, tag_id) VALUES %s ON CONFLICT (listing_id, tag_id) DO NOTHING",
-                                lt_tuples, page_size=1000)
 
 def populate_listings(listings_data):
-    """Loads listing data and populates listings, images, and listing_tags tables, using pre-mapping for variants."""
+    """Loads listing data and populates listings, images, and listing_attributes tables, using pre-mapping for variants."""
 
     conn = get_db_connection()
     if not conn:
@@ -465,7 +403,6 @@ def populate_listings(listings_data):
 
     listings_list = listings_data.get('listings', [])
     images_list = listings_data.get('images', [])
-    listing_tags_list = listings_data.get('listing_tags', [])
 
     if not listings_list:
         logger.info("No valid listing data found to process.")
@@ -481,9 +418,8 @@ def populate_listings(listings_data):
 
     cursor = conn.cursor()
     try:
-        insert_listings(cursor, listings_list, neighborhood_name_to_id, listing_tags_list, conn, variant_to_canonical_map)
+        insert_listings(cursor, listings_list, neighborhood_name_to_id, conn, variant_to_canonical_map)
         insert_images(cursor, images_list)
-        insert_listing_tags(cursor, listing_tags_list)
         conn.commit() 
         logger.info("Listing, image, and tag data committed successfully.")
     finally:

@@ -1,9 +1,12 @@
-from populate_database import populate_listings
 import os
 import sys
+
+# Add the backend directory to Python path first
 sys.path.append(os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
+from populate_database import populate_listings
 from data.scrapers.yad2_scraper import Yad2Scraper
-from data.processing.parse_listings import parse_listings
+from data.processing.parse_listings import parse_listings, enrich_listings
 import json
 import time
 
@@ -32,6 +35,7 @@ for hood_id in neighborhoods_to_fetch:
     try:
         results = scraper.scrape_apt_listing(num_requested_pages=1, **direct_params)
         parsed_results = parse_listings(results)
+        enriched_results = enrich_listings(parsed_results['listings'])
         populate_listings(parsed_results)
         print(f"Finished fetching listings for hood {hood_id}")
         time.sleep(3)

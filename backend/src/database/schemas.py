@@ -1,5 +1,6 @@
 """Schemas for the API."""
-from pydantic import BaseModel, Field, conint, ConfigDict, EmailStr
+from pydantic import BaseModel, Field, ConfigDict, EmailStr
+from typing import Annotated
 from typing import Optional, List, Any, Dict
 from datetime import datetime
 from decimal import Decimal 
@@ -33,9 +34,9 @@ class PropertyConditionSchema(BaseModel):
     condition_name_en: Optional[str] = None
     model_config = ConfigDict(from_attributes=True)
 
-class TagSchema(BaseModel):
-    tag_id: int
-    tag_name: str
+class AttributeSchema(BaseModel):
+    attribute_id: int
+    attribute_name: str
     model_config = ConfigDict(from_attributes=True)
 
 class ImageSchema(BaseModel):
@@ -92,6 +93,7 @@ class ListingMetadataSchema(BaseModel):
     property_condition_id: Optional[int] = None
     cover_image_url: Optional[str] = None
     video_url: Optional[str] = None
+    description: Optional[str] = None
     is_active: bool
     created_at: datetime
     updated_at: datetime
@@ -114,12 +116,13 @@ class ListingSchema(BaseModel):
     
     # Fields from ListingMetadata
     cover_image_url: Optional[str] = None
+    description: Optional[str] = None
     is_active: Optional[bool] = True
 
     neighborhood: Optional[NeighborhoodSchema] = None
     property_condition: Optional[PropertyConditionSchema] = None
     images: List[ImageSchema] = []
-    tags: List[TagSchema] = []
+    attributes: List[AttributeSchema] = []
 
     model_config = ConfigDict(from_attributes=True)
 
@@ -160,7 +163,7 @@ class QuestionnaireAnswers(BaseModel):
     commute_pref_wfh: Optional[bool] = None
     proximity_pref_shops: Optional[bool] = None
     proximity_pref_gym: Optional[bool] = None
-    max_commute_time: Optional[conint(ge=5, le=120)] = None
+    max_commute_time: Optional[Annotated[int, Field(ge=5, le=120)]] = None
     dog_park_nearby: Optional[YesNoPref] = None
     learning_space_nearby: Optional[YesNoPref] = None
     proximity_beach_importance: Optional[ImportanceScale] = None

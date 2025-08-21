@@ -2,7 +2,7 @@ import {useState, useEffect} from 'react';
 import { useAuth } from './useAuth';
 import { BACKEND_URL } from '../config/constants';
 
-export const useApartment = (order_id) => {
+export const useApartment = (listing_id) => {
     const [apartment, setApartment] = useState(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
@@ -24,7 +24,7 @@ export const useApartment = (order_id) => {
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch(`${BACKEND_URL}/listings/${order_id}`, {
+                const response = await fetch(`${BACKEND_URL}/listings/${listing_id}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,
@@ -48,7 +48,7 @@ export const useApartment = (order_id) => {
         };
 
         fetchApartment();
-    }, [idToken, order_id, authLoading]);
+    }, [idToken, listing_id, authLoading]);
 
     return { apartment, loading, error };
 };

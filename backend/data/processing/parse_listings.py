@@ -1,5 +1,13 @@
 import json
 import os
+import sys
+
+# Add the backend directory to Python path
+backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+sys.path.append(backend_dir)
+
+from data.scrapers.yad2_scraper import Yad2Scraper
+from src.utils.attributes_mapping import ATTRIBUTE_EN_TO_HE_MAPPING, map_hebrew_to_english_attributes
 
 # --- Configuration & Helper Data ---
 
@@ -27,18 +35,15 @@ def parse_listings(raw_data):
 
     Returns:
         dict: A dictionary containing lists of structured data for each table:
-              {'listings': [], 'images': [], 'tags': [], 'listing_tags': [],
+              {'listings': [], 'images': [],
                'property_conditions': []}
               Returns None if the file cannot be read or parsed.
     """
 
     listings_data = []
     images_data = []
-    tags_data = []
-    listing_tags_data = []
     property_conditions_data = []
 
-    processed_tag_ids = set()
     processed_condition_ids = set()
 
     print(f"Processing {len(raw_data)} raw listings...")
@@ -124,6 +129,7 @@ def parse_listings(raw_data):
             'floor': house_info.get('floor'),
             'longitude': coords_info.get('lon'),
             'latitude': coords_info.get('lat'),
+            'attributes': [],  # Initialize empty attributes list for enrich_listings function
         }
         listings_data.append(listing_entry)
 
@@ -137,22 +143,6 @@ def parse_listings(raw_data):
                         'image_url': img_url
                     })
 
-        # Extract Tags
-        listing_tags = listing.get('tags', [])
-        if isinstance(listing_tags, list):
-            for tag in listing_tags:
-                tag_id = tag.get('id')
-                tag_name = tag.get('name')
-                if tag_id is not None and tag_name is not None:
-                    if tag_id >= 1200:
-                        tag_id = tag_id - 200
-                    if tag_id not in processed_tag_ids:
-                        tags_data.append({'tag_id': tag_id, 'tag_name': tag_name})
-                        processed_tag_ids.add(tag_id)
-                    listing_tags_data.append({
-                        'listing_id': order_id,
-                        'tag_id': tag_id,
-                    })
 
         # Extract Property Condition
         condition_id = condition_info.get('id')
@@ -175,8 +165,25 @@ def parse_listings(raw_data):
     return {
         'listings': listings_data,
         'images': images_data,
-        'tags': tags_data,
-        'listing_tags': listing_tags_data,
         'property_conditions': property_conditions_data
     }
+
+
+def enrich_listings(listings_data):
+    """
+    Enrich the listings data with the attributes from the yad2 api
+    """
+    scraper = Yad2Scraper()
+    for listing in listings_data:
+        result = scraper.get_attributes(listing['yad2_url_token'])
+        listing['description'] = result['description']
+        active_features = result['active_features']
+        
+        # Map Hebrew features to English attributes
+        english_attributes = map_hebrew_to_english_attributes(active_features)
+        listing['attributes'].extend(english_attributes)
+        
+    return listings_data
+
+
 

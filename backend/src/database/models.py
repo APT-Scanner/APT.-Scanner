@@ -15,12 +15,12 @@ from .postgresql_db import Base
 
 
 # Define the association table for the Many-to-Many relationship
-# between listings and tags using SQLAlchemy Core Table object
-listing_tags_association = Table(
-    "listing_tags",
+# between listings and attributes using SQLAlchemy Core Table object
+listing_attributes_association = Table(
+    "listing_attributes",
     Base.metadata, 
     Column("listing_id", BIGINT, ForeignKey("listings.listing_id", ondelete="CASCADE"), primary_key=True),
-    Column("tag_id", Integer, ForeignKey("tags.tag_id", ondelete="CASCADE"), primary_key=True),
+    Column("attribute_id", Integer, ForeignKey("attributes.attribute_id", ondelete="CASCADE"), primary_key=True),
 )
 
 # --- Lookup Tables Models ---
@@ -33,20 +33,6 @@ class PropertyCondition(Base):
 
     def __repr__(self):
         return f"<PropertyCondition(id={self.condition_id}, name_en='{self.condition_name_en}')>"
-
-class Tag(Base):
-    __tablename__ = "tags"
-
-    tag_id: Mapped[int] = mapped_column(Integer, primary_key=True)
-    tag_name: Mapped[str] = mapped_column(String(100), nullable=False)
-
-    # Many-to-Many relationship to Listings through the association table
-    listings: Mapped[List["Listing"]] = relationship(
-        secondary=listing_tags_association, back_populates="tags"
-    )
-
-    def __repr__(self):
-        return f"<Tag(id={self.tag_id}, name='{self.tag_name}')>"
 
 # --- Main Tables Models ---
 class Neighborhood(Base):
@@ -122,6 +108,7 @@ class ListingMetadata(Base):
     property_condition_id: Mapped[Optional[int]] = mapped_column(Integer, ForeignKey("property_conditions.condition_id", ondelete="CASCADE"))
     cover_image_url: Mapped[Optional[str]] = mapped_column(TEXT)
     video_url: Mapped[Optional[str]] = mapped_column(TEXT)
+    description: Mapped[Optional[str]] = mapped_column(TEXT)
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
     
     created_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now())
@@ -154,9 +141,9 @@ class Listing(Base):
     # One-to-Many relationship to Images
     images: Mapped[List["Image"]] = relationship(back_populates="listing", cascade="all, delete-orphan")
 
-    # Many-to-Many relationship to Tags
-    tags: Mapped[List["Tag"]] = relationship(
-        secondary=listing_tags_association, back_populates="listings"
+    # Many-to-Many relationship to Attributes
+    attributes: Mapped[List["Attribute"]] = relationship(
+        secondary=listing_attributes_association, back_populates="listings"
     )
 
     # One-to-One relationship to ListingMetadata
@@ -177,6 +164,11 @@ class Listing(Base):
     def cover_image_url(self) -> Optional[str]:
         """Get cover image URL from metadata."""
         return self.listing_metadata.cover_image_url if self.listing_metadata else None
+
+    @property
+    def description(self) -> Optional[str]:
+        """Get description from metadata."""
+        return self.listing_metadata.description if self.listing_metadata else None
 
     @property 
     def is_active(self) -> bool:
@@ -389,3 +381,19 @@ class UserPreferenceVector(Base):
     
     def __repr__(self):
         return f"<UserPreferenceVector(user_id='{self.user_id}', version={self.questionnaire_version})>"
+
+
+
+class Attribute(Base):
+    __tablename__ = "attributes"
+    
+    attribute_id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    attribute_name: Mapped[str] = mapped_column(String(100), nullable=False)
+    
+    # Relationships
+    listings: Mapped[List["Listing"]] = relationship(
+        secondary=listing_attributes_association, back_populates="attributes"
+    )
+
+    def __repr__(self):
+        return f"<Attribute(id={self.attribute_id}, name='{self.attribute_name}')>"

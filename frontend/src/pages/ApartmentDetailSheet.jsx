@@ -66,11 +66,13 @@ const ApartmentDetailSheet = ({ apartment }) => {
 
     return (
             <div className={styles.content}>
-            <div className={styles.header}>
-                <h3 className={styles.sectionTitle}>General Information</h3>
-                <div style={{marginBottom: '10px'}}>
-                    <a href={`https://www.yad2.co.il/realestate/item/${apartment.token}`} target="_blank" rel="noopener noreferrer">Go to Yad2 to see contact details</a>
+                <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>Description</h3>
+                    <p className={styles.descriptionText}>{apartment.description}</p>
+                    <a href={`https://www.yad2.co.il/realestate/item/${apartment.yad2_url_token}`} target="_blank" rel="noopener noreferrer">Go to Yad2 to see contact details</a>
                 </div>
+                <div className={styles.section}>
+                    <h3 className={styles.sectionTitle}>General Information</h3>
                 <h3 className={styles.address}>
                     <Landmark size={16} className={styles.headerIcon} />
                     {`City: ${apartment.neighborhood.city || ''}`}
@@ -91,7 +93,7 @@ const ApartmentDetailSheet = ({ apartment }) => {
                     <Layers3 size={16} className={styles.headerIcon} />
                     {`Floor: ${apartment.floor || ''}`}
                 </h3>
-            </div>
+                </div>
 
             <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>Key Specifications</h3>
@@ -171,22 +173,16 @@ const ApartmentDetailSheet = ({ apartment }) => {
 
             <div className={styles.section}>
                 <h3 className={styles.sectionTitle}>Amenities</h3>
-                {apartment.tags && (
+                {apartment.attributes && apartment.attributes.length > 0 ? (
                     <div className={styles.tagList}>
-                        {apartment.tags.map((tag) => (
-                            <span key={tag.tag_id} className={styles.tag}>{tag.tag_name}</span>
+                        {apartment.attributes.map((attribute) => (
+                            <span key={attribute.attribute_id} className={styles.tag}>{attribute.attribute_name}</span>
                         ))}
                     </div>
+                ) : (
+                    <p className={styles.noAmenities}>No amenities information available</p>
                 )}
             </div>
-
-            {/* Description section */}
-            {apartment.description && (
-                <div className={styles.section}>
-                    <h3 className={styles.sectionTitle}>Description</h3>
-                    <p className={styles.descriptionText}>{apartment.description}</p>
-                </div>
-            )}
 
             {/* Contact information */}
             {(apartment.contact_name || apartment.contact_phone || apartment.contact_email) && (

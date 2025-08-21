@@ -50,6 +50,8 @@ async def lifespan(app: FastAPI):
                 logger.info("Firebase Admin SDK initialized successfully")
             except Exception as e:
                 logger.error(f"Failed to initialize Firebase Admin SDK: {str(e)}")
+        else:
+            logger.error("FIREBASE_SERVICE_ACCOUNT_JSON_BASE64 environment variable is not set! Firebase authentication will not work.")
 
         yield
         

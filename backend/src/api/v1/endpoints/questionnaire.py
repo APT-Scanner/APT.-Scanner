@@ -5,6 +5,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from src.middleware.auth import get_current_user
+from src.database.models import User as UserModel
 from src.database.schemas import QuestionModel
 from src.database.postgresql_db import get_db
 from src.services.questionnaire_service import QuestionnaireService
@@ -48,7 +49,7 @@ async def get_questionnaire_service(db: AsyncSession = Depends(get_db)) -> Quest
             response_model=NextQuestionResponse,
             summary="Get current questionnaire question")
 async def get_current_question(
-    current_user: dict = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
 ):
     """Get the current questionnaire question or start a new questionnaire."""
@@ -72,7 +73,7 @@ async def get_current_question(
             summary="Submit answers and get next question")
 async def submit_answers(
     request: QuestionnaireAnswersRequest,
-    current_user: dict = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
 ):
     """Submit answers to current question and get the next question."""
@@ -92,7 +93,7 @@ async def submit_answers(
              status_code=status.HTTP_200_OK,
              summary="Complete and save questionnaire")
 async def complete_questionnaire(
-    current_user: dict = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
 ):
     """Complete and save the questionnaire permanently."""
@@ -114,7 +115,7 @@ async def complete_questionnaire(
             response_model=NextQuestionResponse,
             summary="Skip current question and get next question")
 async def skip_current_question(
-    current_user: dict = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
 ):
     """Skip the current question by submitting null answer and proceed to the next one."""
@@ -133,7 +134,7 @@ async def skip_current_question(
 @router.get("/status",
             summary="Get current questionnaire status")
 async def get_questionnaire_status(
-    current_user: dict = Depends(get_current_user),
+    current_user: UserModel = Depends(get_current_user),
     questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
 ):
     """Get the current status of a user's questionnaire."""

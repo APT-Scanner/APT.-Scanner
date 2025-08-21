@@ -98,6 +98,11 @@
     text-align: left;
 }
 
+.detailsContainer [class*="descriptionText"] {
+    text-align: right;
+    direction: rtl;
+}
+
 .detailsContainer [class*="sectionTitle"] {
     text-align: left;
 }

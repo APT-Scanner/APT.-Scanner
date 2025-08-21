@@ -25,7 +25,7 @@ const ApartmentSwipePage = () => {
     const filterParams = useMemo(() => {
         if (filtersLoading) return null;
         return getFilterQueryParams();
-    }, [filters]);  // Only re-run when filters change
+    }, [filters, getFilterQueryParams, filtersLoading]);  // Include all dependencies
     
     const [refreshTrigger, setRefreshTrigger] = useState(0);
     

@@ -19,20 +19,20 @@ import furnishedIcon from '../assets/icons/image 31.png';
 import RangeSlider from '../components/rangeSlider'; 
 
 
-// All Yad2 features now available in database
+// All Yad2 features now available in database - IDs must match backend ATTRIBUTE_MAPPING keys
 const moreOptionsConfig = [
-    { id: 'shelter', label: 'Shelter (ממ"ד)', icon: shelterIcon },
-    { id: 'elevator', label: 'Elevator (מעלית)', icon: elevatorIcon },
-    { id: 'parking', label: 'Parking (חניה)', icon: parkingIcon },
-    { id: 'warehouse', label: 'Storage (מחסן)', icon: storageIcon },
-    { id: 'airConditioner', label: 'A/C (מיזוג)', icon: acIcon },
-    { id: 'balcony', label: 'Balcony (מרפסת)', icon: balconyIcon },
-    { id: 'bars', label: 'Bars (סורגים)', icon: barsIcon },
-    { id: 'accessibility', label: 'Accessible (גישה לנכים)', icon: accessibleIcon },
-    { id: 'renovated', label: 'Renovated (משופץ)', icon: renovatedIcon },
-    { id: 'forPartners', label: 'Roommates (לשותפים)', icon: roommatesIcon },
-    { id: 'pets', label: 'Pet-friendly (חיות מחמד)', icon: petFriendlyIcon },
-    { id: 'furniture', label: 'Furnished (מרוהט)', icon: furnishedIcon },
+    { id: 'Shelter', label: 'Shelter (ממ"ד)', icon: shelterIcon },
+    { id: 'Elevator', label: 'Elevator (מעלית)', icon: elevatorIcon },
+    { id: 'Parking', label: 'Parking (חניה)', icon: parkingIcon },
+    { id: 'Warehouse', label: 'Storage (מחסן)', icon: storageIcon },
+    { id: 'Air Conditioner', label: 'A/C (מיזוג)', icon: acIcon },
+    { id: 'Balcony', label: 'Balcony (מרפסת)', icon: balconyIcon },
+    { id: 'Bars', label: 'Bars (סורגים)', icon: barsIcon },
+    { id: 'Accessibility', label: 'Accessible (גישה לנכים)', icon: accessibleIcon },
+    { id: 'Renovated', label: 'Renovated (משופץ)', icon: renovatedIcon },
+    { id: 'For Partners', label: 'Roommates (לשותפים)', icon: roommatesIcon },
+    { id: 'Pets', label: 'Pet-friendly (חיות מחמד)', icon: petFriendlyIcon },
+    { id: 'Furniture', label: 'Furnished (מרוהט)', icon: furnishedIcon },
 ];
 
 const MIN_PRICE = 500;
@@ -69,6 +69,9 @@ const FilterPage = () => {
     
     // More options state
     const [selectedOptions, setSelectedOptions] = useState(filters.options || []);
+    
+    // Flag to prevent overriding user changes
+    const [isApplyingFilters, setIsApplyingFilters] = useState(false);
 
     // Refs for slider interaction
     const draggingHandleRef = useRef(null); // 'min' or 'max'
@@ -79,9 +82,10 @@ const FilterPage = () => {
     // Refs for size slider interaction
     const draggingSizeHandleRef = useRef(null); 
 
-    // Update local state when filters are loaded
+    // Update local state when filters are loaded (but not when user is applying changes)
     useEffect(() => {
-        if (!filtersLoading) {
+        if (!filtersLoading && !isApplyingFilters) {
+            console.log("📥 FilterPage: Syncing with loaded filters - priceMax:", filters.priceMax);
             setFilterType(filters.type);
             setSelectedCity(filters.city);
             setSelectedNeighborhood(filters.neighborhood);
@@ -93,22 +97,17 @@ const FilterPage = () => {
             setSizeMax(filters.sizeMax);
             setSelectedOptions(filters.options || []);
         }
-    }, [filters, filtersLoading]);
+    }, [filters, filtersLoading, isApplyingFilters]);
 
     const handleBack = () => {
         navigate(-1); 
     };
 
     const handleApplyFilters = () => {
-        console.log("Apply filters with:", {
-            filterType,
-            selectedCity,
-            selectedNeighborhood,
-            priceRange: [priceMin, priceMax],
-            roomsRange: [roomsMin, roomsMax],
-            sizeRange: [sizeMin, sizeMax],
-            selectedOptions
-        });
+        console.log("🔄 Applying filters - priceMax:", priceMax, "type:", typeof priceMax);
+
+        // Set flag to prevent race condition
+        setIsApplyingFilters(true);
 
         updateFilter({
             type: filterType,
@@ -122,6 +121,11 @@ const FilterPage = () => {
             sizeMax,
             options: selectedOptions
         });
+        
+        // Reset flag after a short delay to allow state to settle
+        setTimeout(() => {
+            setIsApplyingFilters(false);
+        }, 1000);
         
         navigate(-1); 
     };
@@ -282,8 +286,14 @@ const FilterPage = () => {
                     step={100}
                     valueMin={priceMin}
                     valueMax={priceMax}
-                    onChangeMin={setPriceMin}
-                    onChangeMax={setPriceMax}
+                    onChangeMin={(value) => {
+                        console.log("💰 User setting priceMin to:", value);
+                        setPriceMin(value);
+                    }}
+                    onChangeMax={(value) => {
+                        console.log("💰 User setting priceMax to:", value);
+                        setPriceMax(value);
+                    }}
                     labels={[500, 5000, 10000, 15000]}
                 />
             </div>
