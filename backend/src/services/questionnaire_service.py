@@ -14,6 +14,8 @@ from ..utils.cache.redis_client import (
 from ..config.constant import CONTINUATION_PROMPT_ID
 from ..database.mongo_db import get_mongo_db
 from ..database.models import UserPreferenceVector
+from ..database.schemas import UserFiltersCreate, UserFiltersUpdate
+from . import filters_service
 
 logger = logging.getLogger(__name__)
 
@@ -413,6 +415,8 @@ class QuestionnaireService:
             # Calculate and save user preference vector to PostgreSQL
             if self.db_session:
                 await self._save_user_preference_vector(user_id, state['answers'], state['version'])
+                # Create or update user filters based on questionnaire answers
+                await self._create_or_update_user_filters(user_id, state['answers'])
             
             await self._delete_user_state_from_db(user_id)
             delete_cache(get_questionnaire_cache_key(user_id))
@@ -1031,3 +1035,71 @@ class QuestionnaireService:
             "current_stage_answered_questions": current_stage_answered,
             "show_continuation_prompt": show_prompt
         }
+
+    async def _create_or_update_user_filters(self, user_id: str, user_responses: Dict[str, Any]) -> bool:
+        """
+        Create or update user filters based on questionnaire responses.
+        
+        Args:
+            user_id: User's Firebase UID
+            user_responses: User's questionnaire answers
+            
+        Returns:
+            bool: True if successful, False otherwise
+        """
+        try:
+            # Extract filter-relevant answers
+            filter_options = []
+            price_min = 500  # Default values
+            price_max = 15000
+            
+            # Map budget_range to price filters
+            if 'budget_range' in user_responses:
+                budget = user_responses['budget_range']
+                if isinstance(budget, list) and len(budget) >= 2:
+                    # budget_range is an array [min, max]
+                    price_min = int(budget[0])
+                    price_max = int(budget[1])
+                elif isinstance(budget, (int, float)):
+                    # Fallback: single value represents max budget
+                    price_max = int(budget)
+                    price_min = int(budget * 0.5)
+                elif isinstance(budget, str):
+                    # Try to parse if it's a string representation
+                    try:
+                        budget_val = int(budget)
+                        price_max = budget_val
+                        price_min = int(budget_val * 0.5)
+                    except ValueError:
+                        logger.warning(f"Could not parse budget_range value: {budget}")
+                        
+                logger.info(f"Mapped budget_range {budget} to price_min={price_min}, price_max={price_max}")
+            
+            # Map accessibility_needs to Accessibility option
+            if 'accessibility_needs' in user_responses:
+                if user_responses['accessibility_needs'] == 'Yes':
+                    filter_options.append('Accessibility')
+                    logger.info(f"Added Accessibility to filter options")
+            
+            # Map pet_ownership to Pets option
+            if 'pet_ownership' in user_responses:
+                if user_responses['pet_ownership'] == 'Yes':
+                    filter_options.append('Pets')
+                    logger.info(f"Added Pets to filter options")
+            
+            # Create filter update data
+            filter_data = UserFiltersUpdate(
+                price_min=price_min,
+                price_max=price_max,
+                options=','.join(filter_options) if filter_options else None
+            )
+            
+            # Update or create user filters
+            await filters_service.update_user_filters(self.db_session, user_id, filter_data)
+            
+            logger.info(f"Successfully updated filters for user {user_id} from questionnaire responses")
+            return True
+            
+        except Exception as e:
+            logger.error(f"Error creating/updating user filters from questionnaire for user {user_id}: {e}", exc_info=True)
+            return False

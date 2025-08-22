@@ -130,9 +130,7 @@
     "type": "single-choice",
     "options": [
       "No",
-      "Wheelchair access",
-      "Elevator required",
-      "Ground floor only"
+      "Yes"
     ]
   },
   {
