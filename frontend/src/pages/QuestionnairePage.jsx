@@ -5,7 +5,7 @@ import { useQuestionnaire } from '../hooks/useQuestionnaire';
 import styles from '../styles/QuestionnairePage.module.css';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import ContinuationPrompt from '../components/ContinuationPrompt';
-import RangeSlider from '../components/RangeSlider';
+import RangeSlider from '../components/rangeSlider';
 import { fetchPlaceSuggestions } from '../services/mapsApi';
 
 // Add debugging to track state changes
@@ -18,6 +18,7 @@ const QuestionnairePage = () => {
   
   const { 
     currentQuestion, 
+    answers,
     loading, 
     error, 
     isComplete, 
@@ -29,7 +30,9 @@ const QuestionnairePage = () => {
     answerQuestion: originalAnswerQuestion,
     submitQuestionnaire,
     retry,
-    getNumberOfBasicQuestions 
+    getNumberOfBasicQuestions,
+    goToPreviousQuestion,
+    canGoBack
   } = useQuestionnaire();
   
   // Wrap answerQuestion to add logging
@@ -182,9 +185,70 @@ const QuestionnairePage = () => {
       navigate('/recommendations');
     }
   }, [isSubmitted, navigate]);
+
+  // Load existing answer when question changes
+  useEffect(() => {
+    if (currentQuestion && answers && answers[currentQuestion.id]) {
+      const existingAnswer = answers[currentQuestion.id];
+      if (DEBUG) console.log(`Loading existing answer for question ${currentQuestion.id}:`, existingAnswer);
+      
+      // Reset all UI states first
+      setSelectedOptions([]);
+      setTextInputValue('');
+      setPriceMin(2000);
+      setPriceMax(20000);
+      setListInputValues(['']);
+      
+      // Load the existing answer based on question type
+      if (currentQuestion.type === 'single-choice') {
+        setSelectedOptions([existingAnswer]);
+      } else if (currentQuestion.type === 'multiple-choice') {
+        // Handle both array and string formats
+        if (Array.isArray(existingAnswer)) {
+          setSelectedOptions(existingAnswer);
+        } else if (typeof existingAnswer === 'string' && existingAnswer.startsWith('[')) {
+          try {
+            setSelectedOptions(JSON.parse(existingAnswer));
+          } catch (e) {
+            setSelectedOptions([existingAnswer]);
+          }
+        } else {
+          setSelectedOptions([existingAnswer]);
+        }
+      } else if (currentQuestion.type === 'text') {
+        setTextInputValue(existingAnswer);
+      } else if (currentQuestion.type === 'slider' && Array.isArray(existingAnswer)) {
+        setPriceMin(existingAnswer[0] || 2000);
+        setPriceMax(existingAnswer[1] || 20000);
+      } else if (currentQuestion.type === 'list-input') {
+        if (Array.isArray(existingAnswer)) {
+          setListInputValues(existingAnswer.length > 0 ? existingAnswer : ['']);
+        } else {
+          setListInputValues([existingAnswer]);
+        }
+      }
+    } else if (currentQuestion) {
+      // No existing answer - clear all UI states
+      setSelectedOptions([]);
+      setTextInputValue('');
+      setPriceMin(2000);
+      setPriceMax(20000);
+      setListInputValues(['']);
+    }
+  }, [currentQuestion, answers]);
   
-  const handleBack = () => {
-    navigate('/get-started'); 
+  const handleBack = async () => {
+    // Try to go to previous question first
+    if (canGoBack()) {
+      const success = await goToPreviousQuestion();
+      if (success) {
+        // Don't clear answers - they will be populated from the existing answer
+        return;
+      }
+    }
+    
+    // If can't go back or failed, exit questionnaire
+    navigate(-1); 
   };
 
   // Add debug logging for selectedOptions changes
@@ -432,7 +496,12 @@ const QuestionnairePage = () => {
   return (
     <div className={styles.pageContainer}>
       <div className={styles.header}>
-        <button onClick={handleBack} className={styles.backButton} aria-label="Go back">
+        <button 
+          onClick={handleBack} 
+          className={`${styles.backButton} ${!canGoBack() ? styles.backButtonDisabled : ''}`}
+          aria-label={canGoBack() ? "חזור לשאלה הקודמת" : "יציאה מהשאלון"}
+          title={canGoBack() ? "חזור לשאלה הקודמת" : "יציאה מהשאלון"}
+        >
           <IoMdArrowBack size={24} />
         </button>
         {totalQuestions > 0 && (

@@ -5,6 +5,8 @@ import GetStartedPage from "./pages/GetStartedPage";
 import FilterPage from './pages/FilterPage';
 import FavoritesApartmentDetails from './pages/FavoritesApartmentDetails';
 import RecommendationsPage from './pages/RecommendationsPage';
+import QuestionnaireEditPage from './pages/QuestionnaireEditPage';
+import QuestionnaireEditDetailedPage from './pages/QuestionnaireEditDetailedPage';
 
 // Lazy load pages
 const LandingPage = React.lazy(() => import("./pages/LandingPage"));
@@ -31,6 +33,8 @@ function App() {
               <Route path="/filter" element={<FilterPage />} />
               <Route path="/favorites/:listing_id" element={<FavoritesApartmentDetails />} />
               <Route path="/recommendations" element={<RecommendationsPage />} />
+              <Route path="/questionnaire-edit" element={<QuestionnaireEditPage />} />
+              <Route path="/questionnaire-edit-detailed" element={<QuestionnaireEditDetailedPage />} />
             </Routes>
           </div>
         </div>

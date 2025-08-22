@@ -127,7 +127,7 @@ const FilterPage = () => {
             setIsApplyingFilters(false);
         }, 1000);
         
-        navigate(-1); 
+        navigate('/apartment-swipe'); 
     };
 
     const toggleOption = (optionId) => {

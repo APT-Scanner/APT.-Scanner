@@ -5,6 +5,10 @@ import logging
 from src.database.postgresql_db import get_db
 from src.middleware.auth import get_current_user
 from src.services.recommendation_service import get_user_neighborhood_recommendations
+from src.database.models import Neighborhood
+from src.database.schemas import UserFiltersUpdate
+from src.services import filters_service
+from sqlalchemy import select
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -189,4 +193,66 @@ async def refresh_recommendations(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while refreshing recommendations."
+        )
+
+@router.post(
+    "/neighborhoods/{neighborhood_id}/select",
+    summary="Select a neighborhood from recommendations",
+    description="Updates user filters when they select a neighborhood from recommendations"
+)
+async def select_neighborhood(
+    neighborhood_id: int,
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Update user filters when they select a neighborhood from recommendations.
+    
+    This endpoint sets the selected neighborhood and city in the user's filters
+    so future apartment browsing is automatically filtered.
+    """
+    user_id = current_user.firebase_uid
+    logger.info(f"User {user_id} selecting neighborhood {neighborhood_id}")
+    
+    try:
+        # Get neighborhood details
+        result = await db.execute(
+            select(Neighborhood).where(Neighborhood.id == neighborhood_id)
+        )
+        neighborhood = result.scalar_one_or_none()
+        
+        if not neighborhood:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail=f"Neighborhood {neighborhood_id} not found"
+            )
+        
+        # Update user filters with selected neighborhood and city
+        filter_data = UserFiltersUpdate(
+            city=neighborhood.city,
+            neighborhood=neighborhood.hebrew_name
+        )
+        
+        updated_filters = await filters_service.update_user_filters(db, user_id, filter_data)
+        
+        logger.info(f"Updated filters for user {user_id}: city={neighborhood.city}, neighborhood={neighborhood.hebrew_name}")
+        
+        return {
+            "success": True,
+            "message": f"Selected {neighborhood.hebrew_name}, {neighborhood.city}",
+            "neighborhood": {
+                "id": neighborhood.id,
+                "name": neighborhood.hebrew_name,
+                "english_name": neighborhood.english_name,
+                "city": neighborhood.city
+            }
+        }
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error selecting neighborhood {neighborhood_id} for user {user_id}: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while selecting the neighborhood."
         )

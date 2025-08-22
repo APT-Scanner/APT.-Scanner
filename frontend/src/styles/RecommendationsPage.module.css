@@ -160,6 +160,19 @@
   color: #5a2d4f;
 }
 
+.footerActions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.linkSeparator {
+  color: #666;
+  font-size: 0.95rem;
+}
+
 /* Loading State */
 .loadingContainer {
   display: flex;

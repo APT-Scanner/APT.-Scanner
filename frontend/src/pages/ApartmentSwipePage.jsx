@@ -4,7 +4,7 @@ import { useViewHistory } from '../hooks/useViewHistory';
 import { useFilters } from '../hooks/useFilters';
 import styles from '../styles/ApartmentSwipePage.module.css';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
-import { Heart, X, ChevronUp, ChevronDown, Loader, Filter, Menu, LogOut } from 'lucide-react';
+import { Heart, X, ChevronUp, ChevronDown, Loader, Filter, Menu, LogOut, Target, ClipboardList } from 'lucide-react';
 import logo from "../assets/logo-swipe-screen.jpeg";
 import HomeIcon from '../assets/home_pressed.svg';
 import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
@@ -182,6 +182,16 @@ const ApartmentSwipePage = () => {
         }
     };
 
+    const handleBackToRecommendations = () => {
+        setMenuOpen(false); // Close the menu
+        navigate('/recommendations');
+    };
+
+    const handleQuestionnaireEdit = () => {
+        setMenuOpen(false); // Close the menu
+        navigate('/questionnaire-edit');
+    };
+
     // Close menu when clicking outside
     useEffect(() => {
         const handleClickOutside = (event) => {
@@ -253,6 +263,20 @@ const ApartmentSwipePage = () => {
                         exit={{ opacity: 0, y: -10 }}
                         transition={{ duration: 0.2 }}
                     >
+                        <button 
+                            className={styles.menuItem}
+                            onClick={handleBackToRecommendations}
+                        >
+                            <Target size={20} />
+                            <span>Back to Recommendations</span>
+                        </button>
+                        <button 
+                            className={styles.menuItem}
+                            onClick={handleQuestionnaireEdit}
+                        >
+                            <ClipboardList size={20} />
+                            <span>ניהול שאלון</span>
+                        </button>
                         <button 
                             className={styles.menuItem}
                             onClick={handleSignOut}

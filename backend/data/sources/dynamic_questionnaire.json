@@ -173,8 +173,8 @@
     "text": "Do you have pets or plan to have pets?",
     "type": "single-choice",
     "options": [
-      "Yes",
-      "No"
+      "No",
+      "Yes"
     ],
     "required": false
   }

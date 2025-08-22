@@ -131,6 +131,36 @@ async def skip_current_question(
         logger.error(f"Error skipping question: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+@router.post("/current/previous",
+            response_model=NextQuestionResponse,
+            summary="Go back to previous question")
+async def go_to_previous_question(
+    current_user: UserModel = Depends(get_current_user),
+    questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
+):
+    """Go back to the previous question by removing the last answer."""
+    try:
+        user_id = current_user.firebase_uid
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
+            
+        result = await questionnaire_service.go_back_to_previous_question(user_id)
+        
+        # Check if there was an error
+        if 'error' in result:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=result['error']
+            )
+        
+        return NextQuestionResponse(**result)
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error going to previous question: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 @router.get("/status",
             summary="Get current questionnaire status")
 async def get_questionnaire_status(
@@ -148,6 +178,97 @@ async def get_questionnaire_status(
         
     except Exception as e:
         logger.error(f"Error getting questionnaire status: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.get("/responses",
+            summary="Get user's questionnaire responses",
+            description="Get all questions and user's current answers for editing")
+async def get_user_questionnaire_responses(
+    current_user: UserModel = Depends(get_current_user),
+    questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service),
+    db: AsyncSession = Depends(get_db)
+):
+    """Get user's questionnaire responses and all available questions for editing."""
+    try:
+        user_id = current_user.firebase_uid
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
+        
+        # Get user's current responses
+        user_responses = await questionnaire_service.get_user_responses(db, user_id)
+        
+        # Get all questions from questionnaire service
+        await questionnaire_service.load_questions()
+        basic_questions = questionnaire_service.basic_information_questions
+        dynamic_questions = questionnaire_service.dynamic_questionnaire
+        
+        # Combine all questions
+        all_questions = {**basic_questions, **dynamic_questions}
+        
+        return {
+            "user_responses": user_responses or {},
+            "all_questions": all_questions,
+            "basic_questions": basic_questions,
+            "dynamic_questions": dynamic_questions
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting user questionnaire responses: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+@router.put("/responses",
+            summary="Update user's questionnaire responses",
+            description="Update specific questionnaire answers for editing")
+async def update_user_questionnaire_responses(
+    request: QuestionnaireAnswersRequest,
+    current_user: UserModel = Depends(get_current_user),
+    questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service),
+    db: AsyncSession = Depends(get_db)
+):
+    """Update user's questionnaire responses for editing existing answers."""
+    try:
+        user_id = current_user.firebase_uid
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
+        
+        # Get user's current state
+        user_state = await questionnaire_service.get_user_state(user_id)
+        
+        # Update the answers in the state
+        for question_id, new_answer in request.answers.items():
+            user_state['answers'][question_id] = new_answer
+            
+            # Add to answered questions if not already there
+            if question_id not in user_state['answered_questions']:
+                user_state['answered_questions'].append(question_id)
+        
+        # Save the updated state
+        success = await questionnaire_service.update_user_state(user_id, user_state)
+        
+        if not success:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to update responses")
+        
+        # Also update filters if questionnaire is completed
+        completed_questionnaire = await questionnaire_service.get_completed_questionnaire(user_id)
+        if completed_questionnaire:
+            # Update the completed questionnaire in MongoDB as well
+            await questionnaire_service.mongo_db.completed_questionnaires.update_one(
+                {"user_id": user_id},
+                {"$set": {"answers": user_state['answers']}}
+            )
+            
+            # Update user filters based on the new answers if needed
+            if questionnaire_service.db_session:
+                await questionnaire_service._create_or_update_user_filters(user_id, user_state['answers'])
+        
+        return {
+            "success": True,
+            "message": "Responses updated successfully",
+            "updated_questions": list(request.answers.keys())
+        }
+        
+    except Exception as e:
+        logger.error(f"Error updating user questionnaire responses: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.get("/basic-questions-count",

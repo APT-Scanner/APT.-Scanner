@@ -374,6 +374,69 @@ export const useQuestionnaire = () => {
   }, [fetchNextQuestion]);
 
   /**
+   * Go back to the previous question
+   */
+  const goToPreviousQuestion = useCallback(async () => {
+    if (!idToken || !user?.uid) return false;
+    
+    // Cannot go back if no questions were answered
+    if (answeredQuestions.length === 0) {
+      if (DEBUG) console.log("Cannot go back - no previous questions");
+      return false;
+    }
+    
+    try {
+      setLoading(true);
+      setError(null);
+
+      // Request the previous question from backend
+      const response = await fetch(`${BACKEND_URL}/questionnaire/current/previous`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${idToken}`,
+          'Content-Type': 'application/json',
+        },
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json().catch(() => ({ 
+          detail: `HTTP error! status: ${response.status}` 
+        }));
+        throw new Error(errorData.detail || `Failed to get previous question: ${response.status}`);
+      }
+
+      const data = await response.json();
+      
+      if (data.question) {
+        setCurrentQuestion(data.question);
+        setProgress(data.progress || 0);
+        setCurrentStageAnsweredQuestions(data.current_stage_answered_questions || 0);
+        setCurrentStageTotalQuestions(data.current_stage_total_questions || 0);
+        setIsComplete(false);
+        
+        if (DEBUG) console.log("Successfully went back to previous question:", data.question.id);
+        return true;
+      }
+      
+      return false;
+      
+    } catch (err) {
+      console.error('Error going to previous question:', err);
+      setError(err.message || 'Failed to go back to previous question');
+      return false;
+    } finally {
+      setLoading(false);
+    }
+  }, [idToken, user, answeredQuestions, saveToLocalStorage]);
+
+  /**
+   * Check if user can go back to previous question
+   */
+  const canGoBack = useCallback(() => {
+    return answeredQuestions.length > 0 && currentQuestion?.id !== CONTINUATION_PROMPT_ID;
+  }, [answeredQuestions, currentQuestion]);
+
+  /**
    * Submit the completed questionnaire
    */
   const submitQuestionnaire = useCallback(async () => {
@@ -460,6 +523,8 @@ export const useQuestionnaire = () => {
     submitQuestionnaire,
     retry,
     startQuestionnaire,
-    getNumberOfBasicQuestions
+    getNumberOfBasicQuestions,
+    goToPreviousQuestion,
+    canGoBack
   };
 }; 

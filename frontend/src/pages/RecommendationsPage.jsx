@@ -1,11 +1,16 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, AlertCircle } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, Search } from 'lucide-react';
 import { useRecommendations } from '../hooks/useRecommendations';
+import { useAuth } from '../hooks/useAuth';
+import { useFilters } from '../hooks/useFilters';
+import { BACKEND_URL } from '../config/constants';
 import styles from '../styles/RecommendationsPage.module.css';
 
 const RecommendationsPage = () => {
     const navigate = useNavigate();
+    const { idToken } = useAuth();
+    const { updateFilterAsync } = useFilters();
     const { 
         recommendations, 
         loading, 
@@ -16,27 +21,73 @@ const RecommendationsPage = () => {
 
     const handleBack = () => navigate(-1);
 
-    const handleNeighborhoodClick = (neighborhood) => {
-        // Navigate to apartment swipe filtered by neighborhood
-        navigate('/apartment-swipe', { 
-            state: { 
-                neighborhoodId: neighborhood.id,
-                neighborhoodName: neighborhood.name 
-            } 
-        });
+    const handleNeighborhoodClick = async (neighborhood) => {
+        try {
+            // Call API to update user filters with selected neighborhood
+            const response = await fetch(`${BACKEND_URL}/recommendations/neighborhoods/${neighborhood.id}/select`, {
+                method: 'POST',
+                headers: {
+                    'Authorization': `Bearer ${idToken}`,
+                    'Content-Type': 'application/json'
+                }
+            });
+
+            if (response.ok) {
+                const data = await response.json();
+                console.log('Neighborhood selected:', data);
+                
+                // Navigate to apartment swipe filtered by neighborhood
+                navigate('/apartment-swipe', { 
+                    state: { 
+                        neighborhoodId: neighborhood.id,
+                        neighborhoodName: neighborhood.name 
+                    } 
+                });
+            } else {
+                console.error('Failed to select neighborhood:', response.statusText);
+                // Still navigate even if the API call fails
+                navigate('/apartment-swipe', { 
+                    state: { 
+                        neighborhoodId: neighborhood.id,
+                        neighborhoodName: neighborhood.name 
+                    } 
+                });
+            }
+        } catch (error) {
+            console.error('Error selecting neighborhood:', error);
+            // Still navigate even if there's an error
+            navigate('/apartment-swipe', { 
+                state: { 
+                    neighborhoodId: neighborhood.id,
+                    neighborhoodName: neighborhood.name 
+                } 
+            });
+        }
     };
 
-    const handleManualBrowse = () => {
-        navigate('/apartment-swipe');
+    const handleManualBrowse = async () => {
+        try {
+            // Clear neighborhood and city filters to browse all apartments
+            await updateFilterAsync({
+                city: '',
+                neighborhood: ''
+            });
+            console.log('Filters cleared, navigating to apartment swipe');
+            navigate('/apartment-swipe');
+        } catch (error) {
+            console.error('Error clearing filters:', error);
+            // Navigate anyway in case of error
+            navigate('/apartment-swipe');
+        }
+    };
+
+    const handleManualSearch = () => {
+        navigate('/filter');
     };
 
     if (loading) {
         return (
-            <div className={styles.pageContainer}>
-                <button className={styles.backButton} onClick={handleBack} aria-label="Go Back">
-                    <ArrowLeft size={24} color="#371b34" />
-                </button>
-                
+            <div className={styles.pageContainer}>  
                 <div className={styles.loadingContainer}>
                     <div className={styles.spinner}></div>
                     <h2>Generating Your Recommendations</h2>
@@ -81,6 +132,13 @@ const RecommendationsPage = () => {
                         >
                             Browse All Apartments
                         </button>
+
+                        <button 
+                            className={styles.secondaryButton}
+                            onClick={handleManualSearch}
+                        >
+                            <Search size={20} /> Manual Search
+                        </button>
                     </div>
                 </div>
             </div>
@@ -111,6 +169,13 @@ const RecommendationsPage = () => {
                             onClick={handleManualBrowse}
                         >
                             Browse All Apartments
+                        </button>
+
+                        <button 
+                            className={styles.secondaryButton}
+                            onClick={handleManualSearch}
+                        >
+                            <Search size={20} /> Manual Search
                         </button>
                     </div>
                 </div>
@@ -178,12 +243,21 @@ const RecommendationsPage = () => {
                 <p className={styles.hintText}>
                     Click on a neighborhood to start swiping
                 </p>
-                <span 
-                    className={styles.manualLink} 
-                    onClick={handleManualBrowse}
-                >
-                    or browse all apartments
-                </span>
+                <div className={styles.footerActions}>
+                    <span 
+                        className={styles.manualLink} 
+                        onClick={handleManualBrowse}
+                    >
+                        browse all apartments
+                    </span>
+                    <span className={styles.linkSeparator}>or</span>
+                    <span 
+                        className={styles.manualLink} 
+                        onClick={handleManualSearch}
+                    >
+                        manual search
+                    </span>
+                </div>
             </div>
         </div>
     );

@@ -3,7 +3,7 @@
     "id": "housing_purpose",
     "category": "User Persona",
     "text": "Who is going to live in the apartment?",
-    "type": "multiple-choice",
+    "type": "single-choice",
     "options": [
       "Just me",
       "With a partner",
@@ -89,7 +89,7 @@
     "text": "What's your monthly budget for rent? (don't worry, you can change it later)",
     "type": "slider",
     "config": {
-      "min": 2000,
+      "min": 500,
       "max": 20000,
       "step": 500,
       "unit": "₪"
@@ -99,12 +99,11 @@
   {
     "id": "religious_community_importance",
     "category": "Basic Information",
-    "text": "How important is it to live in a neighborhood with an active religious community?",
+    "text": "Would you like to live in a religious neighborhood?",
     "type": "single-choice",
     "options": [
-      "Very important",
-      "Somewhat important",
-      "Not important"
+      "No",
+      "Yes"
     ],
     "required": false
   },

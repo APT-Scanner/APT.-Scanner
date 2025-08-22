@@ -2,6 +2,7 @@
 import json
 import logging
 import numpy as np
+import random
 from typing import Dict, Any, List, Optional, Tuple
 from collections import deque
 from datetime import datetime, timezone
@@ -224,15 +225,20 @@ class QuestionnaireService:
                 if q_id == CONTINUATION_PROMPT_ID:
                     is_user_chose_to_continue = True
                     continue
+                
+                # Always update the answer (allows changing answers to previously answered questions)
+                state['answers'][q_id] = answer_val
+                
+                # Only add to answered_questions if not already there
                 if q_id not in state['answered_questions']:
-                    state['answers'][q_id] = answer_val
                     state['answered_questions'].append(q_id)
-                    self._update_queue_based_on_answer(state, q_id, answer_val)
-                    
-                    # Remove the answered question from queue if it's the current one
-                    if state.get('current_question_id') == q_id and state['queue'] and state['queue'][0] == q_id:
-                        state['queue'].popleft()
-                        state['current_question_id'] = None
+                
+                self._update_queue_based_on_answer(state, q_id, answer_val)
+                
+                # Remove the answered question from queue if it's the current one
+                if state.get('current_question_id') == q_id and state['queue'] and state['queue'][0] == q_id:
+                    state['queue'].popleft()
+                    state['current_question_id'] = None
         
         self._add_follow_up_questions_to_queue(state)
 
@@ -351,7 +357,11 @@ class QuestionnaireService:
         return [q_id for q_id in question_ids if q_id not in state['answered_questions'] and q_id not in state['queue']]
 
     def _get_location_convenience_questions(self, question_ids: List[str]) -> List[str]:
-        return [q_id for q_id in question_ids if q_id in self.dynamic_questionnaire and self.dynamic_questionnaire[q_id].get('category') == 'Location and Convenience']
+        location_questions = [q_id for q_id in question_ids if q_id in self.dynamic_questionnaire and self.dynamic_questionnaire[q_id].get('category') == 'Location and Convenience']
+        # Randomize the order of Location and Convenience questions
+        random.shuffle(location_questions)
+        logger.debug(f"Randomized {len(location_questions)} Location and Convenience questions: {location_questions}")
+        return location_questions
 
     def _update_queue_based_on_answer(self, state: Dict[str, Any], question_id: str, answer: Any) -> None:
         """
@@ -672,6 +682,65 @@ class QuestionnaireService:
         if self.mongo_db is None:
             return None
         return await self.mongo_db.completed_questionnaires.find_one({"user_id": user_id})
+
+    async def go_back_to_previous_question(self, user_id: str) -> Dict[str, Any]:
+        """
+        Remove the last answered question and return to the previous one.
+        
+        Args:
+            user_id: User's Firebase UID
+            
+        Returns:
+            Dictionary with question data or error
+        """
+        try:
+            user_state = await self.get_user_state(user_id)
+            answered_questions = user_state.get('answered_questions', [])
+            
+            # Cannot go back if no questions were answered
+            if not answered_questions:
+                logger.warning(f"User {user_id} attempted to go back but no questions were answered")
+                return {
+                    "error": "No previous questions to go back to",
+                    "question": None,
+                    "is_complete": False
+                }
+            
+            # Get the last answered question ID
+            last_question_id = answered_questions[-1]
+            logger.info(f"User {user_id} going back from question {last_question_id}")
+            
+            # Remove the last question from answered questions (but keep the answer)
+            user_state['answered_questions'] = answered_questions[:-1]
+            
+            # DON'T remove the answer - keep it so it can be displayed and edited
+            # The answer will remain in user_state['answers'][last_question_id]
+            
+            # Update queue to include the removed question at the front
+            if 'queue' not in user_state:
+                user_state['queue'] = deque()
+            user_state['queue'].appendleft(last_question_id)
+            
+            # Save updated state
+            success = await self.update_user_state(user_id, user_state)
+            if not success:
+                logger.error(f"Failed to update user state when going back for user {user_id}")
+                return {
+                    "error": "Failed to update questionnaire state",
+                    "question": None,
+                    "is_complete": False
+                }
+            
+            # Now get the current question (which should be the previous one)
+            return await self.start_questionnaire(user_id)
+            
+        except Exception as e:
+            logger.error(f"Error going back to previous question for user {user_id}: {e}", exc_info=True)
+            return {
+                "error": f"Failed to go back to previous question: {str(e)}",
+                "question": None,
+                "is_complete": False
+            }
 
     async def get_user_responses(self, db: AsyncSession, user_id: str) -> Optional[Dict[str, Any]]:
         """
@@ -1086,7 +1155,12 @@ class QuestionnaireService:
                 if user_responses['pet_ownership'] == 'Yes':
                     filter_options.append('Pets')
                     logger.info(f"Added Pets to filter options")
-            
+
+            if 'housing_purpose' in user_responses:
+                if user_responses['housing_purpose'] == 'With roommates':
+                    filter_options.append('For Partners')
+                    logger.info(f"Added Roommates to filter options")
+
             # Create filter update data
             filter_data = UserFiltersUpdate(
                 price_min=price_min,

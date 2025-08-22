@@ -6,6 +6,8 @@ import { FaCheckCircle, FaRegCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import { auth } from "../config/firebase";
 import { BACKEND_URL } from "../config/constants";
+import validator from "email-validator";
+
 
 const validatePassword = (password) => {
   const requirements = {
@@ -52,7 +54,7 @@ const RegisterPage = () => {
 
   const handleContinueToPassword = (e) => {
     e.preventDefault();
-    if (!email || !/\S+@\S+\.\S+/.test(email)) {
+    if (!email || !validator.validate(email)) {
       setError("Please enter a valid email address.");
       return;
     }

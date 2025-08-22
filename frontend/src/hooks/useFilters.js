@@ -184,6 +184,25 @@ export const useFilters = () => {
         });
     }, [saveFilters]);
 
+    // Async update filter function that waits for save to complete
+    const updateFilterAsync = useCallback(async (newFilter) => {
+        console.log("🔄 updateFilterAsync called");
+        return new Promise((resolve) => {
+            setFilters((prev) => {
+                const updated = { ...prev, ...newFilter };
+                console.log("✅ Updated filters async");
+                // Save filters and wait for completion
+                saveFilters(updated).then(() => {
+                    console.log("✅ Filters saved successfully");
+                    resolve(updated);
+                });
+                // Invalidate cached params when filters change
+                filterParamsRef.current = null;
+                return updated;
+            });
+        });
+    }, [saveFilters]);
+
     // Reset filters
     const resetFilters = useCallback(() => {
         setFilters(defaultFilters);
@@ -223,7 +242,8 @@ export const useFilters = () => {
     
     return { 
         filters, 
-        updateFilter, 
+        updateFilter,
+        updateFilterAsync, 
         resetFilters, 
         getFilterQueryParams,
         loading,
