@@ -320,7 +320,7 @@ const FilterPage = () => {
                     valueMax={sizeMax}
                     onChangeMin={setSizeMin}
                     onChangeMax={setSizeMax}
-                    labels={[100, 200, 300, 400, 500]}
+                    labels={[10, 100, 200, 300, 400, 500]}
                 />
             </div>
             <div className={styles.filterSection}>

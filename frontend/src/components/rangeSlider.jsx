@@ -47,9 +47,9 @@ const RangeSlider = ({
         newValue = Math.round(newValue / step) * step;
 
         if (draggingRef.current === 'min') {
-            onChangeMin(Math.max(min, Math.min(newValue, valueMax - step)));
+            onChangeMin(Math.max(min, Math.min(newValue, valueMax)));
         } else {
-            onChangeMax(Math.min(max, Math.max(newValue, valueMin + step)));
+            onChangeMax(Math.min(max, Math.max(newValue, valueMin)));
         }
     }, [min, max, step, valueMin, valueMax, onChangeMin, onChangeMax]);
 
@@ -76,7 +76,7 @@ const RangeSlider = ({
                             type="number" 
                             className={styles.rangeInput} 
                             value={valueMin}
-                            onChange={(e) => onChangeMin(Math.max(min, Math.min(parseInt(e.target.value) || min, valueMax -100)))}
+                            onChange={(e) => onChangeMin(Math.max(min, Math.min(parseInt(e.target.value) || min, valueMax)))}
                             placeholder="Min"
                             step="100"
                         />
@@ -84,7 +84,7 @@ const RangeSlider = ({
                             type="number" 
                             className={styles.rangeInput} 
                             value={valueMax}
-                            onChange={(e) => onChangeMax(Math.min(max, Math.max(parseInt(e.target.value) || max, valueMin + 100)))}
+                            onChange={(e) => onChangeMax(Math.min(max, Math.max(parseInt(e.target.value) || max, valueMin)))}
                             placeholder="Max"
                             step="100"
                 />
