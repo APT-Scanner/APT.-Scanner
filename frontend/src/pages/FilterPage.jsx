@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import styles from '../styles/FilterPage.module.css';
-import { ArrowLeft } from 'lucide-react'; 
+import { ArrowLeft, X } from 'lucide-react'; 
 import { useNavigate } from 'react-router-dom';
 import { useFilters } from '../hooks/useFilters';
 import { fetchCities, fetchNeighborhoods } from '../services/neighborhoodsApi';
@@ -16,7 +16,7 @@ import renovatedIcon from '../assets/icons/image 28.png';
 import roommatesIcon from '../assets/icons/image 33.png';
 import petFriendlyIcon from '../assets/icons/image 32.png';
 import furnishedIcon from '../assets/icons/image 31.png';
-import RangeSlider from '../components/rangeSlider'; 
+import RangeSlider from '../components/RangeSlider'; 
 
 
 // All Yad2 features now available in database - IDs must match backend ATTRIBUTE_MAPPING keys
@@ -45,7 +45,7 @@ const MIN_SIZE = 10;
 const MAX_SIZE = 500;
 
 const FilterPage = () => {
-    const { filters, updateFilter, loading: filtersLoading } = useFilters();
+    const { filters, updateFilter, updateFilterAsync, loading: filtersLoading } = useFilters();
     const [filterType, setFilterType] = useState(filters.type); 
     const [selectedCity, setSelectedCity] = useState(filters.city);
     const [selectedNeighborhood, setSelectedNeighborhood] = useState(filters.neighborhood);
@@ -72,6 +72,7 @@ const FilterPage = () => {
     
     // Flag to prevent overriding user changes
     const [isApplyingFilters, setIsApplyingFilters] = useState(false);
+    const [isClearingFilters, setIsClearingFilters] = useState(false);
 
     // Refs for slider interaction
     const draggingHandleRef = useRef(null); // 'min' or 'max'
@@ -103,13 +104,8 @@ const FilterPage = () => {
         navigate(-1); 
     };
 
-    const handleApplyFilters = () => {
-        console.log("🔄 Applying filters - priceMax:", priceMax, "type:", typeof priceMax);
-
-        // Set flag to prevent race condition
-        setIsApplyingFilters(true);
-
-        updateFilter({
+    const handleApplyFilters = async () => {
+        console.log("🔄 Applying filters:", {
             type: filterType,
             city: selectedCity,
             neighborhood: selectedNeighborhood,
@@ -121,13 +117,44 @@ const FilterPage = () => {
             sizeMax,
             options: selectedOptions
         });
-        
-        // Reset flag after a short delay to allow state to settle
-        setTimeout(() => {
-            setIsApplyingFilters(false);
-        }, 1000);
-        
-        navigate('/apartment-swipe'); 
+        console.log("📍 Location filters specifically:", {
+            city: selectedCity,
+            cityType: typeof selectedCity,
+            cityLength: selectedCity?.length,
+            neighborhood: selectedNeighborhood,
+            neighborhoodType: typeof selectedNeighborhood,
+            neighborhoodLength: selectedNeighborhood?.length
+        });
+
+        // Set flag to prevent race condition
+        setIsApplyingFilters(true);
+
+        try {
+            await updateFilterAsync({
+                type: filterType,
+                city: selectedCity,
+                neighborhood: selectedNeighborhood,
+                priceMin,
+                priceMax,
+                roomsMin,
+                roomsMax,
+                sizeMin,
+                sizeMax,
+                options: selectedOptions
+            });
+            
+            console.log("✅ Filters applied successfully");
+            navigate('/apartment-swipe'); 
+        } catch (error) {
+            console.error("❌ Error applying filters:", error);
+            // Still navigate even if there's an error
+            navigate('/apartment-swipe');
+        } finally {
+            // Reset flag after a short delay to allow state to settle
+            setTimeout(() => {
+                setIsApplyingFilters(false);
+            }, 1000);
+        }
     };
 
     const toggleOption = (optionId) => {
@@ -143,6 +170,60 @@ const FilterPage = () => {
         setSelectedCity(newCity);
         setSelectedNeighborhood(''); // Reset neighborhood on city change
         setNeighborhoods([]); // Clear neighborhoods
+    };
+
+    const clearCityFilter = () => {
+        setSelectedCity('');
+        setSelectedNeighborhood(''); // Also clear neighborhood when clearing city
+        setNeighborhoods([]); // Clear neighborhoods list
+    };
+
+    const clearNeighborhoodFilter = () => {
+        setSelectedNeighborhood('');
+    };
+
+    const clearAllFilters = async () => {
+        setIsClearingFilters(true);
+        setIsApplyingFilters(true);
+
+        try {
+            // Update local state
+            setFilterType('rent');
+            setSelectedCity('');
+            setSelectedNeighborhood('');
+            setNeighborhoods([]);
+            setPriceMin(MIN_PRICE);
+            setPriceMax(MAX_PRICE);
+            setRoomsMin(MIN_ROOMS);
+            setRoomsMax(MAX_ROOMS);
+            setSizeMin(MIN_SIZE);
+            setSizeMax(MAX_SIZE);
+            setSelectedOptions([]);
+
+            // Immediately apply cleared filters to backend
+            await updateFilterAsync({
+                type: 'rent',
+                city: '',
+                neighborhood: '',
+                priceMin: MIN_PRICE,
+                priceMax: MAX_PRICE,
+                roomsMin: MIN_ROOMS,
+                roomsMax: MAX_ROOMS,
+                sizeMin: MIN_SIZE,
+                sizeMax: MAX_SIZE,
+                options: []
+            });
+            
+            console.log("✅ All filters cleared and applied");
+        } catch (error) {
+            console.error("❌ Error clearing filters:", error);
+        } finally {
+            setIsClearingFilters(false);
+            // Reset flag after a short delay
+            setTimeout(() => {
+                setIsApplyingFilters(false);
+            }, 500);
+        }
     };
 
     useEffect(() => {
@@ -253,29 +334,73 @@ const FilterPage = () => {
             </div>
 
             <div className={styles.filterSection}>
-                <h3 className={styles.sectionTitle}>-Location-</h3>
-                <select 
-                    className={styles.dropdown}
-                    value={selectedCity} 
-                    onChange={handleCityChange}
-                    disabled={isLoadingCities}
-                >
-                    <option value="">
-                        {isLoadingCities ? 'Loading cities...' : 'Select a city...'}
-                    </option>
-                    {cities.map(city => <option key={city} value={city}>{city}</option>)}
-                </select>
-                <select 
-                    className={styles.dropdown}
-                    value={selectedNeighborhood}
-                    onChange={(e) => setSelectedNeighborhood(e.target.value)}
-                    disabled={!selectedCity || isLoadingNeighborhoods}
-                >
-                    <option value="">
-                        {isLoadingNeighborhoods ? 'Loading neighborhoods...' : 'Select a neighborhood...'}
-                    </option>
-                    {selectedCity && neighborhoods.map(hood => <option key={hood} value={hood}>{hood}</option>)}
-                </select>
+                <div className={styles.sectionHeader}>
+                    <button 
+                        className={styles.clearAllButton}
+                        onClick={clearAllFilters}
+                        disabled={isClearingFilters}
+                        title="Clear all filters"
+                    >
+                        {isClearingFilters ? (
+                            <>
+                                <div className={styles.spinner}></div>
+                                Clearing...
+                            </>
+                        ) : (
+                            <>
+                                <X size={16} />
+                                Clear All
+                            </>
+                        )}
+                    </button>
+                    <h3 className={styles.sectionTitle}>-Location-</h3>
+                </div>
+                
+                <div className={styles.dropdownContainer}>
+                    <select 
+                        className={styles.dropdown}
+                        value={selectedCity} 
+                        onChange={handleCityChange}
+                        disabled={isLoadingCities}
+                    >
+                        <option value="">
+                            {isLoadingCities ? 'Loading cities...' : 'Select a city...'}
+                        </option>
+                        {cities.map(city => <option key={city} value={city}>{city}</option>)}
+                    </select>
+                    {selectedCity && (
+                        <button 
+                            className={styles.clearButton}
+                            onClick={clearCityFilter}
+                            title="Clear city filter"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
+
+                <div className={styles.dropdownContainer}>
+                    <select 
+                        className={styles.dropdown}
+                        value={selectedNeighborhood}
+                        onChange={(e) => setSelectedNeighborhood(e.target.value)}
+                        disabled={!selectedCity || isLoadingNeighborhoods}
+                    >
+                        <option value="">
+                            {isLoadingNeighborhoods ? 'Loading neighborhoods...' : 'Select a neighborhood...'}
+                        </option>
+                        {selectedCity && neighborhoods.map(hood => <option key={hood} value={hood}>{hood}</option>)}
+                    </select>
+                    {selectedNeighborhood && (
+                        <button 
+                            className={styles.clearButton}
+                            onClick={clearNeighborhoodFilter}
+                            title="Clear neighborhood filter"
+                        >
+                            <X size={16} />
+                        </button>
+                    )}
+                </div>
             </div>
 
             <div className={styles.filterSection}>
@@ -339,8 +464,19 @@ const FilterPage = () => {
                 </div>
             </div>
             
-            <button className={styles.applyButton} onClick={handleApplyFilters}>
-                Start Exploring
+            <button 
+                className={styles.applyButton} 
+                onClick={handleApplyFilters}
+                disabled={isApplyingFilters}
+            >
+                {isApplyingFilters ? (
+                    <>
+                        <div className={styles.spinner}></div>
+                        Applying Filters...
+                    </>
+                ) : (
+                    'Start Exploring'
+                )}
             </button>
         </div>
     );

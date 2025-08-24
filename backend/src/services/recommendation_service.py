@@ -979,11 +979,6 @@ class NeighborhoodRecommendationService:
                 # Get neighborhood info
                 neighborhood_info = await self._get_neighborhood_info(db, neighborhood['neighborhood_id'])
                 
-                # Get sample listings
-                sample_listings = await self._get_sample_listings(
-                    db, neighborhood['neighborhood_id'], limit=3
-                )
-                
                 # Count total available listings
                 total_listings = await self._count_available_listings(
                     db, neighborhood['neighborhood_id']
@@ -1003,7 +998,6 @@ class NeighborhoodRecommendationService:
                     'price_analysis': neighborhood.get('price_analysis'),
                     'match_details': neighborhood['match_details'],
                     'individual_scores': neighborhood['individual_scores'],
-                    'sample_listings': sample_listings,
                     'total_available_listings': total_listings,
                     'neighborhood_info': neighborhood_info
                 })
@@ -1042,49 +1036,6 @@ class NeighborhoodRecommendationService:
         except Exception as e:
             logger.error(f"Error fetching neighborhood info for {neighborhood_id}: {e}")
             return None
-    
-    async def _get_sample_listings(
-        self, 
-        db: AsyncSession, 
-        neighborhood_id: int, 
-        limit: int = 3
-    ) -> List[Dict]:
-        """Get sample listings for a neighborhood."""
-        try:
-            # Join with ListingMetadata to get is_active and cover_image_url
-            query = select(Listing, ListingMetadata).join(
-                ListingMetadata, Listing.listing_id == ListingMetadata.listing_id, isouter=True
-            ).join(
-                Neighborhood, ListingMetadata.neighborhood_id == Neighborhood.id, isouter=True
-            ).where(
-                and_(
-                    Neighborhood.id == neighborhood_id,
-                    ListingMetadata.is_active == True
-                )
-            ).limit(limit)
-            
-            result = await db.execute(query)
-            listing_data = result.fetchall()
-            
-            sample_listings = []
-            for listing, metadata in listing_data:
-                sample_listings.append({
-                    'listing_id': listing.listing_id,
-                    'yad2_url_token': listing.yad2_url_token,
-                    'price': float(listing.price) if listing.price else None,
-                    'rooms_count': float(listing.rooms_count) if listing.rooms_count else None,
-                    'square_meter': listing.square_meter,
-                    'cover_image_url': metadata.cover_image_url if metadata else None,
-                    'street': listing.street,
-                    'house_number': listing.house_number,
-                    'floor': listing.floor
-                })
-            
-            return sample_listings
-            
-        except Exception as e:
-            logger.error(f"Error fetching sample listings for neighborhood {neighborhood_id}: {e}")
-            return []
     
     async def _count_available_listings(
         self, 

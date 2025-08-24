@@ -83,8 +83,78 @@
 
 .itemContent {
   display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.itemHeader {
+  display: flex;
   justify-content: space-between;
   align-items: center;
+  cursor: pointer;
+  padding: 4px 0;
+  transition: background-color 0.2s ease;
+  border-radius: 8px;
+  margin: -4px 0;
+  padding: 4px 8px;
+}
+
+.itemHeader:hover {
+  background-color: rgba(55, 27, 52, 0.05);
+}
+
+.headerActions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.expandButton {
+  background: none;
+  border: 2px solid #371b34;
+  border-radius: 50%;
+  width: 36px;
+  height: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  color: #371b34;
+}
+
+.expandButton:hover {
+  background-color: #371b34;
+  color: white;
+  transform: scale(1.05);
+}
+
+.expandButton.expanded {
+  transform: rotate(180deg);
+  background-color: #371b34;
+  color: white;
+}
+
+.expandButton.expanded:hover {
+  transform: rotate(180deg) scale(1.05);
+}
+
+.expandedContent {
+  margin-top: 16px;
+  border-top: 1px solid #e5e5e5;
+  padding-top: 16px;
+  animation: slideDown 0.3s ease-out;
+}
+
+@keyframes slideDown {
+  from {
+    opacity: 0;
+    transform: translateY(-10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 .itemInfo {
@@ -112,7 +182,7 @@
 }
 
 .listingCount {
-  font-size: 0.85rem;
+  font-size: 0.8rem;
   color: #4a90e2;
   font-weight: 500;
 }
@@ -329,19 +399,43 @@
   }
   
   .itemContent {
-    flex-direction: column;
-    align-items: flex-start;
     gap: 12px;
   }
   
-  .matchInfo {
+  .itemHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px;
+  }
+  
+  .headerActions {
     align-self: flex-end;
+    gap: 8px;
+  }
+  
+  .matchInfo {
     flex-direction: row;
     gap: 8px;
   }
   
+  .expandButton {
+    width: 32px;
+    height: 32px;
+  }
+  
   .matchScore {
     font-size: 1.5rem;
+  }
+  
+  .priceInfo {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+  
+  .featuresList {
+    gap: 4px;
   }
   
   .errorActions,
@@ -350,22 +444,180 @@
   }
 }
 
+/* Neighborhood Overview Styles */
+.neighborhoodOverview {
+  background-color: #f9f9f9;
+  border-left: 4px solid #371b34;
+  padding: 12px;
+  border-radius: 4px;
+}
+
+.overviewText {
+  font-size: 0.9rem;
+  color: #555;
+  line-height: 1.4;
+  margin: 0;
+  font-style: italic;
+}
+
+/* Price Analysis Styles */
+.priceAnalysis {
+  background-color: #f0f8ff;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e1f0fe;
+}
+
+.priceInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.priceLabel {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.priceValue {
+  font-size: 1rem;
+  color: #371b34;
+  font-weight: bold;
+}
+
+.affordabilityBadge {
+  font-size: 0.75rem;
+  padding: 4px 8px;
+  border-radius: 12px;
+  font-weight: 500;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.affordabilityBadge.perfect {
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+}
+
+.affordabilityBadge.affordable {
+  background-color: #cce7ff;
+  color: #004085;
+  border: 1px solid #99d5ff;
+}
+
+.affordabilityBadge.expensive {
+  background-color: #f8d7da;
+  color: #721c24;
+  border: 1px solid #f5c6cb;
+}
+
+/* Match Explanation Styles */
+.matchExplanation {
+  background-color: #f0f9ff;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e0f2fe;
+}
+
+.explanationTitle {
+  font-size: 0.9rem;
+  color: #371b34;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.explanationList {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.explanationItem {
+  font-size: 0.85rem;
+  color: #4caf50;
+  margin: 4px 0;
+  line-height: 1.3;
+}
+
+/* Top Features Styles */
+.topFeatures {
+  background-color: #fafafa;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #e5e5e5;
+}
+
+.featuresTitle {
+  font-size: 0.9rem;
+  color: #371b34;
+  font-weight: 600;
+  margin: 0 0 8px 0;
+}
+
+.featuresList {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.featureItem {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 4px 0;
+}
+
+.featureName {
+  font-size: 0.85rem;
+  color: #555;
+  text-transform: capitalize;
+}
+
+.featureScore {
+  font-size: 0.8rem;
+  color: #27ae60;
+  font-weight: 600;
+  background-color: #e8f5e8;
+  padding: 2px 6px;
+  border-radius: 10px;
+}
+
 /* Commute Highlights Styles */
 .commuteHighlights {
-  margin-top: 8px;
-  padding: 8px 0;
+  background-color: #fff3cd;
+  border-radius: 8px;
+  padding: 12px;
+  border: 1px solid #ffeaa7;
 }
 
 .commuteTitle {
-  font-size: 0.85rem;
-  color: #666;
+  font-size: 0.9rem;
+  color: #371b34;
   font-weight: 600;
-  margin-bottom: 4px;
+  margin: 0 0 8px 0;
 }
 
 .commuteDetail {
-  font-size: 0.8rem;
-  color: #4caf50;
-  margin: 2px 0;
+  font-size: 0.85rem;
+  color: #856404;
+  margin: 4px 0;
   line-height: 1.3;
+}
+
+/* Listing Info Styles */
+.listingInfo {
+  text-align: center;
+  padding: 8px;
+  background-color: #e3f2fd;
+  border-radius: 6px;
+  border: 1px solid #bbdefb;
+}
+
+.listingCount {
+  font-size: 0.85rem;
+  color: #1976d2;
+  font-weight: 600;
 }

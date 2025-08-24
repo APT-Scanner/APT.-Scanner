@@ -77,7 +77,11 @@ export const useApartments = (options = {}) => {
                     });
                 }
                 
-                console.log("Fetching apartments with URL:", url.toString());
+                console.log("🏠 Fetching apartments with URL:", url.toString());
+                console.log("🔍 Filter params being sent:", {
+                    filterViewed,
+                    filterParams: filterParams ? Array.from(filterParams.entries()) : null
+                });
                 
                 const response = await fetch(url.toString(), {
                     method: 'GET',

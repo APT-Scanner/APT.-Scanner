@@ -1,6 +1,6 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, AlertCircle, Search } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, Search, ChevronDown } from 'lucide-react';
 import { useRecommendations } from '../hooks/useRecommendations';
 import { useAuth } from '../hooks/useAuth';
 import { useFilters } from '../hooks/useFilters';
@@ -18,6 +18,36 @@ const RecommendationsPage = () => {
         refreshRecommendations,
         hasRecommendations 
     } = useRecommendations();
+
+    // State for managing expanded cards
+    const [expandedCards, setExpandedCards] = useState(new Set());
+
+    // Helper function to toggle card expansion
+    const toggleCardExpansion = (cardId, event) => {
+        event.stopPropagation(); // Prevent card click navigation
+        setExpandedCards(prev => {
+            const newSet = new Set(prev);
+            if (newSet.has(cardId)) {
+                newSet.delete(cardId);
+            } else {
+                newSet.add(cardId);
+            }
+            return newSet;
+        });
+    };
+
+    // Helper function to format feature scores
+    const getTopFeatures = (individualScores) => {
+        if (!individualScores) return [];
+        
+        return Object.entries(individualScores)
+            .sort((a, b) => b[1] - a[1])
+            .slice(0, 3)
+            .map(([feature, score]) => ({
+                name: feature.replace('_level', '').replace('_', ' '),
+                score: Math.round(score * 100)
+            }));
+    };
 
     const handleBack = () => navigate(-1);
 
@@ -209,44 +239,109 @@ const RecommendationsPage = () => {
             </p>
 
             <section className={styles.listContainer}>
-                {recommendations.map((rec) => (
-                    <div
-                        key={rec.id}
-                        className={styles.listItem}
-                        onClick={() => handleNeighborhoodClick(rec)}
-                    >
-                        <div className={styles.itemContent}>
-                            <div className={styles.itemInfo}>
-                                <span className={styles.itemName}>
-                                    {rec.name}
-                                    {rec.englishName && rec.englishName !== rec.name && (
-                                        <span className={styles.englishName}> ({rec.englishName})</span>
-                                    )}
-                                </span>
-                                <span className={styles.itemCity}>{rec.city}</span>
-                                {rec.totalListings > 0 && (
-                                    <span className={styles.listingCount}>
-                                        {rec.totalListings} available apartments
-                                    </span>
-                                )}
-                                {rec.location_details && rec.location_details.length > 0 && (
-                                    <div className={styles.commuteHighlights}>
-                                        <div className={styles.commuteTitle}>Commute Highlights</div>
-                                        {rec.location_details.slice(0, 2).map((detail, index) => (
-                                            <div key={index} className={styles.commuteDetail}>
-                                                ✓ {detail}
+                {recommendations.map((rec) => {
+                    const isExpanded = expandedCards.has(rec.id);
+                    return (
+                        <div
+                            key={rec.id}
+                            className={styles.listItem}
+                        >
+                            <div className={styles.itemContent}>
+                                {/* Main card header - always visible */}
+                                <div 
+                                    className={styles.itemHeader}
+                                    onClick={() => handleNeighborhoodClick(rec)}
+                                >
+                                    <div className={styles.itemInfo}>
+                                        <span className={styles.itemName}>
+                                            {rec.name}
+                                            {rec.englishName && rec.englishName !== rec.name && (
+                                                <span className={styles.englishName}> ({rec.englishName})</span>
+                                            )}
+                                        </span>
+                                        <span className={styles.itemCity}>{rec.city}</span>
+                                        {rec.totalListings > 0 && (
+                                            <span className={styles.listingCount}>
+                                                {rec.totalListings} available apartments
+                                            </span>
+                                        )}
+                                    </div>
+                                    <div className={styles.headerActions}>
+                                        <div className={styles.matchInfo}>
+                                            <span className={styles.matchScore}>{rec.match}%</span>
+                                            <span className={styles.matchLabel}>Match</span>
+                                        </div>
+                                        <button
+                                            className={`${styles.expandButton} ${isExpanded ? styles.expanded : ''}`}
+                                            onClick={(e) => toggleCardExpansion(rec.id, e)}
+                                            aria-label={isExpanded ? "Collapse details" : "Expand details"}
+                                        >
+                                            <ChevronDown size={20} />
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Collapsible detailed information */}
+                                {isExpanded && (
+                                    <div className={styles.expandedContent}>
+                                        {/* Neighborhood Overview */}
+                                        {rec.neighborhoodInfo?.overview && (
+                                            <div className={styles.neighborhoodOverview}>
+                                                <p className={styles.overviewText}>
+                                                    {rec.neighborhoodInfo.overview.length > 150 
+                                                        ? `${rec.neighborhoodInfo.overview.substring(0, 150)}...`
+                                                        : rec.neighborhoodInfo.overview
+                                                    }
+                                                </p>
                                             </div>
-                                        ))}
+                                        )}
+
+                                        {/* Price Analysis */}
+                                        {rec.priceAnalysis && (
+                                            <div className={styles.priceAnalysis}>
+                                                <div className={styles.priceInfo}>
+                                                    <span className={styles.priceLabel}>Average Rent:</span>
+                                                    <span className={styles.priceValue}>₪{rec.avgRentalPrice?.toLocaleString()}</span>
+                                                    <span className={`${styles.affordabilityBadge} ${styles[rec.priceAnalysis.affordability]}`}>
+                                                        {rec.priceAnalysis.message}
+                                                    </span>
+                                                </div>
+                                            </div>
+                                        )}
+
+
+                                        {/* Top Features */}
+                                        {rec.individualScores && (
+                                            <div className={styles.topFeatures}>
+                                                <h4 className={styles.featuresTitle}>Top Features:</h4>
+                                                <div className={styles.featuresList}>
+                                                    {getTopFeatures(rec.individualScores).map((feature, index) => (
+                                                        <div key={index} className={styles.featureItem}>
+                                                            <span className={styles.featureName}>{feature.name}</span>
+                                                            <span className={styles.featureScore}>{feature.score}%</span>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        )}
+
+                                        {/* Commute Information */}
+                                        {rec.locationDetails && rec.locationDetails.length > 0 && (
+                                            <div className={styles.commuteHighlights}>
+                                                <h4 className={styles.commuteTitle}>Commute Highlights:</h4>
+                                                {rec.locationDetails.slice(0, 2).map((detail, index) => (
+                                                    <div key={index} className={styles.commuteDetail}>
+                                                        ✓ {detail}
+                                                    </div>
+                                                ))}
+                                            </div>
+                                        )}
                                     </div>
                                 )}
                             </div>
-                            <div className={styles.matchInfo}>
-                                <span className={styles.matchScore}>{rec.match}%</span>
-                                <span className={styles.matchLabel}>Match</span>
-                            </div>
                         </div>
-                    </div>
-                ))}
+                    );
+                })}
             </section>
 
             <div className={styles.footer}>

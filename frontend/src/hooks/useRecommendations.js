@@ -60,7 +60,14 @@ export const useRecommendations = (options = {}) => {
                     sampleListings: rec.sample_listings,
                     individualScores: rec.individual_scores,
                     matchDetails: rec.match_details,
-                    neighborhoodInfo: rec.neighborhood_info
+                    neighborhoodInfo: rec.neighborhood_info,
+                    locationDetails: rec.location_details,
+                    priceAnalysis: rec.price_analysis,
+                    featureScore: rec.feature_score,
+                    locationScore: rec.location_score,
+                    priceScore: rec.price_score,
+                    totalScore: rec.total_score,
+                    avgRentalPrice: rec.avg_rental_price
                 })) || [];
                 
                 setRecommendations(transformedRecommendations);

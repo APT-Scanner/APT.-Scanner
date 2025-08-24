@@ -40,6 +40,7 @@ async def get_listings(
     Retrieves all listings from the database with optional filtering.
     """
     logger.info(f"Fetching listings with filters: {filters.model_dump()}")
+    logger.info(f"🔍 Location filters received - City: '{filters.city}' (type: {type(filters.city)}), Neighborhood: '{filters.neighborhood}' (type: {type(filters.neighborhood)})")
     
     try:
         # Join with ListingMetadata to access is_active and neighborhood info
@@ -58,10 +59,12 @@ async def get_listings(
         
         # Filter by city
         if filters.city and filters.city.strip():
+            logger.info(f"🏙️ Applying city filter: {filters.city}")
             query = query.where(NeighborhoodModel.city == filters.city)
             
         # Filter by neighborhood name
         if filters.neighborhood and filters.neighborhood.strip():
+            logger.info(f"🏘️ Applying neighborhood filter: {filters.neighborhood}")
             query = query.where(NeighborhoodModel.hebrew_name == filters.neighborhood)
         
         # Filter by property type
@@ -140,7 +143,17 @@ async def get_listings(
         result = await db.execute(query)
         listings = result.scalars().all()
         
-        logger.info(f"Found {len(listings)} listings matching the filters")
+        logger.info(f"✅ Found {len(listings)} listings matching the filters")
+        
+        # Debug: Show some neighborhood info for found listings
+        if listings:
+            for i, listing in enumerate(listings[:3]):  # Show first 3
+                if listing.listing_metadata and listing.listing_metadata.neighborhood:
+                    neighborhood = listing.listing_metadata.neighborhood
+                    logger.info(f"📍 Listing {i+1}: City: '{neighborhood.city}', Neighborhood: '{neighborhood.hebrew_name}'")
+        else:
+            logger.warning("❌ No listings found with current filters")
+        
         return listings
 
     except Exception as e:

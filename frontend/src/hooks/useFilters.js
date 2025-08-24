@@ -215,15 +215,21 @@ export const useFilters = () => {
 
     // Convert filters to query parameters
     const getFilterQueryParams = useCallback(() => {
-        console.log('Generating filterParams with filters:', filters, 'loading:', loading);
+        console.log('🔧 Generating filterParams with filters:', filters, 'loading:', loading);
 
         const queryParams = new URLSearchParams();
 
         // Add user_id as primary key for backend filtering
         if (userId) queryParams.append('user_id', userId);
         if (filters.type) queryParams.append('type', filters.type);
-        if (filters.city) queryParams.append('city', filters.city);
-        if (filters.neighborhood) queryParams.append('neighborhood', filters.neighborhood);
+        if (filters.city) {
+            console.log('📍 Adding city filter:', filters.city, 'type:', typeof filters.city);
+            queryParams.append('city', filters.city);
+        }
+        if (filters.neighborhood) {
+            console.log('🏘️ Adding neighborhood filter:', filters.neighborhood, 'type:', typeof filters.neighborhood);
+            queryParams.append('neighborhood', filters.neighborhood);
+        }
         queryParams.append('priceMin', filters.priceMin.toString());
         queryParams.append('priceMax', filters.priceMax.toString());
         queryParams.append('roomsMin', filters.roomsMin.toString());
