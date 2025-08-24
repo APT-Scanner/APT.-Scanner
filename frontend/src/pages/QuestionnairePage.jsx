@@ -5,7 +5,7 @@ import { useQuestionnaire } from '../hooks/useQuestionnaire';
 import styles from '../styles/QuestionnairePage.module.css';
 import { LoadingSpinner } from '../components/LoadingSpinner';
 import ContinuationPrompt from '../components/ContinuationPrompt';
-import RangeSlider from '../components/rangeSlider';
+import RangeSlider from '../components/RangeSlider';
 import { fetchPlaceSuggestions } from '../services/mapsApi';
 
 // Add debugging to track state changes
@@ -46,11 +46,12 @@ const QuestionnairePage = () => {
   const [placeSuggestions, setPlaceSuggestions] = useState({});
   const [showSuggestions, setShowSuggestions] = useState({});
   const [loadingSuggestions, setLoadingSuggestions] = useState(false);
-  const [priceMin, setPriceMin] = useState(2000);
-  const [priceMax, setPriceMax] = useState(20000);
+  const [priceMin, setPriceMin] = useState(0);
+  const [priceMax, setPriceMax] = useState(0);
   const [textInputValue, setTextInputValue] = useState('');
   const [textSuggestions, setTextSuggestions] = useState([]);
   const [showTextSuggestions, setShowTextSuggestions] = useState(false);
+  const [poiList, setPoiList] = useState([{ description: '', place_id: null, max_time: 20, mode: 'driving' }]);
   // Track question changes
   const previousQuestionRef = useRef(null);
   
@@ -176,6 +177,9 @@ const QuestionnairePage = () => {
         setTextSuggestions([]);
         setShowTextSuggestions(false);
       }
+      if (currentQuestion.type === 'poi-list') {
+        setPoiList([{ description: '', place_id: null, max_time: 20, mode: 'driving' }]);
+      }
       setSubmissionError(null);
     }
   }, [currentQuestion?.id]); // Only run this effect when the question ID changes, not on every render
@@ -195,9 +199,10 @@ const QuestionnairePage = () => {
       // Reset all UI states first
       setSelectedOptions([]);
       setTextInputValue('');
-      setPriceMin(2000);
-      setPriceMax(20000);
+      setPriceMin(0);
+      setPriceMax(0);
       setListInputValues(['']);
+      setPoiList([{ description: '', place_id: null, max_time: 20, mode: 'driving' }]);
       
       // Load the existing answer based on question type
       if (currentQuestion.type === 'single-choice') {
@@ -218,22 +223,43 @@ const QuestionnairePage = () => {
       } else if (currentQuestion.type === 'text') {
         setTextInputValue(existingAnswer);
       } else if (currentQuestion.type === 'slider' && Array.isArray(existingAnswer)) {
-        setPriceMin(existingAnswer[0] || 2000);
-        setPriceMax(existingAnswer[1] || 20000);
+        setPriceMin(existingAnswer[0] || currentQuestion.config.min);
+        setPriceMax(existingAnswer[1] || currentQuestion.config.max);
       } else if (currentQuestion.type === 'list-input') {
         if (Array.isArray(existingAnswer)) {
           setListInputValues(existingAnswer.length > 0 ? existingAnswer : ['']);
         } else {
           setListInputValues([existingAnswer]);
         }
+      } else if (currentQuestion.type === 'poi-list') {
+        try {
+          let poiData;
+          if (typeof existingAnswer === 'string') {
+            poiData = JSON.parse(existingAnswer);
+          } else {
+            poiData = existingAnswer;
+          }
+          
+          if (Array.isArray(poiData) && poiData.length > 0) {
+            setPoiList(poiData);
+          } else {
+            setPoiList([{ description: '', place_id: null, max_time: 20, mode: 'driving' }]);
+          }
+        } catch (e) {
+          console.error('Error parsing POI answer:', e);
+          setPoiList([{ description: '', place_id: null, max_time: 20, mode: 'driving' }]);
+        }
       }
     } else if (currentQuestion) {
       // No existing answer - clear all UI states
       setSelectedOptions([]);
       setTextInputValue('');
-      setPriceMin(2000);
-      setPriceMax(20000);
+      if (currentQuestion.config) {
+        setPriceMin(currentQuestion.config.min || 0);
+        setPriceMax(currentQuestion.config.max || 0);
+      }
       setListInputValues(['']);
+      setPoiList([{ description: '', place_id: null, max_time: 20, mode: 'driving' }]);
     }
   }, [currentQuestion, answers]);
   
@@ -312,6 +338,65 @@ const QuestionnairePage = () => {
     // Trigger place suggestions for text input
     handlePlaceInput(event.target.value, null, true);
   };
+
+  // POI handlers
+  const handlePoiDescriptionChange = (index, event) => {
+    const newPoiList = [...poiList];
+    newPoiList[index].description = event.target.value;
+    newPoiList[index].place_id = null; // Reset place_id when description changes
+    setPoiList(newPoiList);
+    
+    // Trigger place suggestions for this POI
+    handlePlaceInput(event.target.value, index, false);
+  };
+
+  const handlePoiSuggestionSelect = (suggestion, index) => {
+    const newPoiList = [...poiList];
+    newPoiList[index].description = suggestion.description;
+    newPoiList[index].place_id = suggestion.place_id;
+    setPoiList(newPoiList);
+    
+    // Hide suggestions for this item
+    setShowSuggestions(prev => ({...prev, [index]: false}));
+  };
+
+  const handlePoiMaxTimeChange = (index, value) => {
+    const newPoiList = [...poiList];
+    newPoiList[index].max_time = parseInt(value) || 20;
+    setPoiList(newPoiList);
+  };
+
+  const handlePoiModeChange = (index, mode) => {
+    const newPoiList = [...poiList];
+    newPoiList[index].mode = mode;
+    setPoiList(newPoiList);
+  };
+
+  const handleAddPoi = () => {
+    if (poiList.length < 5) {
+      setPoiList([...poiList, { description: '', place_id: null, max_time: 20, mode: 'driving' }]);
+    }
+  };
+
+  const handleRemovePoi = (index) => {
+    if (poiList.length > 1) {
+      const newPoiList = [...poiList];
+      newPoiList.splice(index, 1);
+      setPoiList(newPoiList);
+      
+      // Clean up suggestions for removed item
+      setPlaceSuggestions(prev => {
+        const updated = {...prev};
+        delete updated[index];
+        return updated;
+      });
+      setShowSuggestions(prev => {
+        const updated = {...prev};
+        delete updated[index];
+        return updated;
+      });
+    }
+  };
   
   const handleSubmit = () => {
     submitQuestionnaire();
@@ -365,6 +450,14 @@ const QuestionnairePage = () => {
         break;
       case 'text':
         currentAnswer = textInputValue;
+        break;
+      case 'poi-list':
+        const validPois = poiList.filter(poi => poi.place_id && poi.description.trim());
+        if (validPois.length === 0) {
+          setSubmissionError("Please add at least one location with a valid place selection.");
+          return;
+        }
+        currentAnswer = JSON.stringify(validPois);
         break;
       default:
         console.warn("Unsupported question type for goToNextQuestion:", currentQuestion.type);
@@ -420,7 +513,7 @@ const QuestionnairePage = () => {
         <button className={styles.retryButton} onClick={retry}>
           Retry
         </button>
-        <button className={styles.backButton} onClick={handleBack}>
+        <button className={styles.retryButton} onClick={handleBack}>
           Back to Start
         </button>
       </div>
@@ -489,6 +582,11 @@ const QuestionnairePage = () => {
   } else if (currentQuestion.type === 'list-input') {
       const filteredListInputs = listInputValues.map(item => item.trim()).filter(item => item !== '');
       if (filteredListInputs.length === 0) {
+          nextButtonEnabled = false;
+      }
+  } else if (currentQuestion.type === 'poi-list') {
+      const validPois = poiList.filter(poi => poi.place_id && poi.description.trim());
+      if (validPois.length === 0) {
           nextButtonEnabled = false;
       }
   }
@@ -620,70 +718,165 @@ const QuestionnairePage = () => {
             {loadingSuggestions && <p className={styles.loadingText}>Loading suggestions...</p>}
           </div>
         )}
-        
 
-        {currentQuestion.type === 'list-input' && (
-          <div className={styles.listInputContainer}>
-            {listInputValues.map((value, index) => (
-              <div key={index} className={styles.listItem}>
-                <div className={styles.autocompleteContainer}>
-                  <input
-                    type="text"
-                    value={value}
-                    onChange={(e) => handleListInputChange(index, e)}
-                    placeholder={index === 0 ? 'eg. your office, university...' : ''}
-                    className={styles.listInput}
-                    onFocus={() => {
-                      if (placeSuggestions[index] && placeSuggestions[index].length > 0) {
-                        setShowSuggestions(prev => ({...prev, [index]: true}));
-                      }
-                    }}
-                  />
-                  {showSuggestions[index] && placeSuggestions[index] && placeSuggestions[index].length > 0 && (
-                    <div className={styles.suggestionsDropdown}>
-                      {placeSuggestions[index].map((suggestion, suggestionIndex) => (
-                        <div
-                          key={suggestion.place_id || suggestionIndex}
-                          className={styles.suggestionItem}
-                          onClick={() => handleSuggestionSelect(suggestion, index, false)}
-                        >
-                          <div className={styles.suggestionText}>
-                            {suggestion.structured_formatting?.main_text && (
-                              <span className={styles.mainText}>
-                                {suggestion.structured_formatting.main_text}
-                              </span>
-                            )}
-                            {suggestion.structured_formatting?.secondary_text && (
-                              <span className={styles.secondaryText}>
-                                {suggestion.structured_formatting.secondary_text}
-                              </span>
-                            )}
-                            {!suggestion.structured_formatting && (
-                              <span>{suggestion.description}</span>
-                            )}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+        {currentQuestion.type === 'poi-list' && (
+          <div className={styles.poiListContainer}>
+            {poiList.map((poi, index) => (
+              <div key={index} className={styles.poiCard}>
+                <div className={styles.poiHeader}>
+                  <div className={styles.poiNumber}>{index + 1}</div>
+                  <div className={styles.poiHeaderText}>
+                    <h4 className={styles.poiTitle}>
+                      {index === 0 ? "Where do you need to go regularly?" : "Any other important location?"}
+                    </h4>
+                    <p className={styles.poiSubtitle}>
+                      {index === 0 ? "Like your workplace, university, or gym" : "Another place you visit often"}
+                    </p>
+                  </div>
+                  {poiList.length > 1 && (
+                    <button
+                      onClick={() => handleRemovePoi(index)}
+                      className={styles.removePoiButton}
+                      aria-label={`Remove location ${index + 1}`}
+                    >
+                      ×
+                    </button>
                   )}
                 </div>
-                {listInputValues.length > 1 && (
-                  <button 
-                    onClick={() => handleRemoveListInput(index)} 
-                    className={styles.removeListItemButton}
-                    aria-label={`Remove item ${index + 1}`}
-                  >
-                    &times;
-                  </button>
+
+                <div className={styles.poiContent}>
+                  {/* Location Search */}
+                  <div className={styles.poiSection}>
+                    <label className={styles.poiLabel}>Search for location</label>
+                    <div className={styles.autocompleteContainer}>
+                      <input
+                        type="text"
+                        value={poi.description}
+                        onChange={(e) => handlePoiDescriptionChange(index, e)}
+                        placeholder="Start typing to search..."
+                        className={`${styles.poiInput} ${poi.place_id ? styles.poiInputSelected : ''}`}
+                        onFocus={() => {
+                          if (placeSuggestions[index] && placeSuggestions[index].length > 0) {
+                            setShowSuggestions(prev => ({...prev, [index]: true}));
+                          }
+                        }}
+                      />
+                      {poi.place_id && (
+                        <div className={styles.selectedLocationBadge}>
+                          ✓ Location confirmed
+                        </div>
+                      )}
+                      {showSuggestions[index] && placeSuggestions[index] && placeSuggestions[index].length > 0 && (
+                        <div className={styles.suggestionsDropdown}>
+                          {placeSuggestions[index].map((suggestion, suggestionIndex) => (
+                            <div
+                              key={suggestion.place_id || suggestionIndex}
+                              className={styles.suggestionItem}
+                              onClick={() => handlePoiSuggestionSelect(suggestion, index)}
+                            >
+                              <div className={styles.suggestionText}>
+                                {suggestion.structured_formatting?.main_text && (
+                                  <span className={styles.mainText}>
+                                    {suggestion.structured_formatting.main_text}
+                                  </span>
+                                )}
+                                {suggestion.structured_formatting?.secondary_text && (
+                                  <span className={styles.secondaryText}>
+                                    {suggestion.structured_formatting.secondary_text}
+                                  </span>
+                                )}
+                                {!suggestion.structured_formatting && (
+                                  <span>{suggestion.description}</span>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* Travel Mode Selection */}
+                  {poi.place_id && (
+                    <>
+                      <div className={styles.poiSection}>
+                        <label className={styles.poiLabel}>How do you usually get there?</label>
+                        <div className={styles.travelModeGrid}>
+                          {[
+                            { mode: 'driving', icon: '🚗', label: 'Driving' },
+                            { mode: 'transit', icon: '🚌', label: 'Public Transport' },
+                            { mode: 'walking', icon: '🚶', label: 'Walking' },
+                            { mode: 'bicycling', icon: '🚴', label: 'Cycling' }
+                          ].map((option) => (
+                            <button
+                              key={option.mode}
+                              type="button"
+                              className={`${styles.travelModeButton} ${poi.mode === option.mode ? styles.travelModeSelected : ''}`}
+                              onClick={() => handlePoiModeChange(index, option.mode)}
+                            >
+                              <span className={styles.travelModeIcon}>{option.icon}</span>
+                              <span className={styles.travelModeLabel}>{option.label}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Commute Time */}
+                      <div className={styles.poiSection}>
+                        <label className={styles.poiLabel}>Maximum acceptable commute time</label>
+                        <div className={styles.commuteTimeContainer}>
+                          <div className={styles.timeSliderContainer}>
+                            <input
+                              type="range"
+                              min="5"
+                              max="120"
+                              step="5"
+                              value={poi.max_time}
+                              onChange={(e) => handlePoiMaxTimeChange(index, e.target.value)}
+                              className={styles.timeSlider}
+                            />
+                            <div className={styles.timeDisplay}>
+                              <span className={styles.timeValue}>{poi.max_time}</span>
+                              <span className={styles.timeUnit}>minutes</span>
+                            </div>
+                          </div>
+                          <div className={styles.timePresets}>
+                            {[15, 30, 45, 60].map((preset) => (
+                              <button
+                                key={preset}
+                                type="button"
+                                className={`${styles.timePresetButton} ${poi.max_time === preset ? styles.timePresetSelected : ''}`}
+                                onClick={() => handlePoiMaxTimeChange(index, preset)}
+                              >
+                                {preset}m
+                              </button>
+                            ))}
+                          </div>
+                        </div>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                {poi.place_id && poi.mode && (
+                  <div className={styles.poiSummary}>
+                    <div className={styles.summaryIcon}>✓</div>
+                    <div className={styles.summaryText}>
+                      <strong>{poi.description.split(',')[0]}</strong> - Max {poi.max_time} min by{' '}
+                      {poi.mode === 'driving' ? 'car' : poi.mode === 'transit' ? 'public transport' : poi.mode}
+                    </div>
+                  </div>
                 )}
               </div>
             ))}
-            {listInputValues.length < 5 && (
+            
+            {poiList.length < 5 && (
               <button 
-                onClick={handleAddListInput} 
-                className={styles.addListItemButton}
+                onClick={handleAddPoi} 
+                className={styles.addPoiButton}
               >
-                + Add Item
+                <span className={styles.addPoiIcon}>+</span>
+                <span>Add Another Important Location</span>
               </button>
             )}
             {loadingSuggestions && <p className={styles.loadingText}>Loading suggestions...</p>}

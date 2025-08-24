@@ -229,6 +229,16 @@ const RecommendationsPage = () => {
                                         {rec.totalListings} available apartments
                                     </span>
                                 )}
+                                {rec.location_details && rec.location_details.length > 0 && (
+                                    <div className={styles.commuteHighlights}>
+                                        <div className={styles.commuteTitle}>Commute Highlights</div>
+                                        {rec.location_details.slice(0, 2).map((detail, index) => (
+                                            <div key={index} className={styles.commuteDetail}>
+                                                ✓ {detail}
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
                             <div className={styles.matchInfo}>
                                 <span className={styles.matchScore}>{rec.match}%</span>

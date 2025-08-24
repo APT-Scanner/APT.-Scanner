@@ -15,6 +15,7 @@ position: relative;
 
 .loadingContainer, .errorContainer {
   display: flex; 
+  flex-direction: column; 
   justify-content: center; 
   align-items: center;
   text-align: center;
@@ -22,6 +23,7 @@ position: relative;
   font-size: 1.1rem;
   background-color: #f5f5f5;
   padding: 20px;
+  gap: 26px;
   width: 100vw;
   margin: auto;
 }
@@ -461,4 +463,375 @@ position: relative;
   text-align: center;
   padding-top: 10px;
   font-style: italic;
+}
+
+/* POI List Styles - Modern Card-Based Interface */
+.poiListContainer {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: 24px;
+}
+
+.poiCard {
+  background: white;
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  border: 2px solid #f0f0f0;
+  transition: all 0.3s ease;
+}
+
+.poiCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.12);
+  border-color: #aeaff7;
+}
+
+/* Card Header */
+.poiHeader {
+  display: flex;
+  align-items: center;
+  padding: 20px 24px 16px;
+  background: linear-gradient(135deg, #aeaff7 0%, #9c9eff 100%);
+  color: white;
+  position: relative;
+}
+
+.poiNumber {
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 16px;
+  margin-right: 16px;
+}
+
+.poiHeaderText {
+  flex: 1;
+}
+
+.poiTitle {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.poiSubtitle {
+  margin: 0;
+  font-size: 14px;
+  opacity: 0.9;
+}
+
+.removePoiButton {
+  width: 28px;
+  height: 28px;
+  border: none;
+  background: rgba(255,255,255,0.2);
+  color: white;
+  border-radius: 50%;
+  cursor: pointer;
+  font-size: 16px;
+  font-weight: bold;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.2s ease;
+}
+
+.removePoiButton:hover {
+  background: rgba(255,255,255,0.3);
+  transform: scale(1.1);
+}
+
+/* Card Content */
+.poiContent {
+  padding: 24px;
+}
+
+.poiSection {
+  margin-bottom: 24px;
+}
+
+.poiSection:last-child {
+  margin-bottom: 0;
+}
+
+.poiLabel {
+  display: block;
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 12px;
+  font-family: 'Alata', sans-serif;
+}
+
+/* Location Search */
+.poiInput {
+  width: 100%;
+  padding: 16px 20px;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  font-size: 16px;
+  font-family: 'Alata', sans-serif;
+  background: white;
+  transition: all 0.2s ease;
+  position: relative;
+  color: #333;
+}
+
+.poiInput:focus {
+  outline: none;
+  border-color: #aeaff7;
+  box-shadow: 0 0 0 4px rgba(174, 175, 247, 0.1);
+}
+
+.poiInputSelected {
+  border-color: #4caf50;
+  background: #f8fff8;
+}
+
+.selectedLocationBadge {
+  position: absolute;
+  top: -8px;
+  right: 12px;
+  background: #4caf50;
+  color: white;
+  padding: 4px 12px;
+  border-radius: 16px;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+/* Travel Mode Selection */
+.travelModeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 12px;
+}
+
+.travelModeButton {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 16px 12px;
+  border: 2px solid #e8e8e8;
+  border-radius: 12px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Alata', sans-serif;
+  color: #333;
+}
+
+.travelModeButton:hover {
+  border-color: #aeaff7;
+  transform: translateY(-2px);
+}
+
+.travelModeSelected {
+  border-color: #aeaff7;
+  background: linear-gradient(135deg, #aeaff7 0%, #9c9eff 100%);
+  color: white;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(174, 175, 247, 0.3);
+}
+
+.travelModeIcon {
+  font-size: 24px;
+  margin-bottom: 8px;
+}
+
+.travelModeLabel {
+  font-size: 13px;
+  font-weight: 500;
+  text-align: center;
+}
+
+/* Commute Time */
+.commuteTimeContainer {
+  background: #f8f9fa;
+  border-radius: 12px;
+  padding: 20px;
+}
+
+.timeSliderContainer {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.timeSlider {
+  flex: 1;
+  height: 8px;
+  width: 100%;
+  border-radius: 4px;
+  background: #e0e0e0;
+  outline: none;
+  -webkit-appearance: none;
+}
+
+.timeSlider::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #aeaff7 0%, #9c9eff 100%);
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(174, 175, 247, 0.3);
+}
+
+.timeSlider::-moz-range-thumb {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #aeaff7 0%, #9c9eff 100%);
+  cursor: pointer;
+  border: none;
+  box-shadow: 0 2px 8px rgba(174, 175, 247, 0.3);
+}
+
+.timeDisplay {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 70px;
+}
+
+.timeValue {
+  font-size: 24px;
+  font-weight: 700;
+  color: #aeaff7;
+  line-height: 1;
+}
+
+.timeUnit {
+  font-size: 12px;
+  color: #666;
+  font-weight: 500;
+}
+
+.timePresets {
+  display: flex;
+  gap: 8px;
+  justify-content: center;
+}
+
+.timePresetButton {
+  padding: 8px 16px;
+  border: 2px solid #e0e0e0;
+  border-radius: 20px;
+  background: white;
+  color: #666;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  font-family: 'Alata', sans-serif;
+}
+
+.timePresetButton:hover {
+  border-color: #aeaff7;
+  color: #aeaff7;
+}
+
+.timePresetSelected {
+  background: linear-gradient(135deg, #aeaff7 0%, #9c9eff 100%);
+  border-color: #aeaff7;
+  color: white;
+}
+
+/* POI Summary */
+.poiSummary {
+  margin-top: 20px;
+  padding: 16px 24px;
+  background: linear-gradient(135deg, #e8f5e8 0%, #f0fff0 100%);
+  border-top: 2px solid #f0f0f0;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.summaryIcon {
+  font-size: 20px;
+}
+
+.summaryText {
+  font-size: 14px;
+  color: #2e7d32;
+  font-weight: 500;
+}
+
+/* Add POI Button */
+.addPoiButton {
+  background: linear-gradient(135deg, #aeaff7 0%, #9c9eff 100%);
+  color: white;
+  border: none;
+  border-radius: 16px;
+  padding: 20px 32px;
+  font-size: 16px;
+  font-family: 'Alata', sans-serif;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-weight: 500;
+  box-shadow: 0 4px 15px rgba(174, 175, 247, 0.3);
+}
+
+.addPoiButton:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 6px 20px rgba(174, 175, 247, 0.4);
+}
+
+.addPoiButton:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.addPoiIcon {
+  font-size: 20px;
+  font-weight: bold;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .poiHeader {
+    padding: 16px 20px 12px;
+  }
+  
+  .poiTitle {
+    font-size: 16px;
+  }
+  
+  .poiSubtitle {
+    font-size: 13px;
+  }
+  
+  .poiContent {
+    padding: 20px;
+  }
+  
+  .travelModeGrid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .timeSliderContainer {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .timeDisplay {
+    order: -1;
+  }
 }

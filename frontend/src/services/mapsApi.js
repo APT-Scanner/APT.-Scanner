@@ -66,4 +66,45 @@ export const fetchPlaceDetails = async (placeId) => {
         console.error('Error fetching place details:', error);
         throw error;
     }
+};
+
+/**
+ * Calculate route matrix between origins and destinations via secure backend proxy
+ * Uses Google Routes API (computeRouteMatrix) - the modern replacement for Distance Matrix API
+ * @param {Array} origins - Array of origin coordinates {lat, lng}
+ * @param {Array} destinations - Array of destination place IDs
+ * @param {string} mode - Travel mode (driving, walking, bicycling, transit)
+ * @returns {Promise<Object>} Route matrix response (converted to Distance Matrix format for compatibility)
+ */
+export const fetchDistanceMatrix = async (origins, destinations, mode = 'driving') => {
+    try {
+        const payload = {
+            origins,
+            destinations,
+            mode
+        };
+
+        const response = await fetch(`${BACKEND_URL}/api/v1/maps/distance-matrix`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify(payload)
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const data = await response.json();
+        
+        if (data.status !== 'OK') {
+            throw new Error(`Google Routes API error: ${data.status}`);
+        }
+        
+        return data;
+    } catch (error) {
+        console.error('Error fetching route matrix:', error);
+        throw error;
+    }
 }; 

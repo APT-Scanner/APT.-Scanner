@@ -79,6 +79,7 @@ const RangeSlider = ({
                             onChange={(e) => onChangeMin(Math.max(min, Math.min(parseInt(e.target.value) || min, valueMax)))}
                             placeholder="Min"
                             step="100"
+                            readOnly
                         />
                         <input 
                             type="number" 
@@ -87,6 +88,7 @@ const RangeSlider = ({
                             onChange={(e) => onChangeMax(Math.min(max, Math.max(parseInt(e.target.value) || max, valueMin)))}
                             placeholder="Max"
                             step="100"
+                            readOnly
                 />
             </div>
             <div className={styles.rangeSlider} ref={sliderRef}>

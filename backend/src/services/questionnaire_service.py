@@ -368,10 +368,14 @@ class QuestionnaireService:
         Update the question queue based on a user's answer, parsing JSON strings first.
         """
         parsed_answer = answer
-        # Check if the answer is a string that looks like a list/JSON array
-        if isinstance(answer, str) and answer.startswith('[') and answer.endswith(']'):
+        
+        # Special handling for POI questions - keep as JSON string for backend processing
+        if question_id == 'points_of_interest':
+            # Don't parse POI data for branching logic, keep as string
+            logger.debug(f"POI question answered, keeping as JSON string for question {question_id}.")
+        elif isinstance(answer, str) and answer.startswith('[') and answer.endswith(']'):
             try:
-                # Attempt to parse it into a Python list
+                # Attempt to parse it into a Python list for other question types
                 parsed_answer = json.loads(answer)
                 # Update the answer in the state so it's stored correctly
                 state['answers'][question_id] = parsed_answer
@@ -389,12 +393,20 @@ class QuestionnaireService:
         branch_questions = set()
         branches = self.question_graph[question_id].get('branches', {})
         for single_answer in answers_to_check:
-            if single_answer in branches:
-                branch_result = branches[single_answer]
-                if isinstance(branch_result, list):
-                    branch_questions.update(branch_result)
-                else:
-                    branch_questions.add(branch_result)
+            # Skip complex data types (like dictionaries) that can't be used as dictionary keys
+            if isinstance(single_answer, (dict, list)):
+                continue
+            # Convert answer to string for lookup if it's not already hashable
+            try:
+                if single_answer in branches:
+                    branch_result = branches[single_answer]
+                    if isinstance(branch_result, list):
+                        branch_questions.update(branch_result)
+                    else:
+                        branch_questions.add(branch_result)
+            except TypeError:
+                # Skip unhashable types
+                continue
         return list(branch_questions)
 
     def _add_questions_to_queue(self, state: Dict[str, Any], questions: List[str]) -> None:

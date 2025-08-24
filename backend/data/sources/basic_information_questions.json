@@ -44,7 +44,7 @@
     "id": "points_of_interest",
     "category": "User Preferences",
     "text": "If you have points of interest, add them below.",
-    "type": "list-input",
+    "type": "poi-list",
     "required": false,
     "on_unanswered": {
       "id": "preferred_location",
@@ -53,34 +53,6 @@
       "type": "text",
       "required": false,
       "placeholder": "e.g. Tel Aviv, Jerusalem, HaMerkaz, HaZafon, etc."
-    },
-    "on_answered": {
-      "id": "commute_pref",
-      "category": "User Preferences",
-      "text": "How do you prefer to commute on daily basis?",
-      "type": "single-choice",
-      "options": [
-        "Public transport",
-        "Walking",
-        "Bicycle / scooter",
-        "Private car"
-      ],
-      "on_answered": {
-        "id": "commute_time",
-        "category": "User Preferences",
-        "text": "What is the maximum commute time you are willing to accept (in minutes)?",
-        "type": "slider",
-        "config": {
-          "min": 5,
-          "max": 120,
-          "step": 5,
-          "unit": "minutes",
-          "labels": [
-            5,
-            120
-          ]
-        }
-      }
     }
   },
   {

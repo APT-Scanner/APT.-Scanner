@@ -348,4 +348,24 @@
   .emptyActions {
     max-width: 100%;
   }
-} 
+}
+
+/* Commute Highlights Styles */
+.commuteHighlights {
+  margin-top: 8px;
+  padding: 8px 0;
+}
+
+.commuteTitle {
+  font-size: 0.85rem;
+  color: #666;
+  font-weight: 600;
+  margin-bottom: 4px;
+}
+
+.commuteDetail {
+  font-size: 0.8rem;
+  color: #4caf50;
+  margin: 2px 0;
+  line-height: 1.3;
+}

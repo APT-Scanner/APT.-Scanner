@@ -9,6 +9,10 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, and_, func
 from sqlalchemy.orm import selectinload
 import logging
+import json
+import aiohttp
+import requests
+from src.config.settings import settings
 
 from src.database.models import Listing, Neighborhood, NeighborhoodMetrics, NeighborhoodMetadata, ListingMetadata, UserFilters
 from src.services.questionnaire_service import QuestionnaireService
@@ -81,6 +85,7 @@ class NeighborhoodRecommendationService:
             
             # Get preference vector (cached or calculated)
             preference_vector = await self._get_cached_preference_vector(db, user_id)
+            user_responses = None
             
             if preference_vector is None:
                 # Fallback: Get user's questionnaire responses and calculate vector
@@ -93,7 +98,13 @@ class NeighborhoodRecommendationService:
                 preference_vector = self._create_preference_vector(user_responses)
                 logger.info(f"Calculated preference vector from responses for user {user_id}: {preference_vector}")
             else:
+                # Get responses for POI data even if we have cached vector
+                user_responses = await self.questionnaire_service.get_user_responses(db, user_id)
                 logger.info(f"Using cached preference vector for user {user_id}: {preference_vector}")
+            
+            # Get user's points of interest
+            user_pois = self._get_user_pois(user_responses) if user_responses else []
+            logger.info(f"Found {len(user_pois)} POIs for user {user_id}: {user_pois}")
             
             # Get neighborhood features from database
             neighborhood_features = await self._get_neighborhood_features_with_prices(db)
@@ -101,11 +112,28 @@ class NeighborhoodRecommendationService:
                 logger.error("No neighborhood features found in database")
                 return []
             
-            # Score neighborhoods with enhanced algorithm
-            scored_neighborhoods = self._score_neighborhoods_with_price(
+            # Calculate location scores if user has POIs
+            location_scores = {}
+            if user_pois:
+                logger.info(f"Calculating location scores for {len(user_pois)} POIs")
+                try:
+                    location_scores = await self._get_location_scores(neighborhood_features, user_pois)
+                    if location_scores:
+                        logger.info(f"Generated location scores for {len(location_scores)} neighborhoods")
+                    else:
+                        logger.warning("Location scoring failed - continuing with feature and price scoring only")
+                except Exception as e:
+                    logger.error(f"Error in location scoring: {e} - continuing without location scores")
+                    location_scores = {}
+            else:
+                logger.info("No POIs found, skipping location scoring")
+            
+            # Score neighborhoods with enhanced algorithm including location scores
+            scored_neighborhoods = self._score_neighborhoods(
                 neighborhood_features, 
                 preference_vector, 
-                user_price_filters
+                user_price_filters,
+                location_scores
             )
             
             # Get top recommendations
@@ -145,7 +173,7 @@ class NeighborhoodRecommendationService:
             
         except Exception as e:
             logger.error(f"Error fetching user price filters for {user_id}: {e}")
-            return {'price_min': 2000, 'price_max': 8000, 'type': 'rent'}
+            return {'price_min': 4000, 'price_max': 7000, 'type': 'rent'}
     
     def _create_preference_vector(self, responses: Dict[str, any]) -> np.ndarray:
         """Convert questionnaire responses to preference vector."""
@@ -293,14 +321,62 @@ class NeighborhoodRecommendationService:
             preferences['mobility_level'] = max(preferences['mobility_level'], 0.7)
             preferences['nightlife_level'] = max(preferences['nightlife_level'], 0.7)
     
+    def _get_user_pois(self, responses: Dict) -> List[Dict]:
+        """
+        Extract and validate user's points of interest from responses.
+        
+        Args:
+            responses: User questionnaire responses
+            
+        Returns:
+            List of validated POI dictionaries with place_id, max_time, and mode
+        """
+        if not responses or 'points_of_interest' not in responses:
+            return []
+        
+        try:
+            poi_answer = responses['points_of_interest']
+            if not poi_answer:
+                return []
+            
+            # Handle both JSON string and already parsed list
+            if isinstance(poi_answer, str):
+                pois = json.loads(poi_answer)
+            elif isinstance(poi_answer, list):
+                pois = poi_answer
+            else:
+                logger.warning(f"Unexpected POI data type: {type(poi_answer)}")
+                return []
+            
+            # Validate and clean POI data
+            validated_pois = []
+            for poi in pois:
+                if isinstance(poi, dict) and all(key in poi for key in ['place_id', 'max_time', 'mode']):
+                    if poi['place_id'] and poi['max_time'] > 0:
+                        validated_pois.append({
+                            'place_id': poi['place_id'],
+                            'max_time': int(poi['max_time']),
+                            'mode': poi['mode'],
+                            'description': poi.get('description', '')
+                        })
+            
+            logger.info(f"Extracted {len(validated_pois)} valid POIs from responses")
+            return validated_pois
+            
+        except (json.JSONDecodeError, TypeError, KeyError) as e:
+            logger.warning(f"Error parsing POI data from responses: {e}")
+            return []
+    
     async def _get_neighborhood_features_with_prices(self, db: AsyncSession) -> List[Dict]:
         """Get neighborhood features with average rental prices from database."""
         try:
-            # Join NeighborhoodFeatures with Neighborhood and NeighborhoodMetrics to get prices
+            # Join NeighborhoodFeatures with Neighborhood and NeighborhoodMetrics to get prices and coordinates
             result = await db.execute(
                 select(
                     NeighborhoodFeatures,
                     Neighborhood.hebrew_name,
+                    Neighborhood.latitude,
+                    Neighborhood.longitude,
                     NeighborhoodMetrics.avg_rental_price
                 )
                 .join(Neighborhood, NeighborhoodFeatures.neighborhood_id == Neighborhood.id)
@@ -309,11 +385,13 @@ class NeighborhoodRecommendationService:
             features_with_data = result.fetchall()
             
             neighborhood_data = []
-            for feature, hebrew_name, avg_rental_price in features_with_data:
+            for feature, hebrew_name, latitude, longitude, avg_rental_price in features_with_data:
                 if feature.feature_vector:
                     neighborhood_data.append({
                         'neighborhood_id': feature.neighborhood_id,
                         'hebrew_name': hebrew_name,
+                        'latitude': float(latitude) if latitude else None,
+                        'longitude': float(longitude) if longitude else None,
                         'feature_vector': np.array(feature.feature_vector),
                         'avg_rental_price': float(avg_rental_price) if avg_rental_price else None,
                         'individual_scores': {
@@ -375,13 +453,344 @@ class NeighborhoodRecommendationService:
             overrun = (avg_rental_price - limit) / user_max
             return max(0.05, 0.4 - overrun * 1.5)
 
+    def _call_google_routes_api(self, origins: List[Dict], destinations: List[str], mode: str) -> Optional[Dict]:
+        """
+        Call Google Routes API (computeRouteMatrix) - the new replacement for Distance Matrix API.
+        
+        Args:
+            origins: List of origin coordinates with lat and lng
+            destinations: List of destination place IDs
+            mode: Travel mode
+            
+        Returns:
+            Routes API response converted to Distance Matrix format, or None if error
+        """
+        if not settings.GOOGLE_API_KEY:
+            logger.error("Google Maps API key not configured")
+            return None
+        
+        try:
+            # Convert travel mode to Routes API format
+            travel_mode_map = {
+                'driving': 'DRIVE',
+                'walking': 'WALK',
+                'bicycling': 'BICYCLE',
+                'transit': 'TRANSIT'
+            }
+            routes_mode = travel_mode_map.get(mode, 'DRIVE')
+            
+            # Prepare waypoints for Routes API v2 (correct format)
+            origin_waypoints = []
+            for origin in origins:
+                origin_waypoints.append({
+                    "waypoint": {
+                        "location": {
+                            "latLng": {
+                                "latitude": origin['lat'],
+                                "longitude": origin['lng']
+                            }
+                        }
+                    }
+                })
+            
+            destination_waypoints = []
+            for dest_place_id in destinations:
+                destination_waypoints.append({
+                    "waypoint": {
+                        "placeId": dest_place_id
+                    }
+                })
+            
+            # Prepare request body for Routes API v2
+            request_body = {
+                "origins": origin_waypoints,
+                "destinations": destination_waypoints,
+                "travelMode": routes_mode,
+                "routingPreference": "TRAFFIC_AWARE_OPTIMAL",
+                "units": "METRIC"
+            }
+            
+            # Routes API endpoint
+            url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix"
+            
+            headers = {
+                "X-Goog-Api-Key": settings.GOOGLE_API_KEY,
+                "X-Goog-FieldMask": "originIndex,destinationIndex,status,condition,distanceMeters,duration",
+                "Content-Type": "application/json"
+            }
+            
+            logger.info(f"Calling Google Routes API (computeRouteMatrix) for mode {mode}")
+            logger.debug(f"Request body: {json.dumps(request_body, indent=2)}")
+            
+            response = requests.post(url, json=request_body, headers=headers, timeout=30)
+            
+            if response.status_code != 200:
+                error_text = response.text
+                logger.error(f"Google Routes API error {response.status_code}: {error_text}")
+                return None
+            
+            data = response.json()
+            logger.info(f"Google Routes API response received successfully")
+            logger.debug(f"Response data: {json.dumps(data, indent=2)}")
+            
+            # Convert Routes API response to Distance Matrix format for compatibility
+            logger.debug(f"Converting Routes API response structure: {type(data)} with keys: {data.keys() if isinstance(data, dict) else 'array'}")
+            converted_response = self._convert_routes_to_distance_matrix_format(data, origins, destinations)
+            logger.debug(f"Converted response status: {converted_response.get('status')}")
+            return converted_response
+                
+        except requests.RequestException as e:
+            logger.error(f"Error calling Google Routes API: {e}")
+            return None
+        except Exception as e:
+            logger.error(f"Unexpected error calling Google Routes API: {e}")
+            return None
+
+    def _convert_routes_to_distance_matrix_format(self, routes_response: Dict, origins: List[Dict], destinations: List[str]) -> Dict:
+        """
+        Convert Routes API response format to Distance Matrix API format for compatibility.
+        
+        Args:
+            routes_response: Response from Routes API
+            origins: Original origins list
+            destinations: Original destinations list
+            
+        Returns:
+            Response in Distance Matrix API format
+        """
+        try:
+            # Initialize Distance Matrix format response
+            distance_matrix_response = {
+                "status": "OK",
+                "origin_addresses": [f"{o['lat']},{o['lng']}" for o in origins],
+                "destination_addresses": destinations,
+                "rows": []
+            }
+            
+            # Debug logging
+            logger.debug(f"Converting Routes response with {len(origins)} origins, {len(destinations)} destinations")
+            logger.debug(f"Routes response type: {type(routes_response)}")
+            
+            # Create rows for each origin
+            for origin_idx in range(len(origins)):
+                row = {"elements": []}
+                
+                for dest_idx in range(len(destinations)):
+                    # Find the corresponding element in Routes API response
+                    element = {"status": "NOT_FOUND"}
+                    
+                    # Routes API response can be either a dict with "elements" or direct array
+                    elements_list = routes_response.get("elements", routes_response) if isinstance(routes_response, dict) else routes_response
+                    
+                    if isinstance(elements_list, list):
+                        logger.debug(f"Processing {len(elements_list)} route elements for origin {origin_idx}, dest {dest_idx}")
+                        for route_element in elements_list:
+                            if (route_element.get("originIndex") == origin_idx and 
+                                route_element.get("destinationIndex") == dest_idx):
+                                
+                                logger.debug(f"Found match for origin {origin_idx}, dest {dest_idx}: {route_element}")
+                                
+                                # Routes API v2 uses condition and empty status object, not status="OK"
+                                condition = route_element.get("condition")
+                                has_valid_route = condition == "ROUTE_EXISTS"
+                                logger.debug(f"Route condition: {condition}, valid: {has_valid_route}")
+                                
+                                if has_valid_route:
+                                    duration_seconds = None
+                                    distance_meters = None
+                                    
+                                    # Extract duration
+                                    if "duration" in route_element:
+                                        duration_str = route_element["duration"]
+                                        # Remove 's' suffix and convert to int
+                                        if duration_str.endswith('s'):
+                                            try:
+                                                duration_seconds = int(float(duration_str[:-1]))
+                                            except (ValueError, TypeError):
+                                                logger.warning(f"Could not parse duration: {duration_str}")
+                                                duration_seconds = None
+                                    
+                                    # Extract distance
+                                    if "distanceMeters" in route_element:
+                                        distance_meters = route_element["distanceMeters"]
+                                    
+                                    # Routes API sometimes returns duration=0s, treat as no valid route
+                                    if (duration_seconds is not None and duration_seconds > 0 and 
+                                        distance_meters is not None and distance_meters > 0):
+                                        element = {
+                                            "status": "OK",
+                                            "duration": {
+                                                "text": f"{duration_seconds // 60} mins",
+                                                "value": duration_seconds
+                                            },
+                                            "distance": {
+                                                "text": f"{distance_meters / 1000:.1f} km",
+                                                "value": distance_meters
+                                            }
+                                        }
+                                    else:
+                                        element = {"status": "ZERO_RESULTS"}
+                                else:
+                                    element = {"status": "NOT_FOUND"}
+                                break
+                    else:
+                        logger.warning(f"Expected elements_list to be a list, got {type(elements_list)}: {elements_list}")
+                    
+                    row["elements"].append(element)
+                
+                distance_matrix_response["rows"].append(row)
+            
+            return distance_matrix_response
+            
+        except Exception as e:
+            logger.error(f"Error converting Routes API response: {e}")
+            return {"status": "UNKNOWN_ERROR", "rows": []}
+
+    async def _get_location_scores(self, neighborhoods: List[Dict], user_pois: List[Dict]) -> Dict:
+        """
+        Calculate location scores based on commute times to user POIs.
+        
+        Args:
+            neighborhoods: List of neighborhood data with coordinates
+            user_pois: List of user points of interest
+            
+        Returns:
+            Dict mapping neighborhood_id to location score and details
+        """
+        location_scores = {}
+        
+        try:
+            # Group POIs by travel mode
+            pois_by_mode = {}
+            for poi in user_pois:
+                mode = poi['mode']
+                if mode not in pois_by_mode:
+                    pois_by_mode[mode] = []
+                pois_by_mode[mode].append(poi)
+            
+            # Get origins (neighborhood coordinates)
+            origins = []
+            neighborhood_id_to_index = {}
+            for i, neighborhood in enumerate(neighborhoods):
+                if neighborhood.get('latitude') and neighborhood.get('longitude'):
+                    origins.append({
+                        'lat': neighborhood['latitude'],
+                        'lng': neighborhood['longitude']
+                    })
+                    neighborhood_id_to_index[neighborhood['neighborhood_id']] = i
+                else:
+                    logger.warning(f"Neighborhood {neighborhood.get('neighborhood_id')} missing coordinates: lat={neighborhood.get('latitude')}, lng={neighborhood.get('longitude')}")
+            
+            logger.info(f"Found {len(origins)} neighborhoods with coordinates out of {len(neighborhoods)} total neighborhoods")
+            
+            if not origins:
+                logger.warning("No neighborhood coordinates found for distance matrix calculation")
+                return {}
+            
+            # Calculate scores for each travel mode
+            all_results = {}
+            
+            for mode, pois in pois_by_mode.items():
+                if not pois:
+                    continue
+                
+                destinations = [poi['place_id'] for poi in pois]
+                logger.info(f"Processing {len(destinations)} destinations for mode {mode}")
+                
+                # Call Google Routes API (new replacement for Distance Matrix API)
+                data = self._call_google_routes_api(origins, destinations, mode)
+                
+                if data:
+                    all_results[mode] = {
+                        'data': data,
+                        'pois': pois
+                    }
+                    logger.info(f"Successfully got route matrix for mode {mode}")
+                else:
+                    logger.error(f"Failed to get route matrix for mode {mode}")
+            
+            if not all_results:
+                logger.warning("No route matrix results available - location details will be empty")
+                logger.warning("Make sure the Google Routes API is enabled and has billing configured in your Google Cloud Console")
+                logger.warning("Note: Distance Matrix API (Legacy) is no longer available for new projects")
+                return {}
+            
+            # Process results and calculate scores
+            for neighborhood in neighborhoods:
+                neighborhood_id = neighborhood['neighborhood_id']
+                if neighborhood_id not in neighborhood_id_to_index:
+                    continue
+                
+                neighborhood_index = neighborhood_id_to_index[neighborhood_id]
+                poi_scores = []
+                location_details = []
+                
+                for mode, result_data in all_results.items():
+                    data = result_data['data']
+                    pois = result_data['pois']
+                    
+                    if 'rows' in data and len(data['rows']) > neighborhood_index:
+                        row = data['rows'][neighborhood_index]
+                        elements = row.get('elements', [])
+                        
+                        for poi_index, element in enumerate(elements):
+                            if poi_index >= len(pois):
+                                continue
+                                
+                            poi = pois[poi_index]
+                            
+                            if element.get('status') == 'OK' and 'duration' in element:
+                                # Extract travel time in minutes
+                                duration_seconds = element['duration']['value']
+                                travel_time_minutes = duration_seconds / 60
+                                max_time = poi['max_time']
+                                
+                                # Calculate score based on travel time vs max time
+                                if travel_time_minutes <= max_time:
+                                    score = 1.0
+                                else:
+                                    # Penalize based on how much over the limit
+                                    excess_ratio = (travel_time_minutes - max_time) / max_time
+                                    score = max(0.0, 1.0 - excess_ratio)
+                                
+                                poi_scores.append(score)
+                                
+                                # Create detail string
+                                mode_display = mode.replace('_', ' ').title()
+                                location_details.append(
+                                    f"{int(travel_time_minutes)} min {mode_display.lower()} to {poi.get('description', 'location')}"
+                                )
+                                
+                            else:
+                                # If no route found or error, give neutral score
+                                poi_scores.append(0.3)
+                                location_details.append(f"Route to {poi.get('description', 'location')} unavailable")
+                
+                # Calculate final location score as average of all POI scores
+                if poi_scores:
+                    final_score = sum(poi_scores) / len(poi_scores)
+                else:
+                    final_score = 0.5  # Neutral score if no POI data
+                
+                location_scores[neighborhood_id] = {
+                    'score': final_score,
+                    'details': location_details[:3]  # Limit to top 3 details
+                }
+            
+            logger.info(f"Calculated location scores for {len(location_scores)} neighborhoods")
+            return location_scores
+            
+        except Exception as e:
+            logger.error(f"Error calculating location scores: {e}", exc_info=True)
+            return {}
 
         
-    def _score_neighborhoods_with_price(
+    def _score_neighborhoods(
         self, 
         neighborhoods: List[Dict], 
         user_preferences: np.ndarray, 
-        user_price_range: Optional[Dict]
+        user_price_range: Optional[Dict],
+        location_scores: Optional[Dict] = None
     ) -> List[Dict]:
         """Enhanced scoring that combines feature matching with price affordability."""
         scored_neighborhoods = []
@@ -396,9 +805,15 @@ class NeighborhoodRecommendationService:
         # Just ensure they're in 0-1 range
         user_preferences = np.clip(user_preferences, 0, 1)
         
-        # Weight for balancing feature score vs price score
-        feature_weight = 0.7  # 70% feature matching
-        price_weight = 0.3    # 30% price affordability
+        # Weights for balancing feature score, price score, and location score
+        if location_scores:
+            feature_weight = 0.60  # 60% feature matching
+            price_weight = 0.25    # 25% price affordability  
+            location_weight = 0.15 # 15% location/commute scoring
+        else:
+            feature_weight = 0.7   # 70% feature matching
+            price_weight = 0.3     # 30% price affordability
+            location_weight = 0.0  # 0% location scoring
         
         for neighborhood in neighborhoods:
             # Ensure feature vector is valid
@@ -450,8 +865,16 @@ class NeighborhoodRecommendationService:
                     user_price_range
                 )
             
+            # Get location score for this neighborhood
+            location_score = 0.5  # Default neutral score
+            location_details = []
+            if location_scores and neighborhood['neighborhood_id'] in location_scores:
+                location_data = location_scores[neighborhood['neighborhood_id']]
+                location_score = location_data['score']
+                location_details = location_data['details']
+            
             # Combined total score
-            total_score = (feature_score * feature_weight) + (price_score * price_weight)
+            total_score = (feature_score * feature_weight) + (price_score * price_weight) + (location_score * location_weight)
             
             # Ensure total score is valid
             if np.isnan(total_score) or np.isinf(total_score):
@@ -463,6 +886,8 @@ class NeighborhoodRecommendationService:
                 'hebrew_name': neighborhood['hebrew_name'],
                 'feature_score': float(feature_score),
                 'price_score': float(price_score),
+                'location_score': float(location_score),
+                'location_details': location_details,
                 'total_score': float(total_score),
                 'avg_rental_price': neighborhood['avg_rental_price'],
                 'individual_scores': neighborhood['individual_scores'],
@@ -572,6 +997,8 @@ class NeighborhoodRecommendationService:
                     'total_score': neighborhood['total_score'],
                     'feature_score': neighborhood['feature_score'],
                     'price_score': neighborhood['price_score'],
+                    'location_score': neighborhood.get('location_score', 0.5),
+                    'location_details': neighborhood.get('location_details', []),
                     'avg_rental_price': neighborhood['avg_rental_price'],
                     'price_analysis': neighborhood.get('price_analysis'),
                     'match_details': neighborhood['match_details'],
