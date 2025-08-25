@@ -74,20 +74,19 @@
     "text": "Would you like to live in a religious neighborhood?",
     "type": "single-choice",
     "options": [
-      "No",
-      "Yes"
+      "Yes",
+      "No"
     ],
     "required": false
   },
   {
     "id": "safety_priority",
     "category": "User Preferences",
-    "text": "How important is a low crime and safe neighborhood to you?",
+    "text": "Are you willing to compromise on the safety of the neighborhood for a better price?",
     "type": "single-choice",
     "options": [
-      "Very important",
-      "Somewhat important",
-      "Not important"
+      "Yes, I'm willing to compromise",
+      "No, I want a safe neighborhood"
     ]
   }
 ]

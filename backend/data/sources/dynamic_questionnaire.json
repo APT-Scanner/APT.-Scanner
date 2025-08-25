@@ -129,8 +129,8 @@
     "text": "Do you or anyone in your household have accessibility needs?",
     "type": "single-choice",
     "options": [
-      "No",
-      "Yes"
+      "Yes",
+      "No"
     ]
   },
   {
@@ -173,8 +173,8 @@
     "text": "Do you have pets or plan to have pets?",
     "type": "single-choice",
     "options": [
-      "No",
-      "Yes"
+      "Yes",
+      "No"
     ],
     "required": false
   }

@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, AlertCircle, Search, ChevronDown } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, Search, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
 import { useRecommendations } from '../hooks/useRecommendations';
 import { useAuth } from '../hooks/useAuth';
 import { useFilters } from '../hooks/useFilters';
@@ -11,16 +11,22 @@ const RecommendationsPage = () => {
     const navigate = useNavigate();
     const { idToken } = useAuth();
     const { updateFilterAsync } = useFilters();
+    
+    // State for managing expanded cards
+    const [expandedCards, setExpandedCards] = useState(new Set());
+    
+    // State for managing extended view (3 vs 10 recommendations)
+    const [showExtended, setShowExtended] = useState(false);
+    
     const { 
         recommendations, 
         loading, 
         error, 
         refreshRecommendations,
-        hasRecommendations 
-    } = useRecommendations();
-
-    // State for managing expanded cards
-    const [expandedCards, setExpandedCards] = useState(new Set());
+        hasRecommendations
+    } = useRecommendations({
+        topK: showExtended ? 10 : 3
+    });
 
     // Helper function to toggle card expansion
     const toggleCardExpansion = (cardId, event) => {
@@ -113,6 +119,11 @@ const RecommendationsPage = () => {
 
     const handleManualSearch = () => {
         navigate('/filter');
+    };
+
+    const toggleExtendedView = async () => {
+        setShowExtended(!showExtended);
+        // Note: The recommendations will automatically update due to the topK change in useRecommendations
     };
 
     if (loading) {
@@ -219,23 +230,13 @@ const RecommendationsPage = () => {
                 <button className={styles.backButton} onClick={handleBack} aria-label="Go Back">
                     <ArrowLeft size={24} color="#371b34" />
                 </button>
-                
-                <button 
-                    className={styles.refreshButton}
-                    onClick={refreshRecommendations}
-                    title="Refresh recommendations"
-                    aria-label="Refresh recommendations"
-                >
-                    <RefreshCw size={20} />
-                </button>
             </div>
 
             <h1 className={styles.mainTitle}>
                 Your<br />Recommendations<br />Are Ready!
             </h1>
-
             <p className={styles.description}>
-                Based on your questionnaire, we've found the top neighborhoods that suit your lifestyle preferences:
+                Click on a neighborhood to start swiping
             </p>
 
             <section className={styles.listContainer}>
@@ -344,10 +345,27 @@ const RecommendationsPage = () => {
                 })}
             </section>
 
+            {/* Extended View Toggle */}
+            <div className={styles.viewToggleContainer}>
+                <div className={styles.viewToggleWrapper}>
+                    <span className={styles.viewToggleLabel}>
+                        Showing {showExtended ? '10' : '3'} recommendations
+                    </span>
+                    <button 
+                        className={styles.viewToggleButton}
+                        onClick={toggleExtendedView}
+                        disabled={loading}
+                    >
+                        {showExtended ? (
+                            <>Show Top 3 <span className={styles.buttonIcon}><ArrowUp size={20} /></span></>
+                        ) : (
+                            <>Show All 10 <span className={styles.buttonIcon}><ArrowDown size={20} /></span></>
+                        )}
+                    </button>
+                </div>
+            </div>
+
             <div className={styles.footer}>
-                <p className={styles.hintText}>
-                    Click on a neighborhood to start swiping
-                </p>
                 <div className={styles.footerActions}>
                     <span 
                         className={styles.manualLink} 

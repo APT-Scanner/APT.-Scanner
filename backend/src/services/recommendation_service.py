@@ -12,11 +12,14 @@ import logging
 import json
 import aiohttp
 import requests
+import hashlib
+from datetime import datetime
 from src.config.settings import settings
 
 from src.database.models import Listing, Neighborhood, NeighborhoodMetrics, NeighborhoodMetadata, ListingMetadata, UserFilters
 from src.services.questionnaire_service import QuestionnaireService
 from src.database.models import NeighborhoodFeatures, UserPreferenceVector
+from src.utils.cache.redis_client import get_cache, set_cache, delete_cache
 
 logger = logging.getLogger(__name__)
 
@@ -41,6 +44,99 @@ class NeighborhoodRecommendationService:
             'nightlife_level'           # 10 - Added from the updated model
         ]
         
+        # Cache settings
+        self.cache_ttl = 3600  # 1 hour cache
+    
+    def _generate_cache_key(self, user_id: str, user_responses: Optional[Dict] = None, 
+                           user_price_filters: Optional[Dict] = None, 
+                           preference_vector: Optional[np.ndarray] = None) -> str:
+        """
+        Generate a unique cache key based on user preferences, price filters, and POIs.
+        
+        Args:
+            user_id: User's Firebase UID
+            user_responses: User questionnaire responses
+            user_price_filters: User price filters
+            preference_vector: User preference vector
+            
+        Returns:
+            Unique cache key string
+        """
+        # Create a dictionary with all factors that affect recommendations
+        cache_data = {
+            'user_id': user_id,
+            'price_filters': user_price_filters or {},
+            'preference_vector': preference_vector.tolist() if preference_vector is not None else None,
+        }
+        
+        # Add POIs from responses if available
+        if user_responses and 'points_of_interest' in user_responses:
+            pois = user_responses['points_of_interest']
+            if isinstance(pois, str):
+                try:
+                    pois = json.loads(pois)
+                except:
+                    pois = []
+            cache_data['pois'] = pois
+        
+        # Create hash of the data for unique key
+        cache_string = json.dumps(cache_data, sort_keys=True)
+        cache_hash = hashlib.md5(cache_string.encode()).hexdigest()
+        
+        return f"recommendations:{user_id}:{cache_hash}"
+    
+    def _get_cached_recommendations(self, cache_key: str, top_k: int) -> Optional[List[Dict]]:
+        """
+        Get cached recommendations and return only top_k results.
+        
+        Args:
+            cache_key: The cache key to look up
+            top_k: Number of recommendations to return
+            
+        Returns:
+            Cached recommendations (limited to top_k) or None if not found
+        """
+        try:
+            cached_data = get_cache(cache_key)
+            if cached_data and 'recommendations' in cached_data:
+                recommendations = cached_data['recommendations']
+                logger.info(f"📦 Cache hit! Found {len(recommendations)} cached recommendations")
+                
+                # Return only the requested number of recommendations
+                return recommendations[:top_k]
+            
+            return None
+        except Exception as e:
+            logger.error(f"Error retrieving cached recommendations: {e}")
+            return None
+    
+    def _cache_recommendations(self, cache_key: str, recommendations: List[Dict]) -> bool:
+        """
+        Cache the recommendations for future use.
+        
+        Args:
+            cache_key: The cache key to store under
+            recommendations: The recommendations to cache
+            
+        Returns:
+            True if successful, False otherwise
+        """
+        try:
+            cache_data = {
+                'recommendations': recommendations,
+                'cached_at': json.dumps(datetime.now(), default=str),
+                'total_count': len(recommendations)
+            }
+            
+            success = set_cache(cache_key, cache_data, ttl=self.cache_ttl)
+            if success:
+                logger.info(f"💾 Cached {len(recommendations)} recommendations for 1 hour")
+            
+            return success
+        except Exception as e:
+            logger.error(f"Error caching recommendations: {e}")
+            return False
+        
         # Importance scale mapping
         self.importance_scale = {
             'Very important': 0.9,
@@ -59,14 +155,17 @@ class NeighborhoodRecommendationService:
             'Very important - I want an active, connected community': 0.9,
             'Not important - I prefer privacy': 0.2,
             'No': 0.1,
-            'Yes': 0.9
+            'Yes': 0.9,
+            'Yes, I\'m willing to compromise': 0.1,
+            'No, I want a safe neighborhood': 0.9
         }
     
     async def get_neighborhood_recommendations(
         self, 
         db: AsyncSession, 
         user_id: str, 
-        top_k: int = 3
+        top_k: int = 3,
+        use_cache: bool = True
     ) -> List[Dict]:
         """
         Get top neighborhood recommendations for a user based on their questionnaire responses and budget.
@@ -74,7 +173,8 @@ class NeighborhoodRecommendationService:
         Args:
             db: Database session
             user_id: User's Firebase UID
-            top_k: Number of recommendations to return
+            top_k: Number of recommendations to return (3 or 10)
+            use_cache: Whether to use Redis caching
             
         Returns:
             List of recommended neighborhoods with scores and sample listings
@@ -101,6 +201,18 @@ class NeighborhoodRecommendationService:
                 # Get responses for POI data even if we have cached vector
                 user_responses = await self.questionnaire_service.get_user_responses(db, user_id)
                 logger.info(f"Using cached preference vector for user {user_id}: {preference_vector}")
+            
+            # Generate cache key based on all user preferences
+            cache_key = self._generate_cache_key(user_id, user_responses, user_price_filters, preference_vector)
+            
+            # Try to get from cache first
+            if use_cache:
+                cached_recommendations = self._get_cached_recommendations(cache_key, top_k)
+                if cached_recommendations is not None:
+                    logger.info(f"🚀 Returning {len(cached_recommendations)} cached recommendations for user {user_id}")
+                    return cached_recommendations
+            
+            logger.info(f"🔄 Cache miss - calculating fresh recommendations for user {user_id}")
             
             # Get user's points of interest
             user_pois = self._get_user_pois(user_responses) if user_responses else []
@@ -136,13 +248,20 @@ class NeighborhoodRecommendationService:
                 location_scores
             )
             
-            # Get top recommendations
-            top_neighborhoods = sorted(scored_neighborhoods, key=lambda x: x['total_score'], reverse=True)[:top_k]
+            # Get ALL top recommendations (we'll cache more than requested for future use)
+            all_top_neighborhoods = sorted(scored_neighborhoods, key=lambda x: x['total_score'], reverse=True)[:10]
             
             # Enrich with listings and additional info
-            recommendations = await self._enrich_recommendations(db, top_neighborhoods)
+            all_recommendations = await self._enrich_recommendations(db, all_top_neighborhoods)
             
-            logger.info(f"Generated {len(recommendations)} recommendations for user {user_id}")
+            # Cache the top 10 recommendations for future use
+            if use_cache and len(all_recommendations) > 0:
+                self._cache_recommendations(cache_key, all_recommendations)
+            
+            # Return only the requested number
+            recommendations = all_recommendations[:top_k]
+            
+            logger.info(f"Generated {len(recommendations)} recommendations for user {user_id} (cached {len(all_recommendations)} total)")
             return recommendations
             
         except Exception as e:
@@ -166,14 +285,14 @@ class NeighborhoodRecommendationService:
             
             # Default price range if no filters set
             return {
-                'price_min': 4000,
-                'price_max': 7000,
+                'price_min': 500,
+                'price_max': 20000,
                 'type': 'rent'
             }
             
         except Exception as e:
             logger.error(f"Error fetching user price filters for {user_id}: {e}")
-            return {'price_min': 4000, 'price_max': 7000, 'type': 'rent'}
+            return {'price_min': 500, 'price_max': 20000, 'type': 'rent'}
     
     def _create_preference_vector(self, responses: Dict[str, any]) -> np.ndarray:
         """Convert questionnaire responses to preference vector."""
@@ -367,6 +486,8 @@ class NeighborhoodRecommendationService:
             logger.warning(f"Error parsing POI data from responses: {e}")
             return []
     
+
+
     async def _get_neighborhood_features_with_prices(self, db: AsyncSession) -> List[Dict]:
         """Get neighborhood features with average rental prices from database."""
         try:
@@ -386,12 +507,12 @@ class NeighborhoodRecommendationService:
             
             neighborhood_data = []
             for feature, hebrew_name, latitude, longitude, avg_rental_price in features_with_data:
-                if feature.feature_vector:
+                if feature.feature_vector and latitude and longitude:
                     neighborhood_data.append({
                         'neighborhood_id': feature.neighborhood_id,
                         'hebrew_name': hebrew_name,
-                        'latitude': float(latitude) if latitude else None,
-                        'longitude': float(longitude) if longitude else None,
+                        'latitude': float(latitude),
+                        'longitude': float(longitude),
                         'feature_vector': np.array(feature.feature_vector),
                         'avg_rental_price': float(avg_rental_price) if avg_rental_price else None,
                         'individual_scores': {
@@ -427,31 +548,29 @@ class NeighborhoodRecommendationService:
         user_max = user_price_range["price_max"]
         user_mid = (user_min + user_max) / 2
         user_range = user_max - user_min or 1
-
         # Perfect zone
         if user_min <= avg_rental_price <= user_max:
             distance_from_mid = abs(avg_rental_price - user_mid)
             normalized_distance = distance_from_mid / (user_range / 2)
             return max(0.75, 1.0 - normalized_distance * 0.25)
 
-        buffer = 0.2  # 20% buffer zone, still penalized harder now
+        buffer = 0.2  # 20% buffer zone
 
         if avg_rental_price < user_min:
             limit = user_min * (1 - buffer)
             if avg_rental_price >= limit:
-                # now penalize more even in buffer zone
                 underrun = (user_min - avg_rental_price) / user_min
-                return max(0.4, 0.6 - underrun * 1.2)
+                return max(0.75, 1.0 - underrun * 0.25)
             underrun = (limit - avg_rental_price) / user_min
-            return max(0.05, 0.4 - underrun * 1.5)
+            return max(0.05, 0.6 - underrun * 0.55)
 
         else:
             limit = user_max * (1 + buffer)
             if avg_rental_price <= limit:
                 overrun = (avg_rental_price - user_max) / user_max
-                return max(0.4, 0.6 - overrun * 1.2)
+                return max(0.75, 1.0 - overrun * 0.25)
             overrun = (avg_rental_price - limit) / user_max
-            return max(0.05, 0.4 - overrun * 1.5)
+            return max(0.05, 0.6 - overrun * 0.55)
 
     def _call_google_routes_api(self, origins: List[Dict], destinations: List[str], mode: str) -> Optional[Dict]:
         """
@@ -475,7 +594,8 @@ class NeighborhoodRecommendationService:
                 'driving': 'DRIVE',
                 'walking': 'WALK',
                 'bicycling': 'BICYCLE',
-                'transit': 'TRANSIT'
+                'transit': 'TRANSIT',
+                'public_transport': 'TRANSIT'  # Add mapping for public_transport
             }
             routes_mode = travel_mode_map.get(mode, 'DRIVE')
             
@@ -506,37 +626,75 @@ class NeighborhoodRecommendationService:
                 "origins": origin_waypoints,
                 "destinations": destination_waypoints,
                 "travelMode": routes_mode,
-                "routingPreference": "TRAFFIC_AWARE_OPTIMAL",
                 "units": "METRIC"
             }
+            
+            # Add routing preference based on mode
+            if routes_mode == "TRANSIT":
+                # For transit, DO NOT set routingPreference - it's not allowed for TRANSIT mode
+                # Configure transit to return more realistic/average times
+                import datetime
+                
+                # Set departure time to current time + 30 minutes to get realistic scheduling
+                # This accounts for waiting times and real schedule constraints
+                current_time = datetime.datetime.now()
+                departure_time = current_time + datetime.timedelta(minutes=30)
+                
+                request_body["transitPreferences"] = {
+                    "allowedTravelModes": ["BUS", "SUBWAY", "TRAIN", "LIGHT_RAIL"],
+                    "routingPreference": "FEWER_TRANSFERS"  # Changed from LESS_WALKING to FEWER_TRANSFERS for more realistic routes
+                }
+                
+                # Add departure time for more realistic transit times
+                request_body["departureTime"] = departure_time.strftime("%Y-%m-%dT%H:%M:%SZ")
+            else:
+                # Only set routingPreference for non-transit modes
+                request_body["routingPreference"] = "TRAFFIC_AWARE_OPTIMAL"
             
             # Routes API endpoint
             url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix"
             
+            # Use different field masks for transit vs other modes
+            if routes_mode == "TRANSIT":
+                # For transit, we need additional fields
+                field_mask = "originIndex,destinationIndex,status,condition,distanceMeters,duration,localizedValues"
+            else:
+                field_mask = "originIndex,destinationIndex,status,condition,distanceMeters,duration"
+            
             headers = {
                 "X-Goog-Api-Key": settings.GOOGLE_API_KEY,
-                "X-Goog-FieldMask": "originIndex,destinationIndex,status,condition,distanceMeters,duration",
+                "X-Goog-FieldMask": field_mask,
                 "Content-Type": "application/json"
             }
             
             logger.info(f"Calling Google Routes API (computeRouteMatrix) for mode {mode}")
-            logger.debug(f"Request body: {json.dumps(request_body, indent=2)}")
             
             response = requests.post(url, json=request_body, headers=headers, timeout=30)
             
             if response.status_code != 200:
                 error_text = response.text
                 logger.error(f"Google Routes API error {response.status_code}: {error_text}")
+                
+                # Try to parse error details
+                try:
+                    error_data = response.json()
+                    if "error" in error_data:
+                        error_message = error_data["error"].get("message", "Unknown error")
+                        logger.error(f"Google Routes API detailed error: {error_message}")
+                        
+                        # For transit routes, if there's an error, log it but don't fail completely
+                        if routes_mode == "TRANSIT":
+                            logger.warning(f"Transit routing failed, this might be due to limited transit data for the area")
+                except:
+                    pass
+                    
                 return None
             
             data = response.json()
-            logger.info(f"Google Routes API response received successfully")
-            logger.debug(f"Response data: {json.dumps(data, indent=2)}")
+            logger.info(f"Google Routes API response received successfully for {routes_mode} mode")
             
             # Convert Routes API response to Distance Matrix format for compatibility
-            logger.debug(f"Converting Routes API response structure: {type(data)} with keys: {data.keys() if isinstance(data, dict) else 'array'}")
             converted_response = self._convert_routes_to_distance_matrix_format(data, origins, destinations)
-            logger.debug(f"Converted response status: {converted_response.get('status')}")
             return converted_response
                 
         except requests.RequestException as e:
@@ -583,17 +741,41 @@ class NeighborhoodRecommendationService:
                     elements_list = routes_response.get("elements", routes_response) if isinstance(routes_response, dict) else routes_response
                     
                     if isinstance(elements_list, list):
-                        logger.debug(f"Processing {len(elements_list)} route elements for origin {origin_idx}, dest {dest_idx}")
                         for route_element in elements_list:
                             if (route_element.get("originIndex") == origin_idx and 
                                 route_element.get("destinationIndex") == dest_idx):
                                 
-                                logger.debug(f"Found match for origin {origin_idx}, dest {dest_idx}: {route_element}")
-                                
-                                # Routes API v2 uses condition and empty status object, not status="OK"
+                                # Routes API v2 can use either condition field or status object
                                 condition = route_element.get("condition")
-                                has_valid_route = condition == "ROUTE_EXISTS"
-                                logger.debug(f"Route condition: {condition}, valid: {has_valid_route}")
+                                status_obj = route_element.get("status", {})
+                                
+                                # Check different ways to determine if route is valid
+                                has_valid_route = False
+                                error_message = None
+                                
+                                # Method 1: Check condition field
+                                if condition:
+                                    valid_conditions = ["ROUTE_EXISTS", "OK"]
+                                    has_valid_route = condition in valid_conditions
+                                
+                                # Method 2: Check status object
+                                if not has_valid_route and isinstance(status_obj, dict):
+                                    if not status_obj:
+                                        # Empty status object means success
+                                        has_valid_route = True
+                                    elif "code" in status_obj:
+                                        # Status codes: 0 = OK, other codes are errors
+                                        status_code = status_obj.get("code", -1)
+                                        error_message = status_obj.get("message", "Unknown error")
+                                        
+                                        if status_code == 0:
+                                            has_valid_route = True
+                                        else:
+                                            # Log important errors only
+                                            if status_code == 5:
+                                                logger.warning(f"Place ID not found: {error_message}")
+                                            elif status_code == 3:
+                                                logger.warning(f"Invalid API request: {error_message}")
                                 
                                 if has_valid_route:
                                     duration_seconds = None
@@ -614,23 +796,46 @@ class NeighborhoodRecommendationService:
                                     if "distanceMeters" in route_element:
                                         distance_meters = route_element["distanceMeters"]
                                     
-                                    # Routes API sometimes returns duration=0s, treat as no valid route
-                                    if (duration_seconds is not None and duration_seconds > 0 and 
-                                        distance_meters is not None and distance_meters > 0):
-                                        element = {
-                                            "status": "OK",
-                                            "duration": {
-                                                "text": f"{duration_seconds // 60} mins",
-                                                "value": duration_seconds
-                                            },
-                                            "distance": {
-                                                "text": f"{distance_meters / 1000:.1f} km",
-                                                "value": distance_meters
+                                    # For transit routes, accept routes even with 0 distance if duration > 0
+                                    # Transit routes sometimes return distance=0 but valid duration
+                                    is_transit_route = route_element.get("travelMode") == "TRANSIT" or "transitDuration" in route_element
+                                    
+                                    if duration_seconds is not None and duration_seconds > 0:
+                                        # Valid route if duration > 0, distance check depends on route type
+                                        if not is_transit_route and (distance_meters is None or distance_meters <= 0):
+                                            # Non-transit routes need distance
+                                            logger.debug(f"Non-transit route missing distance: {distance_meters}")
+                                            element = {"status": "ZERO_RESULTS"}
+                                        else:
+                                            # For transit routes, add realistic buffer to account for real-world delays
+                                            adjusted_duration = duration_seconds
+                                            if is_transit_route:
+                                                # Add modest buffer for transit delays and real-world conditions
+                                                # Since we now use realistic departure times and routing preferences,
+                                                # we need less artificial buffering
+                                                buffer_factor = 1.10  # 10% buffer for minor delays and rounding
+                                                adjusted_duration = int(duration_seconds * buffer_factor)
+                                                
+                                                logger.debug(f"Transit buffer adjustment: {duration_seconds}s -> {adjusted_duration}s (+{int((buffer_factor-1)*100)}%)")
+                                            
+                                            # Create successful response
+                                            element = {
+                                                "status": "OK",
+                                                "duration": {
+                                                    "text": f"{adjusted_duration // 60} mins" if adjusted_duration >= 60 else f"{adjusted_duration} secs",
+                                                    "value": adjusted_duration
+                                                },
+                                                "distance": {
+                                                    "text": f"{distance_meters / 1000:.1f} km" if distance_meters and distance_meters > 0 else "N/A",
+                                                    "value": distance_meters if distance_meters else 0
+                                                }
                                             }
-                                        }
+                                            logger.debug(f"Successfully parsed route: {adjusted_duration}s (original: {duration_seconds}s), {distance_meters}m")
                                     else:
+                                        logger.debug(f"Invalid duration for route: {duration_seconds}")
                                         element = {"status": "ZERO_RESULTS"}
                                 else:
+                                    logger.debug(f"No valid route found for origin {origin_idx} to dest {dest_idx}: condition={condition}")
                                     element = {"status": "NOT_FOUND"}
                                 break
                     else:
@@ -697,7 +902,11 @@ class NeighborhoodRecommendationService:
                 destinations = [poi['place_id'] for poi in pois]
                 logger.info(f"Processing {len(destinations)} destinations for mode {mode}")
                 
-                # Call Google Routes API (new replacement for Distance Matrix API)
+                # Log POI details for debugging
+                for poi in pois:
+                    logger.info(f"POI: place_id={poi['place_id']}, description={poi.get('description', 'N/A')}, max_time={poi['max_time']} min, mode={poi['mode']}")
+                
+                # Call Google Routes API
                 data = self._call_google_routes_api(origins, destinations, mode)
                 
                 if data:
@@ -713,6 +922,13 @@ class NeighborhoodRecommendationService:
                 logger.warning("No route matrix results available - location details will be empty")
                 logger.warning("Make sure the Google Routes API is enabled and has billing configured in your Google Cloud Console")
                 logger.warning("Note: Distance Matrix API (Legacy) is no longer available for new projects")
+                
+                # For transit routes specifically, this is often due to limited transit data
+                transit_modes = [mode for mode in pois_by_mode.keys() if mode in ['transit', 'public_transport']]
+                if transit_modes:
+                    logger.warning(f"Transit modes {transit_modes} failed - this may be due to limited public transport data for the area")
+                    logger.warning("Consider checking if the POI locations have good public transport coverage")
+                
                 return {}
             
             # Process results and calculate scores
@@ -756,15 +972,24 @@ class NeighborhoodRecommendationService:
                                 poi_scores.append(score)
                                 
                                 # Create detail string
-                                mode_display = mode.replace('_', ' ').title()
+                                mode_display = mode.replace('_', ' ').replace('public transport', 'transit').title()
                                 location_details.append(
-                                    f"{int(travel_time_minutes)} min {mode_display.lower()} to {poi.get('description', 'location')}"
+                                    f"{int(travel_time_minutes)} min by {mode_display.lower()} to {poi.get('description', 'location')}"
                                 )
                                 
                             else:
-                                # If no route found or error, give neutral score
+                                # If no route found or error, give neutral score but provide more helpful message
                                 poi_scores.append(0.3)
-                                location_details.append(f"Route to {poi.get('description', 'location')} unavailable")
+                                element_status = element.get('status', 'UNKNOWN')
+                                mode_display = mode.replace('_', ' ').replace('public transport', 'transit').title()
+                                poi_description = poi.get('description', 'location')
+                                
+                                if element_status == 'ZERO_RESULTS':
+                                    location_details.append(f"No {mode_display.lower()} route found to {poi_description}")
+                                elif element_status == 'NOT_FOUND':
+                                    location_details.append(f"Location not accessible by {mode_display.lower()}: {poi_description}")
+                                else:
+                                    location_details.append(f"Route to {poi_description} unavailable ({mode_display.lower()})")
                 
                 # Calculate final location score as average of all POI scores
                 if poi_scores:
@@ -807,9 +1032,9 @@ class NeighborhoodRecommendationService:
         
         # Weights for balancing feature score, price score, and location score
         if location_scores:
-            feature_weight = 0.60  # 60% feature matching
-            price_weight = 0.25    # 25% price affordability  
-            location_weight = 0.15 # 15% location/commute scoring
+            feature_weight = 0.50  # 50% feature matching
+            price_weight = 0.20    # 20% price affordability  
+            location_weight = 0.30 # 30% location/commute scoring
         else:
             feature_weight = 0.7   # 70% feature matching
             price_weight = 0.3     # 30% price affordability
@@ -849,8 +1074,8 @@ class NeighborhoodRecommendationService:
             
             # Scale to make scores more meaningful (typically will be 0.7-1.0 range naturally)
             # Add slight boost to make good matches feel rewarding
-            feature_score = feature_score * 1.1  # Boost by 10%
-            feature_score = min(1.0, feature_score)  # Cap at 100%
+            # feature_score = feature_score * 1.1  # Boost by 10%
+            # feature_score = min(1.0, feature_score)  # Cap at 100%
             
             # Ensure feature score is valid
             if np.isnan(feature_score) or np.isinf(feature_score):
@@ -913,7 +1138,16 @@ class NeighborhoodRecommendationService:
         user_min = user_price_range['price_min']
         user_max = user_price_range['price_max']
         
+        # Add debug logging to track price analysis
+        logger.debug(f"Price analysis: rental_price={avg_rental_price}, user_range={user_min}-{user_max}")
+        
+        # Buffer zone (20% above/below user range)
+        buffer_percentage = 0.2
+        lower_buffer = user_min * (1 - buffer_percentage)  # 20% below min
+        upper_buffer = user_max * (1 + buffer_percentage)  # 20% above max
+        
         if user_min <= avg_rental_price <= user_max:
+            # Within user's specified range
             percentage_of_budget = (avg_rental_price / user_max) * 100
             return {
                 'status': 'affordable',
@@ -922,22 +1156,46 @@ class NeighborhoodRecommendationService:
                 'budget_percentage': round(percentage_of_budget, 1)
             }
         elif avg_rental_price < user_min:
-            return {
-                'status': 'below_range',
-                'message': f'Below expected range (₪{avg_rental_price:,.0f})',
-                'affordability': 'very_affordable',
-                'savings_potential': user_min - avg_rental_price
-            }
+            if avg_rental_price >= lower_buffer:
+                # In lower buffer zone - slightly below range
+                return {
+                    'status': 'slightly_below_range',
+                    'message': f'Slightly below range (₪{avg_rental_price:,.0f})',
+                    'affordability': 'very_affordable',
+                    'savings_potential': user_min - avg_rental_price
+                }
+            else:
+                # Well below range
+                return {
+                    'status': 'below_range',
+                    'message': f'Below expected range (₪{avg_rental_price:,.0f})',
+                    'affordability': 'very_affordable',
+                    'savings_potential': user_min - avg_rental_price
+                }
         else:
-            excess = avg_rental_price - user_max
-            excess_percentage = (excess / user_max) * 100
-            return {
-                'status': 'above_budget',
-                'message': f'Above budget (₪{avg_rental_price:,.0f})',
-                'affordability': 'expensive',
-                'excess_amount': excess,
-                'excess_percentage': round(excess_percentage, 1)
-            }
+            # Above user's maximum
+            if avg_rental_price <= upper_buffer:
+                # In upper buffer zone - slightly above budget
+                excess = avg_rental_price - user_max
+                excess_percentage = (excess / user_max) * 100
+                return {
+                    'status': 'slightly_above_budget',
+                    'message': f'Slightly above budget (₪{avg_rental_price:,.0f})',
+                    'affordability': 'slightly_expensive',
+                    'excess_amount': excess,
+                    'excess_percentage': round(excess_percentage, 1)
+                }
+            else:
+                # Well above budget - outside buffer zone
+                excess = avg_rental_price - user_max
+                excess_percentage = (excess / user_max) * 100
+                return {
+                    'status': 'out_of_budget',
+                    'message': f'Out of budget (₪{avg_rental_price:,.0f})',
+                    'affordability': 'expensive',
+                    'excess_amount': excess,
+                    'excess_percentage': round(excess_percentage, 1)
+                }
     
     def _get_match_details(self, neighborhood_scores: Dict, user_preferences: np.ndarray) -> Dict:
         """Get detailed match information for explanation."""
@@ -1093,7 +1351,8 @@ class NeighborhoodRecommendationService:
 async def get_user_neighborhood_recommendations(
     db: AsyncSession, 
     user_id: str, 
-    top_k: int = 3
+    top_k: int = 3,
+    use_cache: bool = True
 ) -> List[Dict]:
     """
     Convenience function to get neighborhood recommendations for a user.
@@ -1101,10 +1360,11 @@ async def get_user_neighborhood_recommendations(
     Args:
         db: Database session
         user_id: User's Firebase UID
-        top_k: Number of recommendations to return (default: 3)
+        top_k: Number of recommendations to return (default: 3, max: 10)
+        use_cache: Whether to use Redis caching (default: True)
         
     Returns:
         List of recommended neighborhoods with scores and sample listings
     """
     service = NeighborhoodRecommendationService()
-    return await service.get_neighborhood_recommendations(db, user_id, top_k)
+    return await service.get_neighborhood_recommendations(db, user_id, top_k, use_cache)

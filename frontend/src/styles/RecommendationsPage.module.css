@@ -392,6 +392,7 @@
   
   .mainTitle {
     font-size: 2rem;
+    text-align: center;
   }
   
   .listItem {
@@ -492,8 +493,10 @@
   padding: 4px 8px;
   border-radius: 12px;
   font-weight: 500;
+  color: black;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  border: 1px solid #371b34;
 }
 
 .affordabilityBadge.perfect {
@@ -620,4 +623,109 @@
   font-size: 0.85rem;
   color: #1976d2;
   font-weight: 600;
+}
+
+/* Extended View Toggle Styles */
+.viewToggleContainer {
+  margin-bottom: 20px;
+}
+
+.viewToggleWrapper {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: white;
+  border-radius: 12px;
+  padding: 16px 20px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  border: 2px solid #f0f0f0;
+  transition: all 0.2s ease;
+}
+
+.viewToggleWrapper:hover {
+  border-color: #371b34;
+  box-shadow: 0 4px 12px rgba(55, 27, 52, 0.1);
+}
+
+.viewToggleLabel {
+  font-size: 1rem;
+  color: #666;
+  font-weight: 500;
+}
+
+.viewToggleButton {
+  background: linear-gradient(135deg, #371b34 0%, #5a2d4f 100%);
+  color: white;
+  border: none;
+  border-radius: 8px;
+  padding: 10px 16px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 120px;
+  justify-content: center;
+  box-shadow: 0 2px 8px rgba(55, 27, 52, 0.2);
+}
+
+.viewToggleButton:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(55, 27, 52, 0.3);
+  background: linear-gradient(135deg, #5a2d4f 0%, #371b34 100%);
+}
+
+.viewToggleButton:active {
+  transform: translateY(0);
+}
+
+.viewToggleButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.buttonIcon {
+  font-size: 1rem;
+  transition: transform 0.2s ease;
+}
+
+.viewToggleButton:hover:not(:disabled) .buttonIcon {
+  transform: scale(1.1);
+}
+
+/* Animation for when recommendations change */
+.listContainer {
+  animation: fadeIn 0.4s ease-out;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Responsive styles for toggle button */
+@media (max-width: 768px) {
+  .viewToggleWrapper {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+  }
+  
+  .viewToggleButton {
+    width: 100%;
+    min-width: auto;
+  }
+  
+  .viewToggleLabel {
+    font-size: 0.9rem;
+  }
 }
