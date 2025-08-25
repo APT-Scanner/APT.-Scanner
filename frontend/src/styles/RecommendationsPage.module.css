@@ -447,8 +447,7 @@
 
 /* Neighborhood Overview Styles */
 .neighborhoodOverview {
-  background-color: #f9f9f9;
-  border-left: 4px solid #371b34;
+  background-color: #f0f0f0;
   padding: 12px;
   border-radius: 4px;
 }
@@ -590,10 +589,10 @@
 
 /* Commute Highlights Styles */
 .commuteHighlights {
-  background-color: #fff3cd;
+  background-color: #C5BCDE;
   border-radius: 8px;
   padding: 12px;
-  border: 1px solid #ffeaa7;
+  border: 1px solid #C5BCDE;
 }
 
 .commuteTitle {
@@ -605,7 +604,7 @@
 
 .commuteDetail {
   font-size: 0.85rem;
-  color: #856404;
+  color: #371B34;
   margin: 4px 0;
   line-height: 1.3;
 }
