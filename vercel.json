@@ -4,8 +4,8 @@
     "installCommand": "cd frontend && npm install",
     "rewrites": [
       { 
-        "source": "/api/:path*",
-        "destination": "http://apt-scanner.us-east-1.elasticbeanstalk.com/api/:path*"
+        "source": "/api/v1/:match*",
+        "destination": "http://apt-scanner.us-east-1.elasticbeanstalk.com/api/v1/:match*"
       }
     ]
   }
