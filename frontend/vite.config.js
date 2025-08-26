@@ -40,6 +40,14 @@ export default defineConfig({
   server: {
     host: '0.0.0.0', // Allow access from any IP address
     port: 5173,      // Default Vite port
+    proxy: {
+      '/api/v1': {
+        target: 'http://apt-scanner.us-east-1.elasticbeanstalk.com',
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1'),
+      }
+    },
     warmup: {
       clientFiles: [
         './src/components/**/*.jsx',
