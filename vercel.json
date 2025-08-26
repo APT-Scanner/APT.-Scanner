@@ -2,7 +2,7 @@
     "rewrites": [
       { 
         "source": "/api/:path*",
-        "destination": "http://apt-scanner.us-east-1.elasticbeanstalk.com/api/:path*"
+        "destination": "https://apt-scanner.us-east-1.elasticbeanstalk.com/api/:path*"
       }
     ]
   }
