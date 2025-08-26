@@ -38,14 +38,15 @@ export default defineConfig({
   
   // Server optimizations
   server: {
-    proxy: {
-      '/api': {
-        target: 'http://apt-scanner.us-east-1.elasticbeanstalk.com',
-        changeOrigin: true,
-        secure: false,
-        rewrite: (p) => p.replace(/^\/api/, '/api'), 
-      },
-    },
+    host: '0.0.0.0', // Allow access from any IP address
+    port: 5173,      // Default Vite port
+    warmup: {
+      clientFiles: [
+        './src/components/**/*.jsx',
+        './src/pages/**/*.jsx',
+        './src/hooks/**/*.js'
+      ]
+    }
   },
   
   // Resolve optimizations
