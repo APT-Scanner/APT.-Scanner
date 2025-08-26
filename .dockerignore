@@ -1,0 +1,11 @@
+.venv
+__pycache__
+*.pyc
+*.pyo
+*.pyd
+*.log
+node_modules
+dist
+.git
+.env
+APT-Scanner-Firebase.json

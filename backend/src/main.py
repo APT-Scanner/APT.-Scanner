@@ -6,21 +6,17 @@ import uvicorn
 import logging
 from datetime import datetime
 import os
-from pathlib import Path
 from src.api.router import api_router
 from src.config.settings import settings
 from src.database.mongo_db import connect_to_mongo, close_mongo_connection
 
-# Ensure logs directory exists
-Path("logs").mkdir(exist_ok=True)
 
 # Configure logging
 logging.basicConfig(
-    level=getattr(logging, settings.LOG_LEVEL),
+    level=getattr(logging, settings.LOG_LEVEL.upper()),
     format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
     handlers=[
-        logging.StreamHandler(),
-        logging.FileHandler(f"logs/api_{datetime.now().strftime('%Y%m%d')}.log")
+        logging.StreamHandler()
     ]
 )
 
