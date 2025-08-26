@@ -1,8 +1,8 @@
 {
     "rewrites": [
       { 
-        "source": "/api/v1/:match*",
-        "destination": "http://apt-scanner.us-east-1.elasticbeanstalk.com/api/v1/:match*"
+        "source": "/api/:path*",
+        "destination": "http://apt-scanner.us-east-1.elasticbeanstalk.com/api/:path*"
       }
     ]
   }
