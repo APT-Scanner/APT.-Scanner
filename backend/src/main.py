@@ -1,11 +1,9 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from contextlib import asynccontextmanager
 import uvicorn
 import logging
-from datetime import datetime
-import os
 from src.api.router import api_router
 from src.config.settings import settings
 from src.database.mongo_db import connect_to_mongo, close_mongo_connection
@@ -102,15 +100,12 @@ async def generic_exception_handler(request, exc):
 app.include_router(api_router, prefix="/api")
 
 # Health check endpoint
-@app.get("/health")
-async def health_check():
-    """Health check endpoint to verify API status."""
-    return {
-        "status": "healthy",
-        "timestamp": datetime.now().isoformat(),
-        "version": "0.1.0",
-        "environment": os.getenv("ENVIRONMENT", "development")
-    }
+@app.get("/", status_code=status.HTTP_200_OK, tags=["Health Check"])
+def health_check():
+    """
+    Endpoint for Elastic Beanstalk health checks.
+    """
+    return {"status": "ok", "message": "APT. Scanner API is healthy"}
 
 if __name__ == "__main__":
     uvicorn.run(

@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
-import { BACKEND_URL, CONTINUATION_PROMPT_ID } from '../config/constants';
+import { CONTINUATION_PROMPT_ID } from '../config/constants';
 
 const DEBUG = true;
 
@@ -142,7 +142,7 @@ export const useQuestionnaire = () => {
       
       if (DEBUG) console.log("Starting/resuming questionnaire");
       
-      const response = await fetch(`${BACKEND_URL}/questionnaire/current`, {
+      const response = await fetch(`/api/v1/questionnaire/current`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${idToken}`,
@@ -204,7 +204,7 @@ export const useQuestionnaire = () => {
   }, [idToken, authLoading, startQuestionnaire, user]);
 
   const getNumberOfBasicQuestions = useCallback(async () => {
-    const response = await fetch(`${BACKEND_URL}/questionnaire/basic-questions-count`, {
+    const response = await fetch(`/api/v1/questionnaire/basic-questions-count`, {
       method: 'GET',
       headers: {
         'Authorization': `Bearer ${idToken}`,
@@ -269,7 +269,7 @@ export const useQuestionnaire = () => {
       }
       
       // Send request to API
-      const response = await fetch(`${BACKEND_URL}/questionnaire/answers`, {
+      const response = await fetch(`/api/v1/questionnaire/answers`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${idToken}`,
@@ -390,7 +390,7 @@ export const useQuestionnaire = () => {
       setError(null);
 
       // Request the previous question from backend
-      const response = await fetch(`${BACKEND_URL}/questionnaire/current/previous`, {
+      const response = await fetch(`/api/v1/questionnaire/current/previous`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${idToken}`,
@@ -454,7 +454,7 @@ export const useQuestionnaire = () => {
         return;
       }
       
-      const response = await fetch(`${BACKEND_URL}/questionnaire/`, {
+      const response = await fetch(`/api/v1/questionnaire/`, {
         method: 'PUT',
         headers: {
           'Authorization': `Bearer ${idToken}`,

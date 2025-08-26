@@ -1,0 +1,5 @@
+{
+    "rewrites": [
+      { "source": "/api/(.*)", "destination": "http://apt-scanner.us-east-1.elasticbeanstalk.com/api/$1" }
+    ]
+  }

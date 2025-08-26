@@ -4,7 +4,6 @@ import { ArrowLeft, RefreshCw, AlertCircle, Search, ChevronDown, ArrowUp, ArrowD
 import { useRecommendations } from '../hooks/useRecommendations';
 import { useAuth } from '../hooks/useAuth';
 import { useFilters } from '../hooks/useFilters';
-import { BACKEND_URL } from '../config/constants';
 import styles from '../styles/RecommendationsPage.module.css';
 
 const RecommendationsPage = () => {
@@ -60,7 +59,7 @@ const RecommendationsPage = () => {
     const handleNeighborhoodClick = async (neighborhood) => {
         try {
             // Call API to update user filters with selected neighborhood
-            const response = await fetch(`${BACKEND_URL}/recommendations/neighborhoods/${neighborhood.id}/select`, {
+            const response = await fetch(`/api/v1/recommendations/neighborhoods/${neighborhood.id}/select`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,

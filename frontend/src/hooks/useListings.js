@@ -1,7 +1,6 @@
 // src/hooks/useListings.js
 import { useState, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import { BACKEND_URL } from '../config/constants';
 
 export const useListings = () => {
     const [listings, setListings] = useState({});
@@ -18,7 +17,7 @@ export const useListings = () => {
         setError(prev => ({ ...prev, [listingId]: null }));
         
         try {
-            const response = await fetch(`${BACKEND_URL}/listings/${listingId}`, {
+            const response = await fetch(`/api/v1/listings/${listingId}`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,

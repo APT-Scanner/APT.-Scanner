@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
-import { BACKEND_URL } from '../config/constants';
 
 export const useFavorites = () => {
     const [favorites, setFavorites] = useState([]);
@@ -15,7 +14,7 @@ export const useFavorites = () => {
         setError(null);
         
         try {
-            const response = await fetch(`${BACKEND_URL}/favorites/`, {
+            const response = await fetch(`/api/v1/favorites/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
@@ -52,7 +51,7 @@ export const useFavorites = () => {
         console.log("Sending favorite payload:", payload);
         
         try {
-            const response = await fetch(`${BACKEND_URL}/favorites/${listingId}`, {
+            const response = await fetch(`/api/v1/favorites/${listingId}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
@@ -82,7 +81,7 @@ export const useFavorites = () => {
         if (!idToken) return false;
         
         try {
-            const response = await fetch(`${BACKEND_URL}/favorites/${listingId}`, {
+            const response = await fetch(`/api/v1/favorites/${listingId}`, {
                 method: 'DELETE',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,

@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
-import { BACKEND_URL } from '../config/constants';
 
 export const useApartments = (options = {}) => {
     const [apartments, setApartments] = useState([]);
@@ -65,7 +64,7 @@ export const useApartments = (options = {}) => {
             setError(null);
             try {
                 // Base URL
-                const url = new URL(`${BACKEND_URL}/listings`);
+                const url = new URL(`/api/v1/listings`);
                 
                 // Add filter_viewed query parameter
                 url.searchParams.append('filter_viewed', filterViewed);

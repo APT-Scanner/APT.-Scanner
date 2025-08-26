@@ -5,7 +5,6 @@ import { createUserWithEmailAndPassword, deleteUser } from "firebase/auth";
 import { FaCheckCircle, FaRegCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import { auth } from "../config/firebase";
-import { BACKEND_URL } from "../config/constants";
 import validator from "email-validator";
 
 
@@ -82,7 +81,7 @@ const RegisterPage = () => {
       if (user) {
         const idToken = await user.getIdToken();
         try {
-          const userUrl = `${BACKEND_URL}/users/me`;
+          const userUrl = `/api/v1/users/me`;
           const response = await fetch(userUrl, {
             method: "POST",
             headers: {

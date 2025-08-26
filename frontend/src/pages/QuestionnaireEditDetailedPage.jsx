@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Edit, Check, X, Save } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
-import { BACKEND_URL } from '../config/constants';
 import styles from '../styles/QuestionnaireEditDetailedPage.module.css';
 
 const QuestionnaireEditDetailedPage = () => {
@@ -24,7 +23,7 @@ const QuestionnaireEditDetailedPage = () => {
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`${BACKEND_URL}/questionnaire/responses`, {
+            const response = await fetch(`/api/v1/questionnaire/responses`, {
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
                     'Content-Type': 'application/json'
@@ -66,7 +65,7 @@ const QuestionnaireEditDetailedPage = () => {
         try {
             setSaving(true);
 
-            const response = await fetch(`${BACKEND_URL}/questionnaire/responses`, {
+            const response = await fetch(`/api/v1/questionnaire/responses`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,

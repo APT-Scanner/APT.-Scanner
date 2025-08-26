@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
-import { BACKEND_URL } from '../config/constants';
 
 const defaultFilters = {
     type: 'rent', // 'rent' or 'sale'
@@ -38,7 +37,7 @@ export const useFilters = () => {
 
         try {
             // Try to load from backend first
-            const response = await fetch(`${BACKEND_URL}/filters/`, {
+            const response = await fetch(`/api/v1/filters/`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
@@ -129,7 +128,7 @@ export const useFilters = () => {
             console.log("💾 Saving to backend - price_max:", backendFilters.price_max);
             
             // Try to save to backend first
-            const response = await fetch(`${BACKEND_URL}/filters/`, {
+            const response = await fetch(`/api/v1/filters/`, {
                 method: 'PUT',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
