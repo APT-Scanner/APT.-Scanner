@@ -64,7 +64,8 @@ export const useApartments = (options = {}) => {
             setError(null);
             try {
                 // Base URL
-                const url = new URL(`/api/v1/listings`);
+                const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
+                const url = new URL(`/api/v1/listings/`, baseUrl);
                 
                 // Add filter_viewed query parameter
                 url.searchParams.append('filter_viewed', filterViewed);
@@ -86,7 +87,6 @@ export const useApartments = (options = {}) => {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,
-                        'Content-Type': 'application/json',
                     },
                 });
                 if (!response.ok) {

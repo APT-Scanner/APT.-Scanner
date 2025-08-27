@@ -58,12 +58,12 @@ async def get_listings(
         query = query.where(ListingMetadataModel.is_active == True)
         
         # Filter by city
-        if filters.city and filters.city.strip():
+        if filters.city and filters.city.strip() != '':
             logger.info(f"🏙️ Applying city filter: {filters.city}")
             query = query.where(NeighborhoodModel.city == filters.city)
             
         # Filter by neighborhood name
-        if filters.neighborhood and filters.neighborhood.strip():
+        if filters.neighborhood and filters.neighborhood.strip() != '':
             logger.info(f"🏘️ Applying neighborhood filter: {filters.neighborhood}")
             query = query.where(NeighborhoodModel.hebrew_name == filters.neighborhood)
         
