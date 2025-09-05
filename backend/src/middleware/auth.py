@@ -3,11 +3,14 @@ from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from firebase_admin import auth
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Dict
+import logging
 
 from src.database.postgresql_db import get_db
 from src.services import user_service 
+from src.services.user_service import UserRegistrationError
 from src.database.models import User as UserModel
 
+logger = logging.getLogger(__name__)
 security = HTTPBearer()
 
 async def verify_firebase_user(token: HTTPAuthorizationCredentials = Depends(security)) -> Dict:
@@ -74,16 +77,50 @@ async def get_or_create_current_user(
     """
     firebase_uid = decoded_token.get("uid")
     if not firebase_uid:
-        raise HTTPException(status_code=400, detail="Firebase UID not found in token")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST, 
+            detail="Invalid authentication token. Please try signing up again."
+        )
 
-    user = await user_service.get_or_create_user_by_firebase(
-        db=db,
-        firebase_uid=firebase_uid,
-        email=decoded_token.get("email"),
-        username=decoded_token.get("username")
-    )
+    try:
+        user = await user_service.get_or_create_user_by_firebase(
+            db=db,
+            firebase_uid=firebase_uid,
+            email=decoded_token.get("email"),
+            username=decoded_token.get("username")
+        )
 
-    if not user:
-        raise HTTPException(status_code=500, detail="User mapping not found or could not be created.")
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, 
+                detail="Account creation failed due to an unexpected issue. Please try again."
+            )
 
-    return user
+        return user
+        
+    except UserRegistrationError as e:
+        # Convert user registration errors to appropriate HTTP exceptions
+        error_code_map = {
+            "EMAIL_ALREADY_EXISTS": status.HTTP_409_CONFLICT,
+            "EMAIL_TOO_LONG": status.HTTP_400_BAD_REQUEST,
+            "INVALID_FIREBASE_UID": status.HTTP_400_BAD_REQUEST,
+            "DATABASE_CONNECTION_ERROR": status.HTTP_503_SERVICE_UNAVAILABLE,
+            "DATABASE_CONFLICT": status.HTTP_409_CONFLICT,
+            "DATABASE_ERROR": status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "USER_LOOKUP_ERROR": status.HTTP_500_INTERNAL_SERVER_ERROR,
+            "UNKNOWN_ERROR": status.HTTP_500_INTERNAL_SERVER_ERROR
+        }
+        
+        http_status = error_code_map.get(e.error_code, status.HTTP_500_INTERNAL_SERVER_ERROR)
+        
+        raise HTTPException(
+            status_code=http_status,
+            detail=e.message
+        )
+    except Exception as e:
+        # Catch any other unexpected errors
+        logger.error(f"Unexpected error in user creation: {e}")
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Account creation failed due to an unexpected error. Please try again."
+        )

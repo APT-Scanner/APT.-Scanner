@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, RefreshCw, AlertCircle, Search, ChevronDown, ArrowUp, ArrowDown } from 'lucide-react';
+import { ArrowLeft, RefreshCw, AlertCircle, Search, ChevronDown, ArrowUp, ArrowDown, Loader2 } from 'lucide-react';
 import { useRecommendations } from '../hooks/useRecommendations';
 import { useAuth } from '../hooks/useAuth';
 import { useFilters } from '../hooks/useFilters';
@@ -17,6 +17,11 @@ const RecommendationsPage = () => {
     
     // State for managing extended view (3 vs 10 recommendations)
     const [showExtended, setShowExtended] = useState(false);
+    
+    // Loading states for different actions
+    const [loadingNeighborhood, setLoadingNeighborhood] = useState(null); // Track which neighborhood is loading
+    const [loadingManualBrowse, setLoadingManualBrowse] = useState(false);
+    const [loadingViewToggle, setLoadingViewToggle] = useState(false);
     
     const { 
         recommendations, 
@@ -58,6 +63,8 @@ const RecommendationsPage = () => {
     const handleBack = () => navigate(-1);
 
     const handleNeighborhoodClick = async (neighborhood) => {
+        setLoadingNeighborhood(neighborhood.id); // Set loading state for this specific neighborhood
+        
         try {
             // Call API to update user filters with selected neighborhood
             const response = await fetch(`${API_BASE}/api/v1/recommendations/neighborhoods/${neighborhood.id}/select`, {
@@ -98,10 +105,14 @@ const RecommendationsPage = () => {
                     neighborhoodName: neighborhood.name 
                 } 
             });
+        } finally {
+            setLoadingNeighborhood(null); // Clear loading state
         }
     };
 
     const handleManualBrowse = async () => {
+        setLoadingManualBrowse(true); // Set loading state
+        
         try {
             // Clear neighborhood and city filters to browse all apartments
             await updateFilterAsync({
@@ -114,6 +125,8 @@ const RecommendationsPage = () => {
             console.error('Error clearing filters:', error);
             // Navigate anyway in case of error
             navigate('/apartment-swipe');
+        } finally {
+            setLoadingManualBrowse(false); // Clear loading state
         }
     };
 
@@ -122,7 +135,14 @@ const RecommendationsPage = () => {
     };
 
     const toggleExtendedView = async () => {
+        setLoadingViewToggle(true); // Set loading state
         setShowExtended(!showExtended);
+        
+        // Add a small delay to show the loading state since recommendations update automatically
+        setTimeout(() => {
+            setLoadingViewToggle(false);
+        }, 1000); // Give enough time for the recommendations to load
+        
         // Note: The recommendations will automatically update due to the topK change in useRecommendations
     };
 
@@ -162,16 +182,27 @@ const RecommendationsPage = () => {
                             <button 
                                 className={styles.primaryButton}
                                 onClick={refreshRecommendations}
+                                disabled={loading}
                             >
-                                <RefreshCw size={20} /> Try Again
+                                {loading ? (
+                                    <><Loader2 size={20} className={styles.spinner} /> Loading...</>
+                                ) : (
+                                    <><RefreshCw size={20} /> Try Again</>
+                                )}
                             </button>
                         )}
                         
                         <button 
                             className={styles.secondaryButton}
                             onClick={handleManualBrowse}
+                            disabled={loadingManualBrowse}
+                            style={{ opacity: loadingManualBrowse ? 0.7 : 1 }}
                         >
-                            Browse All Apartments
+                            {loadingManualBrowse ? (
+                                <><Loader2 size={20} className={styles.spinner} /> Loading...</>
+                            ) : (
+                                'Browse All Apartments'
+                            )}
                         </button>
 
                         <button 
@@ -201,15 +232,26 @@ const RecommendationsPage = () => {
                         <button 
                             className={styles.primaryButton}
                             onClick={refreshRecommendations}
+                            disabled={loading}
                         >
-                            <RefreshCw size={20} /> Refresh
+                            {loading ? (
+                                <><Loader2 size={20} className={styles.spinner} /> Loading...</>
+                            ) : (
+                                <><RefreshCw size={20} /> Refresh</>
+                            )}
                         </button>
                         
                         <button 
                             className={styles.secondaryButton}
                             onClick={handleManualBrowse}
+                            disabled={loadingManualBrowse}
+                            style={{ opacity: loadingManualBrowse ? 0.7 : 1 }}
                         >
-                            Browse All Apartments
+                            {loadingManualBrowse ? (
+                                <><Loader2 size={20} className={styles.spinner} /> Loading...</>
+                            ) : (
+                                'Browse All Apartments'
+                            )}
                         </button>
 
                         <button 
@@ -242,16 +284,22 @@ const RecommendationsPage = () => {
             <section className={styles.listContainer}>
                 {recommendations.map((rec) => {
                     const isExpanded = expandedCards.has(rec.id);
+                    const isLoadingThisNeighborhood = loadingNeighborhood === rec.id;
+                    
                     return (
                         <div
                             key={rec.id}
-                            className={styles.listItem}
+                            className={`${styles.listItem} ${isLoadingThisNeighborhood ? styles.loading : ''}`}
                         >
                             <div className={styles.itemContent}>
                                 {/* Main card header - always visible */}
                                 <div 
-                                    className={styles.itemHeader}
-                                    onClick={() => handleNeighborhoodClick(rec)}
+                                    className={`${styles.itemHeader} ${isLoadingThisNeighborhood ? styles.headerLoading : ''}`}
+                                    onClick={() => !isLoadingThisNeighborhood && handleNeighborhoodClick(rec)}
+                                    style={{ 
+                                        cursor: isLoadingThisNeighborhood ? 'not-allowed' : 'pointer',
+                                        opacity: isLoadingThisNeighborhood ? 0.7 : 1 
+                                    }}
                                 >
                                     <div className={styles.itemInfo}>
                                         <span className={styles.itemName}>
@@ -268,17 +316,26 @@ const RecommendationsPage = () => {
                                         )}
                                     </div>
                                     <div className={styles.headerActions}>
-                                        <div className={styles.matchInfo}>
-                                            <span className={styles.matchScore}>{rec.match}%</span>
-                                            <span className={styles.matchLabel}>Match</span>
-                                        </div>
-                                        <button
-                                            className={`${styles.expandButton} ${isExpanded ? styles.expanded : ''}`}
-                                            onClick={(e) => toggleCardExpansion(rec.id, e)}
-                                            aria-label={isExpanded ? "Collapse details" : "Expand details"}
-                                        >
-                                            <ChevronDown size={20} />
-                                        </button>
+                                        {isLoadingThisNeighborhood ? (
+                                            <div className={styles.loadingIndicator}>
+                                                <Loader2 size={20} className={styles.spinner} />
+                                                <span className={styles.loadingText}>Loading...</span>
+                                            </div>
+                                        ) : (
+                                            <>
+                                                <div className={styles.matchInfo}>
+                                                    <span className={styles.matchScore}>{rec.match}%</span>
+                                                    <span className={styles.matchLabel}>Match</span>
+                                                </div>
+                                                <button
+                                                    className={`${styles.expandButton} ${isExpanded ? styles.expanded : ''}`}
+                                                    onClick={(e) => toggleCardExpansion(rec.id, e)}
+                                                    aria-label={isExpanded ? "Collapse details" : "Expand details"}
+                                                >
+                                                    <ChevronDown size={20} />
+                                                </button>
+                                            </>
+                                        )}
                                     </div>
                                 </div>
 
@@ -354,9 +411,15 @@ const RecommendationsPage = () => {
                     <button 
                         className={styles.viewToggleButton}
                         onClick={toggleExtendedView}
-                        disabled={loading}
+                        disabled={loading || loadingViewToggle}
+                        style={{ opacity: loadingViewToggle ? 0.7 : 1 }}
                     >
-                        {showExtended ? (
+                        {loadingViewToggle ? (
+                            <>
+                                <Loader2 size={20} className={styles.spinner} />
+                                Loading...
+                            </>
+                        ) : showExtended ? (
                             <>Show Top 3 <span className={styles.buttonIcon}><ArrowUp size={20} /></span></>
                         ) : (
                             <>Show All 10 <span className={styles.buttonIcon}><ArrowDown size={20} /></span></>
@@ -368,10 +431,22 @@ const RecommendationsPage = () => {
             <div className={styles.footer}>
                 <div className={styles.footerActions}>
                     <span 
-                        className={styles.manualLink} 
-                        onClick={handleManualBrowse}
+                        className={`${styles.manualLink} ${loadingManualBrowse ? styles.linkLoading : ''}`}
+                        onClick={!loadingManualBrowse ? handleManualBrowse : undefined}
+                        style={{ 
+                            cursor: loadingManualBrowse ? 'not-allowed' : 'pointer',
+                            opacity: loadingManualBrowse ? 0.7 : 1,
+                            pointerEvents: loadingManualBrowse ? 'none' : 'auto'
+                        }}
                     >
-                        browse all apartments
+                        {loadingManualBrowse ? (
+                            <>
+                                <Loader2 size={14} className={styles.spinner} style={{ marginRight: '6px' }} />
+                                loading...
+                            </>
+                        ) : (
+                            'browse all apartments'
+                        )}
                     </span>
                     <span className={styles.linkSeparator}>or</span>
                     <span 

@@ -15,6 +15,7 @@ const RegisterPage = React.lazy(() => import("./pages/RegisterPage"));
 const QuestionnairePage = React.lazy(() => import("./pages/QuestionnairePage"));
 const ApartmentSwipePage = React.lazy(() => import("./pages/ApartmentSwipePage"));
 const FavoritesPage = React.lazy(() => import('./pages/FavoritesPage'));
+const NeighborhoodsExplorePage = React.lazy(() => import('./pages/NeighborhoodsExplorePage'));
 
 function App() {
   return (
@@ -35,6 +36,7 @@ function App() {
               <Route path="/recommendations" element={<RecommendationsPage />} />
               <Route path="/questionnaire-edit" element={<QuestionnaireEditPage />} />
               <Route path="/questionnaire-edit-detailed" element={<QuestionnaireEditDetailedPage />} />
+              <Route path="/neighborhoods" element={<NeighborhoodsExplorePage />} />
             </Routes>
           </div>
         </div>

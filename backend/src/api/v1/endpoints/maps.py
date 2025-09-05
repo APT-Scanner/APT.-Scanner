@@ -4,10 +4,31 @@ from typing import List, Dict, Any
 import requests
 import logging
 import json
+from datetime import datetime, timedelta
 from src.config.settings import settings
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
+
+def get_monday_noon_reference_time() -> str:
+    """
+    Get the next Monday at 12:00 PM as a consistent reference time for travel calculations.
+    This ensures travel time calculations are consistent across requests.
+    
+    Returns:
+        str: ISO formatted datetime string for the next Monday at 12:00 PM
+    """
+    now = datetime.now()
+    # Calculate days until next Monday (0 = Monday, 6 = Sunday)
+    days_until_monday = (7 - now.weekday()) % 7
+    if days_until_monday == 0:
+        # If today is Monday, use next Monday to avoid past times
+        days_until_monday = 7
+    
+    next_monday = now + timedelta(days=days_until_monday)
+    monday_noon = next_monday.replace(hour=12, minute=0, second=0, microsecond=0)
+    
+    return monday_noon.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 class DistanceMatrixRequest(BaseModel):
     origins: List[Dict[str, float]] = Field(..., description="List of origin coordinates with lat and lng")
@@ -168,14 +189,26 @@ async def distance_matrix(request: DistanceMatrixRequest):
                 }
             })
         
+        # Get consistent reference time for all travel calculations
+        reference_time = get_monday_noon_reference_time()
+        
         # Prepare request body for Routes API v2
         request_body = {
             "origins": origin_waypoints,
             "destinations": destination_waypoints,
             "travelMode": routes_mode,
-            "routingPreference": "TRAFFIC_AWARE_OPTIMAL",
-            "units": "METRIC"
+            "units": "METRIC",
+            "departureTime": reference_time  # Set consistent reference time for all modes
         }
+        
+        # Set routing preference based on travel mode
+        if routes_mode == "TRANSIT":
+            request_body["transitPreferences"] = {
+                "allowedTravelModes": ["BUS", "SUBWAY", "TRAIN", "LIGHT_RAIL"],
+                "routingPreference": "FEWER_TRANSFERS"
+            }
+        else:
+            request_body["routingPreference"] = "TRAFFIC_AWARE_OPTIMAL"
         
         # Routes API endpoint
         url = "https://routes.googleapis.com/distanceMatrix/v2:computeRouteMatrix"

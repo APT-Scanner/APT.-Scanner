@@ -728,3 +728,73 @@
     font-size: 0.9rem;
   }
 }
+
+/* Loading States */
+.spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+/* Neighborhood card loading state */
+.loading {
+  position: relative;
+}
+
+.headerLoading {
+  transition: opacity 0.3s ease;
+}
+
+.loadingIndicator {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  color: #371b34;
+  font-size: 0.9rem;
+}
+
+.loadingText {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+/* Footer link loading state */
+.linkLoading {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+/* Button loading states */
+.primaryButton:disabled,
+.secondaryButton:disabled {
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+
+.primaryButton .spinner,
+.secondaryButton .spinner {
+  margin-right: 8px;
+}
+
+/* Smooth transitions for loading states */
+.itemHeader,
+.viewToggleButton,
+.manualLink,
+.primaryButton,
+.secondaryButton {
+  transition: opacity 0.3s ease, transform 0.2s ease;
+}
+
+/* Prevent text selection during loading */
+.headerLoading,
+.linkLoading {
+  user-select: none;
+}

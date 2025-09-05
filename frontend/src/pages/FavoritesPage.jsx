@@ -5,8 +5,7 @@ import { useListings } from '../hooks/useListings';
 import styles from '../styles/FavoritesPage.module.css';
 import HomeIcon from '../assets/home_not_pressed.svg';
 import HeartIcon from '../assets/heart_pressed.svg';
-import SettingsIcon from '../assets/settings_not_pressed.svg';
-import { Menu, Filter, X, Loader } from 'lucide-react';
+import { Menu, Filter, X, Loader, MapPin } from 'lucide-react';
 
 // Add a LoadingSpinner component
 const LoadingSpinner = () => (
@@ -151,9 +150,9 @@ const FavoritesPage = () => {
                 </button>
                 <button 
                     className={styles.bottomBarButton}
-                    onClick={() => navigate('/settings')}
+                    onClick={() => navigate('/neighborhoods')}
                 >
-                    <img src={SettingsIcon} alt="Settings" />
+                    <MapPin size={24} />
                 </button>
             </div>
         </div>

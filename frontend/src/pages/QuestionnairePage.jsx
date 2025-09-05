@@ -475,12 +475,14 @@ const QuestionnairePage = () => {
     setSelectedOptions([]);
   };
   
-  const handleContinuationPrompt = (answer) => {
+  const handleContinuationPrompt = async (answer) => {
     let selectedOptionText = "";
     
     // Check if this is a completion prompt or a continuation prompt
     if (currentQuestion.id === "final_completion_prompt") {
-      submitQuestionnaire();
+      setSubmissionLoading(true);
+      await submitQuestionnaire();
+      setSubmissionLoading(false);
       // Handle the completion prompt options
       if (answer === "yes") {
         // First option (View matched apartments)
@@ -495,13 +497,15 @@ const QuestionnairePage = () => {
     // Handle regular continuation prompt
     if (answer === "yes") {
       selectedOptionText = "Continue with more questions";
+      answerQuestion(currentQuestion.id, selectedOptionText);
     } else {
       selectedOptionText = "Submit my responses now";
-      submitQuestionnaire();
-      //navigate('/apartment-swipe');
-      navigate('/recommendations');
+      answerQuestion(currentQuestion.id, selectedOptionText);
+      setSubmissionLoading(true);
+      await submitQuestionnaire();
+      setSubmissionLoading(false);
+      // Navigation will be handled by useEffect when isSubmitted becomes true
     }
-    answerQuestion(currentQuestion.id, selectedOptionText);
   };
   
   if (error) {

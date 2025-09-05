@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
 import API_BASE from '../config/api.js';
 
@@ -6,6 +6,7 @@ export const useRecommendations = (options = {}) => {
     const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
+    const [retryCount, setRetryCount] = useState(0);
     const { idToken, authLoading } = useAuth();
     
     const { 
@@ -14,7 +15,7 @@ export const useRecommendations = (options = {}) => {
         refreshTrigger = 0 
     } = options;
 
-    const fetchRecommendations = async () => {
+    const fetchRecommendations = useCallback(async (resetRetry = false) => {
         if (!idToken) {
             setError('User not authenticated');
             return;
@@ -22,6 +23,11 @@ export const useRecommendations = (options = {}) => {
 
         setLoading(true);
         setError(null);
+        
+        // Reset retry count for new fetch attempts
+        if (resetRetry) {
+            setRetryCount(0);
+        }
         
         try {
             const url = `${API_BASE}/api/v1/recommendations/neighborhoods?top_k=${topK}`;
@@ -45,9 +51,22 @@ export const useRecommendations = (options = {}) => {
             console.log('Recommendations API response:', data);
             
             if (data.requires_questionnaire) {
-                setError('Please complete the questionnaire first');
-                setRecommendations([]);
+                // If this is the first attempt and questionnaire completion might be processing, retry once
+                if (retryCount === 0) {
+                    console.log('Questionnaire completion may be processing, retrying in 2 seconds...');
+                    setRetryCount(1);
+                    setTimeout(() => {
+                        fetchRecommendations();
+                    }, 2000);
+                    return;
+                } else {
+                    setError('Please complete the questionnaire first');
+                    setRecommendations([]);
+                }
             } else {
+                // Reset retry count on successful response
+                setRetryCount(0);
+                
                 // Transform API data to frontend format
                 const transformedRecommendations = data.recommendations?.map(rec => ({
                     id: rec.neighborhood_id,
@@ -79,7 +98,7 @@ export const useRecommendations = (options = {}) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [idToken, topK, retryCount]);
 
     const refreshRecommendations = async () => {
         if (!idToken) {
@@ -104,7 +123,7 @@ export const useRecommendations = (options = {}) => {
             }
 
             // After refresh, fetch new recommendations
-            await fetchRecommendations();
+            await fetchRecommendations(true);
         } catch (err) {
             console.error("Failed to refresh recommendations:", err);
             setError(err.message || 'Failed to refresh recommendations.');
@@ -116,15 +135,15 @@ export const useRecommendations = (options = {}) => {
         if (authLoading) return;
         
         if (autoFetch && idToken) {
-            fetchRecommendations();
+            fetchRecommendations(true); // Reset retry count for new attempts
         }
-    }, [idToken, authLoading, autoFetch, topK, refreshTrigger]);
+    }, [idToken, authLoading, autoFetch, topK, refreshTrigger, fetchRecommendations]);
 
     return {
         recommendations,
         loading,
         error,
-        fetchRecommendations,
+        fetchRecommendations: () => fetchRecommendations(true),
         refreshRecommendations,
         hasRecommendations: recommendations.length > 0
     };

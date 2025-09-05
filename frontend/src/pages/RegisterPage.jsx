@@ -91,12 +91,33 @@ const RegisterPage = () => {
           });
 
           if (!response.ok) {
-            await deleteUser(user);
-            const errorData = await response.json();
-            throw new Error(
-              errorData.detail || `Backend user creation failed: ${response.statusText}`
-            );
-
+            // Clean up Firebase user on backend error
+            try {
+              await deleteUser(user);
+              console.log("Firebase user cleaned up after backend error");
+            } catch (cleanupError) {
+              console.error("Failed to cleanup Firebase user:", cleanupError);
+            }
+            
+            const errorData = await response.json().catch(() => ({ detail: "Account creation failed" }));
+            
+            // Provide user-friendly error messages based on status code
+            let userMessage;
+            if (response.status === 409) {
+              // Conflict - likely email already exists
+              userMessage = errorData.detail || "This email is already registered. Try signing in instead.";
+            } else if (response.status === 400) {
+              // Bad request - validation error
+              userMessage = errorData.detail || "There was an issue with your account information. Please check and try again.";
+            } else if (response.status === 503) {
+              // Service unavailable
+              userMessage = "Our servers are temporarily busy. Please try again in a few minutes.";
+            } else {
+              // Other errors
+              userMessage = errorData.detail || "Account creation failed. Please try again or contact support if the problem continues.";
+            }
+            
+            throw new Error(userMessage);
           }
 
           const backendUser = await response.json();
@@ -106,9 +127,7 @@ const RegisterPage = () => {
           navigate("/get-started");
         } catch (backendError) {
           console.error("Backend user creation error:", backendError);
-          setError(
-            `Registration succeeded but user creation failed: ${backendError.message}. Please try logging in.`
-          );
+          setError(backendError.message);
           setIsLoading(false);
         }
       } else {
@@ -123,13 +142,36 @@ const RegisterPage = () => {
         firebaseError.code,
         firebaseError.message
       );
-      if (firebaseError.code === "auth/email-already-in-use") {
-        setError("This email address is already registered. Try logging in.");
-      } else if (firebaseError.code === "auth/weak-password") {
-        setError("Password is too weak. Please choose a stronger one.");
-      } else {
-        setError("Registration failed. Please try again.");
+      
+      // Provide user-friendly error messages for common Firebase errors
+      let errorMessage;
+      switch (firebaseError.code) {
+        case "auth/email-already-in-use":
+          errorMessage = "This email address is already registered. Try signing in instead.";
+          break;
+        case "auth/weak-password":
+          errorMessage = "Password is too weak. Please choose a stronger password with at least 6 characters.";
+          break;
+        case "auth/invalid-email":
+          errorMessage = "Please enter a valid email address.";
+          break;
+        case "auth/operation-not-allowed":
+          errorMessage = "Email registration is currently disabled. Please contact support.";
+          break;
+        case "auth/network-request-failed":
+          errorMessage = "Network error. Please check your connection and try again.";
+          break;
+        case "auth/too-many-requests":
+          errorMessage = "Too many failed attempts. Please wait a few minutes before trying again.";
+          break;
+        case "auth/user-disabled":
+          errorMessage = "This account has been disabled. Please contact support.";
+          break;
+        default:
+          errorMessage = `Registration failed: ${firebaseError.message || "Please try again or contact support if the problem continues."}`;
       }
+      
+      setError(errorMessage);
     }
   };
 

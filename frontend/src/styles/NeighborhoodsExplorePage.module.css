@@ -1,0 +1,352 @@
+.pageContainer {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  background-color: #f5f5f5;
+  padding-bottom: 80px; /* Space for bottom navigation */
+}
+
+/* Header Styles */
+.header {
+  display: flex;
+  align-items: center;
+  padding: 20px;
+  background-color: white;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.backButton {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 50%;
+  margin-right: 16px;
+  transition: background-color 0.2s ease;
+}
+
+.backButton:hover {
+  background-color: rgba(55, 27, 52, 0.1);
+}
+
+.title {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #371b34;
+  margin: 0;
+}
+
+/* Search Section */
+.searchSection {
+  padding: 20px;
+  background-color: white;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.searchInputContainer {
+  position: relative;
+  margin-bottom: 16px;
+}
+
+.searchIcon {
+  position: absolute;
+  left: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #666;
+}
+
+.searchInput {
+  width: 100%;
+  padding: 12px 12px 12px 44px;
+  border: 1px solid #ddd;
+  border-radius: 8px;
+  font-size: 16px;
+  background-color: #f9f9f9;
+  transition: border-color 0.2s ease, background-color 0.2s ease;
+}
+
+.searchInput:focus {
+  outline: none;
+  border-color: #371b34;
+  background-color: white;
+}
+
+.filtersRow {
+  display: flex;
+  gap: 12px;
+}
+
+.cityFilter,
+.sortFilter {
+  flex: 1;
+  padding: 10px 12px;
+  border: 1px solid #ddd;
+  border-radius: 6px;
+  background-color: white;
+  font-size: 14px;
+  cursor: pointer;
+}
+
+.cityFilter:focus,
+.sortFilter:focus {
+  outline: none;
+  border-color: #371b34;
+}
+
+/* Neighborhoods List */
+.neighborhoodsList {
+  flex: 1;
+  padding: 0 20px;
+}
+
+.errorMessage {
+  background-color: #fff3cd;
+  color: #856404;
+  padding: 12px 16px;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  border-left: 4px solid #ffc107;
+}
+
+.neighborhoodCard {
+  background: white;
+  border-radius: 12px;
+  margin-bottom: 16px;
+  box-shadow: 0 2px 12px rgba(0,0,0,0.08);
+  cursor: pointer;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.neighborhoodCard:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+}
+
+.cardContent {
+  padding: 20px;
+}
+
+.cardHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 12px;
+}
+
+.nameContainer {
+  flex: 1;
+}
+
+.neighborhoodName {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: #371b34;
+  margin: 0 0 4px 0;
+}
+
+.hebrewName {
+  font-size: 1rem;
+  color: #666;
+  margin: 0 0 4px 0;
+  font-family: 'Arial', sans-serif;
+}
+
+.cityName {
+  font-size: 0.9rem;
+  color: #888;
+  background-color: #f0f0f0;
+  padding: 4px 8px;
+  border-radius: 12px;
+  display: inline-block;
+}
+
+.priceContainer {
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+}
+
+.price {
+  font-size: 1.5rem;
+  font-weight: bold;
+  color: #e67e22;
+  margin-bottom: 2px;
+}
+
+.priceLabel {
+  font-size: 0.8rem;
+  color: #666;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.description {
+  color: #555;
+  font-size: 0.95rem;
+  line-height: 1.5;
+  margin-bottom: 16px;
+}
+
+.statsRow {
+  display: flex;
+  gap: 20px;
+}
+
+.stat {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.9rem;
+  color: #666;
+}
+
+.stat svg {
+  color: #371b34;
+}
+
+/* Empty State */
+.emptyState {
+  text-align: center;
+  padding: 60px 20px;
+  color: #666;
+}
+
+.emptyState h3 {
+  margin: 16px 0 8px 0;
+  color: #371b34;
+}
+
+.emptyState p {
+  color: #888;
+  margin: 0;
+}
+
+/* Loading State */
+.loadingContainer {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  text-align: center;
+  color: #371b34;
+}
+
+.spinner {
+  animation: spin 1s linear infinite;
+  margin-bottom: 20px;
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.loadingContainer h2 {
+  margin: 0 0 8px 0;
+  font-size: 1.5rem;
+}
+
+.loadingContainer p {
+  margin: 0;
+  color: #666;
+  font-size: 1rem;
+}
+
+/* Bottom Navigation */
+.bottomBar {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  background: white;
+  box-shadow: 0 -2px 10px rgba(0,0,0,0.04);
+  display: flex;
+  justify-content: space-around;
+  align-items: center;
+  padding: 8px 0;
+  z-index: 100;
+}
+
+.bottomBarButton {
+  background: none;
+  border: none;
+  outline: none;
+  padding: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: color 0.2s ease;
+}
+
+.bottomBarButton.active {
+  color: #371b34;
+}
+
+.bottomBarButton img {
+  width: 24px;
+  height: 24px;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .cardHeader {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  
+  .priceContainer {
+    align-items: flex-start;
+    text-align: left;
+  }
+  
+  .filtersRow {
+    flex-direction: column;
+  }
+  
+  .statsRow {
+    flex-direction: column;
+    gap: 8px;
+  }
+  
+  .neighborhoodName {
+    font-size: 1.1rem;
+  }
+  
+  .price {
+    font-size: 1.3rem;
+  }
+}
+
+@media (max-width: 480px) {
+  .header {
+    padding: 16px;
+  }
+  
+  .searchSection {
+    padding: 16px;
+  }
+  
+  .neighborhoodsList {
+    padding: 0 16px;
+  }
+  
+  .cardContent {
+    padding: 16px;
+  }
+  
+  .title {
+    font-size: 1.3rem;
+  }
+}

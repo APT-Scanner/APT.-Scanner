@@ -13,7 +13,7 @@ import json
 import aiohttp
 import requests
 import hashlib
-from datetime import datetime
+from datetime import datetime, timedelta
 from src.config.settings import settings
 
 from src.database.models import Listing, Neighborhood, NeighborhoodMetrics, NeighborhoodMetadata, ListingMetadata, UserFilters
@@ -22,6 +22,26 @@ from src.database.models import NeighborhoodFeatures, UserPreferenceVector
 from src.utils.cache.redis_client import get_cache, set_cache, delete_cache
 
 logger = logging.getLogger(__name__)
+
+def get_monday_noon_reference_time() -> str:
+    """
+    Get the next Monday at 12:00 PM as a consistent reference time for travel calculations.
+    This ensures travel time calculations are consistent across requests.
+    
+    Returns:
+        str: ISO formatted datetime string for the next Monday at 12:00 PM
+    """
+    now = datetime.now()
+    # Calculate days until next Monday (0 = Monday, 6 = Sunday)
+    days_until_monday = (7 - now.weekday()) % 7
+    if days_until_monday == 0:
+        # If today is Monday, use next Monday to avoid past times
+        days_until_monday = 7
+    
+    next_monday = now + timedelta(days=days_until_monday)
+    monday_noon = next_monday.replace(hour=12, minute=0, second=0, microsecond=0)
+    
+    return monday_noon.strftime("%Y-%m-%dT%H:%M:%SZ")
 
 class NeighborhoodRecommendationService:
     """Service for generating neighborhood recommendations based on user preferences and budget."""
@@ -621,34 +641,25 @@ class NeighborhoodRecommendationService:
                     }
                 })
             
+            # Get consistent reference time for all travel calculations
+            reference_time = get_monday_noon_reference_time()
+            
             # Prepare request body for Routes API v2
             request_body = {
                 "origins": origin_waypoints,
                 "destinations": destination_waypoints,
                 "travelMode": routes_mode,
-                "units": "METRIC"
+                "units": "METRIC",
+                "departureTime": reference_time  # Set consistent reference time for all modes
             }
             
-            # Add routing preference based on mode
+            # Set routing preference based on travel mode
             if routes_mode == "TRANSIT":
-                # For transit, DO NOT set routingPreference - it's not allowed for TRANSIT mode
-                # Configure transit to return more realistic/average times
-                import datetime
-                
-                # Set departure time to current time + 30 minutes to get realistic scheduling
-                # This accounts for waiting times and real schedule constraints
-                current_time = datetime.datetime.now()
-                departure_time = current_time + datetime.timedelta(minutes=30)
-                
                 request_body["transitPreferences"] = {
                     "allowedTravelModes": ["BUS", "SUBWAY", "TRAIN", "LIGHT_RAIL"],
-                    "routingPreference": "FEWER_TRANSFERS"  # Changed from LESS_WALKING to FEWER_TRANSFERS for more realistic routes
+                    "routingPreference": "FEWER_TRANSFERS"
                 }
-                
-                # Add departure time for more realistic transit times
-                request_body["departureTime"] = departure_time.strftime("%Y-%m-%dT%H:%M:%SZ")
             else:
-                # Only set routingPreference for non-transit modes
                 request_body["routingPreference"] = "TRAFFIC_AWARE_OPTIMAL"
             
             # Routes API endpoint
@@ -1032,9 +1043,9 @@ class NeighborhoodRecommendationService:
         
         # Weights for balancing feature score, price score, and location score
         if location_scores:
-            feature_weight = 0.50  # 50% feature matching
+            feature_weight = 0.40  # 50% feature matching
             price_weight = 0.20    # 20% price affordability  
-            location_weight = 0.30 # 30% location/commute scoring
+            location_weight = 0.40 # 30% location/commute scoring
         else:
             feature_weight = 0.7   # 70% feature matching
             price_weight = 0.3     # 30% price affordability

@@ -4,11 +4,10 @@ import { useViewHistory } from '../hooks/useViewHistory';
 import { useFilters } from '../hooks/useFilters';
 import styles from '../styles/ApartmentSwipePage.module.css';
 import ApartmentDetailSheet from './ApartmentDetailSheet';
-import { Heart, X, ChevronUp, ChevronDown, Loader, Filter, Menu, LogOut, Target, ClipboardList } from 'lucide-react';
+import { Heart, X, ChevronUp, ChevronDown, Loader, Filter, Menu, LogOut, Target, ClipboardList, MapPin } from 'lucide-react';
 import logo from "../assets/logo-swipe-screen.jpeg";
 import HomeIcon from '../assets/home_pressed.svg';
 import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
-import SettingsIcon from '../assets/settings_not_pressed.svg';
 import { useFavorites } from '../hooks/useFavorites';
 import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence, useMotionValue, animate } from 'framer-motion';
@@ -380,8 +379,8 @@ const ApartmentSwipePage = () => {
                 <button className={styles.bottomBarButton} onClick={() => navigate('/favorites')}>
                     <img src={HeartOutlineIcon} alt="Heart" />
                 </button>
-                <button className={styles.bottomBarButton}>
-                    <img src={SettingsIcon} alt="Settings" />
+                <button className={styles.bottomBarButton} onClick={() => navigate('/neighborhoods')}>
+                    <MapPin size={24} />
                 </button>
             </div>
         </div>
