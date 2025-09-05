@@ -1,15 +1,16 @@
 from fastapi import APIRouter, Depends, HTTPException, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 import logging
+from typing import List, Dict, Any
 
 from src.database.postgresql_db import get_db
 from src.middleware.auth import get_current_user
 from src.services.recommendation_service import get_user_neighborhood_recommendations
 from src.utils.cache.redis_client import delete_cache
-from src.database.models import Neighborhood
+from src.database.models import Neighborhood, Listing, NeighborhoodMetadata, ListingMetadata, NeighborhoodMetrics, NeighborhoodFeatures
 from src.database.schemas import UserFiltersUpdate
 from src.services import filters_service
-from sqlalchemy import select
+from sqlalchemy import select, func
 
 router = APIRouter()
 logger = logging.getLogger(__name__)
@@ -62,6 +63,244 @@ async def get_neighborhood_recommendations(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="An error occurred while generating recommendations."
+        )
+
+@router.get(
+    "/neighborhoods/explore",
+    summary="Explore all neighborhoods with comprehensive metrics",
+    description="Get detailed data about all neighborhoods including demographics, pricing, schools, and amenities"
+)
+async def explore_neighborhoods(
+    db: AsyncSession = Depends(get_db),
+    current_user = Depends(get_current_user)
+):
+    """
+    Get comprehensive neighborhood data for exploration.
+    
+    Returns detailed information about all neighborhoods including:
+    
+    **Basic Info:**
+    - Names (Hebrew & English), city, description, coordinates
+    
+    **Pricing Data:**
+    - Current average rental prices (from active listings)
+    - Historical average rental/sale prices (from metrics)
+    
+    **Demographics & Quality:**
+    - Social-economic index (1-10 scale)
+    - School rating (1-10 scale)  
+    - Popular political party
+    
+    **Location & Amenities:**
+    - Beach distance (km)
+    - Geographic coordinates
+    
+    **Market Activity:**
+    - Number of current active listings
+    
+    **Neighborhood Features (0-1 scale each):**
+    - Cultural level, Religiosity level, Community spirit
+    - Kindergartens quality, Maintenance level, Mobility/transport
+    - Parks/green spaces, Peaceful environment, Shopping access
+    - Safety level, Nightlife activity
+    
+    **Enhanced Popularity Score:**
+    - Composite score (0-1) based on weighted factors:
+      - 20% Social-economic index, 15% School rating
+      - 20% Safety level (highest weight), 10% Peaceful environment
+      - 10% Maintenance, 10% Parks, 10% Beach proximity, 5% Market activity
+    - Includes detailed breakdown of all score components
+    """
+    logger.info(f"Getting neighborhood exploration data for user: {current_user.firebase_uid}")
+    
+    try:
+        logger.info("Starting comprehensive neighborhood exploration query with ALL rich data...")
+        # Query all neighborhoods with comprehensive metrics, features, and current listing data
+        neighborhoods_query = select(
+            # Basic neighborhood info
+            Neighborhood.id,
+            Neighborhood.hebrew_name,
+            Neighborhood.english_name,
+            Neighborhood.city,
+            Neighborhood.latitude,
+            Neighborhood.longitude,
+            # Metadata
+            NeighborhoodMetadata.overview,
+            # Rich metrics data from NeighborhoodMetrics table
+            NeighborhoodMetrics.avg_sale_price,
+            NeighborhoodMetrics.avg_rental_price.label('historical_avg_rental_price'),
+            NeighborhoodMetrics.social_economic_index,
+            NeighborhoodMetrics.popular_political_party,
+            NeighborhoodMetrics.school_rating,
+            NeighborhoodMetrics.beach_distance_km,
+            # Neighborhood characteristics/features (0-1 scale)
+            NeighborhoodFeatures.cultural_level,
+            NeighborhoodFeatures.religiosity_level,
+            NeighborhoodFeatures.communality_level,
+            NeighborhoodFeatures.kindergardens_level,
+            NeighborhoodFeatures.maintenance_level,
+            NeighborhoodFeatures.mobility_level,
+            NeighborhoodFeatures.parks_level,
+            NeighborhoodFeatures.peaceful_level,
+            NeighborhoodFeatures.shopping_level,
+            NeighborhoodFeatures.safety_level,
+            NeighborhoodFeatures.nightlife_level,
+            # Current active listings data
+            func.avg(Listing.price).label('current_avg_rental_price'),
+            func.count(Listing.listing_id).label('current_active_listings')
+        ).select_from(
+            Neighborhood
+        ).outerjoin(
+            NeighborhoodMetadata, Neighborhood.id == NeighborhoodMetadata.neighborhood_id
+        ).outerjoin(
+            NeighborhoodMetrics, Neighborhood.id == NeighborhoodMetrics.neighborhood_id
+        ).outerjoin(
+            NeighborhoodFeatures, Neighborhood.id == NeighborhoodFeatures.neighborhood_id
+        ).outerjoin(
+            ListingMetadata, 
+            (Neighborhood.id == ListingMetadata.neighborhood_id) & 
+            (ListingMetadata.is_active == True)  # Only join active listings
+        ).outerjoin(
+            Listing, ListingMetadata.listing_id == Listing.listing_id
+        ).group_by(
+            Neighborhood.id,
+            Neighborhood.hebrew_name, 
+            Neighborhood.english_name,
+            Neighborhood.city,
+            Neighborhood.latitude,
+            Neighborhood.longitude,
+            NeighborhoodMetadata.overview,
+            NeighborhoodMetrics.avg_sale_price,
+            NeighborhoodMetrics.avg_rental_price,
+            NeighborhoodMetrics.social_economic_index,
+            NeighborhoodMetrics.popular_political_party,
+            NeighborhoodMetrics.school_rating,
+            NeighborhoodMetrics.beach_distance_km,
+            # Add all neighborhood features to GROUP BY
+            NeighborhoodFeatures.cultural_level,
+            NeighborhoodFeatures.religiosity_level,
+            NeighborhoodFeatures.communality_level,
+            NeighborhoodFeatures.kindergardens_level,
+            NeighborhoodFeatures.maintenance_level,
+            NeighborhoodFeatures.mobility_level,
+            NeighborhoodFeatures.parks_level,
+            NeighborhoodFeatures.peaceful_level,
+            NeighborhoodFeatures.shopping_level,
+            NeighborhoodFeatures.safety_level,
+            NeighborhoodFeatures.nightlife_level
+        ).order_by(
+            Neighborhood.english_name
+        )
+        
+        logger.info("Executing neighborhoods query...")
+        result = await db.execute(neighborhoods_query)
+        neighborhoods_data = result.all()
+        
+        logger.info(f"✅ Query executed successfully! Returned {len(neighborhoods_data)} neighborhood records")
+        
+        # Log first few rows for debugging
+        if neighborhoods_data:
+            sample_row = neighborhoods_data[0]
+            logger.info(f"Sample row: id={sample_row.id}, name={sample_row.english_name}, active_listings={sample_row.current_active_listings}, socio_economic={sample_row.social_economic_index}")
+        
+        # Transform to response format with comprehensive neighborhood data
+        neighborhoods = []
+        for row in neighborhoods_data:
+            # Calculate comprehensive popularity score based on multiple factors
+            # Normalize each factor to 0-1 scale
+            socio_score = (row.social_economic_index / 10.0) if row.social_economic_index else 0.5  # Assuming 1-10 scale
+            school_score = (row.school_rating / 10.0) if row.school_rating else 0.5  # Assuming 1-10 scale
+            beach_score = max(0, (10 - (row.beach_distance_km or 10)) / 10.0)  # Closer is better, max 10km
+            market_score = min((row.current_active_listings or 0) / 100.0, 1.0)  # Market activity
+            
+            # Add key neighborhood features to popularity calculation (these are already 0-1 scale)
+            safety_score = row.safety_level or 0.5
+            peaceful_score = row.peaceful_level or 0.5
+            maintenance_score = row.maintenance_level or 0.5
+            parks_score = row.parks_level or 0.5
+            
+            # Enhanced composite popularity score (weighted average)
+            popularity_score = (
+                socio_score * 0.20 +      # 20% social-economic index
+                school_score * 0.15 +     # 15% school rating
+                safety_score * 0.20 +     # 20% safety level (very important)
+                peaceful_score * 0.10 +   # 10% peaceful environment
+                maintenance_score * 0.10 + # 10% maintenance/cleanliness
+                parks_score * 0.10 +      # 10% parks/green spaces
+                beach_score * 0.10 +      # 10% beach proximity
+                market_score * 0.05      # 5% market activity
+            )
+            
+            neighborhoods.append({
+                # Basic info
+                "id": row.id,
+                "name": row.english_name or "Unknown",
+                "hebrew_name": row.hebrew_name or "Unknown", 
+                "city": row.city or "Unknown",
+                "description": row.overview or f"Explore {row.english_name or 'this neighborhood'} - a vibrant neighborhood in {row.city or 'Israel'}",
+                
+                # Geographic data
+                "latitude": float(row.latitude) if row.latitude else None,
+                "longitude": float(row.longitude) if row.longitude else None,
+                
+                # Pricing data
+                "current_avg_rental_price": int(row.current_avg_rental_price) if row.current_avg_rental_price else None,
+                "historical_avg_rental_price": int(row.historical_avg_rental_price) if row.historical_avg_rental_price else None,
+                "avg_sale_price": int(row.avg_sale_price) if row.avg_sale_price else None,
+                
+                # Rich neighborhood metrics
+                "social_economic_index": round(float(row.social_economic_index), 1) if row.social_economic_index else None,
+                "school_rating": round(float(row.school_rating), 1) if row.school_rating else None,
+                "beach_distance_km": round(float(row.beach_distance_km), 1) if row.beach_distance_km else None,
+                "popular_political_party": row.popular_political_party,
+                
+                # Comprehensive neighborhood features (0-1 scale)
+                "features": {
+                    "cultural_level": round(float(row.cultural_level), 2) if row.cultural_level else None,
+                    "religiosity_level": round(float(row.religiosity_level), 2) if row.religiosity_level else None,
+                    "communality_level": round(float(row.communality_level), 2) if row.communality_level else None,
+                    "kindergardens_level": round(float(row.kindergardens_level), 2) if row.kindergardens_level else None,
+                    "maintenance_level": round(float(row.maintenance_level), 2) if row.maintenance_level else None,
+                    "mobility_level": round(float(row.mobility_level), 2) if row.mobility_level else None,
+                    "parks_level": round(float(row.parks_level), 2) if row.parks_level else None,
+                    "peaceful_level": round(float(row.peaceful_level), 2) if row.peaceful_level else None,
+                    "shopping_level": round(float(row.shopping_level), 2) if row.shopping_level else None,
+                    "safety_level": round(float(row.safety_level), 2) if row.safety_level else None,
+                    "nightlife_level": round(float(row.nightlife_level), 2) if row.nightlife_level else None,
+                },
+                
+                # Market data
+                "current_active_listings": int(row.current_active_listings) if row.current_active_listings else 0,
+                
+                # Calculated scores
+                "popularity_score": round(popularity_score, 2),
+                
+                # Enhanced score breakdown for transparency
+                "score_breakdown": {
+                    "socio_economic": round(socio_score, 2),
+                    "school_quality": round(school_score, 2), 
+                    "safety": round(safety_score, 2),
+                    "peaceful": round(peaceful_score, 2),
+                    "maintenance": round(maintenance_score, 2),
+                    "parks": round(parks_score, 2),
+                    "beach_proximity": round(beach_score, 2),
+                    "market_activity": round(market_score, 2)
+                }
+            })
+        
+        logger.info(f"Returning {len(neighborhoods)} neighborhoods for exploration")
+        
+        return {
+            "neighborhoods": neighborhoods,
+            "total_count": len(neighborhoods),
+            "message": "Neighborhoods data retrieved successfully"
+        }
+        
+    except Exception as e:
+        logger.error(f"Error getting neighborhoods exploration data: {e}", exc_info=True)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An error occurred while fetching neighborhoods data."
         )
 
 @router.get(

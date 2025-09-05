@@ -196,6 +196,7 @@ async def get_user_questionnaire_responses(
         
         # Get user's current responses
         user_responses = await questionnaire_service.get_user_responses(db, user_id)
+        logger.info(f"User {user_id}: Retrieved {len(user_responses or {})} user responses for editing")
         
         # Get all questions from questionnaire service
         await questionnaire_service.load_questions()
@@ -233,6 +234,10 @@ async def update_user_questionnaire_responses(
         
         # Get user's current state
         user_state = await questionnaire_service.get_user_state(user_id)
+        logger.info(f"User {user_id}: Current state has {len(user_state.get('answers', {}))} answers")
+        
+        # Log the answers being updated
+        logger.info(f"User {user_id}: Updating answers for questions: {list(request.answers.keys())}")
         
         # Update the answers in the state
         for question_id, new_answer in request.answers.items():
@@ -241,6 +246,8 @@ async def update_user_questionnaire_responses(
             # Add to answered questions if not already there
             if question_id not in user_state['answered_questions']:
                 user_state['answered_questions'].append(question_id)
+        
+        logger.info(f"User {user_id}: After update, state has {len(user_state.get('answers', {}))} answers")
         
         # Save the updated state
         success = await questionnaire_service.update_user_state(user_id, user_state)
@@ -251,15 +258,19 @@ async def update_user_questionnaire_responses(
         # Also update filters if questionnaire is completed
         completed_questionnaire = await questionnaire_service.get_completed_questionnaire(user_id)
         if completed_questionnaire:
+            logger.info(f"User {user_id}: Found completed questionnaire, updating with {len(user_state['answers'])} answers")
             # Update the completed questionnaire in MongoDB as well
-            await questionnaire_service.mongo_db.completed_questionnaires.update_one(
+            update_result = await questionnaire_service.mongo_db.completed_questionnaires.update_one(
                 {"user_id": user_id},
                 {"$set": {"answers": user_state['answers']}}
             )
+            logger.info(f"User {user_id}: Completed questionnaire update result: modified {update_result.modified_count} documents")
             
             # Update user filters based on the new answers if needed
             if questionnaire_service.db_session:
                 await questionnaire_service._create_or_update_user_filters(user_id, user_state['answers'])
+        else:
+            logger.info(f"User {user_id}: No completed questionnaire found, only updating user state")
         
         return {
             "success": True,

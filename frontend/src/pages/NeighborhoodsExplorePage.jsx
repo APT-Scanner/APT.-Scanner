@@ -1,6 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { ArrowLeft, Search, MapPin, Users, DollarSign, Home, Loader2, TrendingUp } from 'lucide-react';
+import { 
+    ArrowLeft, Search, MapPin, Users, DollarSign, Home, Loader2, TrendingUp, 
+    GraduationCap, Waves, Activity, Shield, Heart, Wrench, Car, TreePine, 
+    Volume2, ShoppingBag, Moon, Church, Baby 
+} from 'lucide-react';
 import styles from '../styles/NeighborhoodsExplorePage.module.css';
 import { useAuth } from '../hooks/useAuth';
 import API_BASE from '../config/api.js';
@@ -17,16 +21,18 @@ const NeighborhoodsExplorePage = () => {
     const [selectedCity, setSelectedCity] = useState('');
     const [sortBy, setSortBy] = useState('name'); // name, avgPrice, popularity
 
-    useEffect(() => {
-        fetchNeighborhoods();
-    }, []);
+    const fetchNeighborhoods = useCallback(async () => {
+        if (!idToken) {
+            setLoading(false);
+            setError('Authentication required');
+            return;
+        }
 
-    const fetchNeighborhoods = async () => {
         setLoading(true);
         setError(null);
         
         try {
-            const response = await fetch(`${API_BASE}/api/v1/neighborhoods/explore`, {
+            const response = await fetch(`${API_BASE}/api/v1/recommendations/neighborhoods/explore`, {
                 method: 'GET',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
@@ -39,50 +45,26 @@ const NeighborhoodsExplorePage = () => {
             }
 
             const data = await response.json();
+            console.log('Neighborhoods API response:', data);
             setNeighborhoods(data.neighborhoods || []);
         } catch (err) {
             console.error('Error fetching neighborhoods:', err);
-            setError(err.message);
-            // Mock data for now until API is implemented
-            setNeighborhoods([
-                {
-                    id: 1,
-                    name: 'Tel Aviv Center',
-                    hebrew_name: 'מרכז תל אביב',
-                    city: 'Tel Aviv',
-                    avg_rental_price: 8500,
-                    total_listings: 245,
-                    popularity_score: 0.95,
-                    description: 'The heart of Tel Aviv with vibrant nightlife, restaurants, and cultural attractions.',
-                    image: '/src/assets/neighbourhoods/tel-aviv-center.jpg'
-                },
-                {
-                    id: 2,
-                    name: 'Florentin',
-                    hebrew_name: 'פלורנטין',
-                    city: 'Tel Aviv',
-                    avg_rental_price: 7200,
-                    total_listings: 187,
-                    popularity_score: 0.88,
-                    description: 'Trendy neighborhood known for its street art, bars, and young professional community.',
-                    image: '/src/assets/neighbourhoods/florentin.jpg'
-                },
-                {
-                    id: 3,
-                    name: 'Neve Tzedek',
-                    hebrew_name: 'נווה צדק',
-                    city: 'Tel Aviv',
-                    avg_rental_price: 12000,
-                    total_listings: 89,
-                    popularity_score: 0.92,
-                    description: 'Historic and upscale neighborhood with beautiful architecture and boutique shops.',
-                    image: '/src/assets/neighbourhoods/neve-tzedek.jpg'
-                }
-            ]);
+            const errorMessage = err.message.includes('Failed to fetch') 
+                ? 'Unable to load neighborhoods. Please check your connection and try again.'
+                : err.message;
+            setError(errorMessage);
+            // Fallback to empty array on error
+            setNeighborhoods([]);
         } finally {
             setLoading(false);
         }
-    };
+    }, [idToken]);
+
+    useEffect(() => {
+        if (idToken) {
+            fetchNeighborhoods();
+        }
+    }, [idToken, fetchNeighborhoods]);
 
     const filteredNeighborhoods = neighborhoods.filter(neighborhood => {
         const matchesSearch = neighborhood.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -93,12 +75,25 @@ const NeighborhoodsExplorePage = () => {
 
     const sortedNeighborhoods = [...filteredNeighborhoods].sort((a, b) => {
         switch (sortBy) {
-            case 'avgPrice':
-                return a.avg_rental_price - b.avg_rental_price;
+            case 'avgPrice': {
+                const priceA = a.current_avg_rental_price || a.historical_avg_rental_price || 0;
+                const priceB = b.current_avg_rental_price || b.historical_avg_rental_price || 0;
+                return priceA - priceB;
+            }
             case 'popularity':
                 return b.popularity_score - a.popularity_score;
             case 'listings':
-                return b.total_listings - a.total_listings;
+                return (b.current_active_listings || 0) - (a.current_active_listings || 0);
+            case 'schools':
+                return (b.school_rating || 0) - (a.school_rating || 0);
+            case 'socioeconomic':
+                return (b.social_economic_index || 0) - (a.social_economic_index || 0);
+            case 'safety':
+                return (b.features?.safety_level || 0) - (a.features?.safety_level || 0);
+            case 'culture':
+                return (b.features?.cultural_level || 0) - (a.features?.cultural_level || 0);
+            case 'parks':
+                return (b.features?.parks_level || 0) - (a.features?.parks_level || 0);
             default:
                 return a.name.localeCompare(b.name);
         }
@@ -168,9 +163,14 @@ const NeighborhoodsExplorePage = () => {
                         className={styles.sortFilter}
                     >
                         <option value="name">Sort by Name</option>
-                        <option value="avgPrice">Sort by Price</option>
-                        <option value="popularity">Sort by Popularity</option>
-                        <option value="listings">Sort by Listings</option>
+                        <option value="popularity">Sort by Overall Score</option>
+                        <option value="safety">Sort by Safety Level</option>
+                        <option value="schools">Sort by School Rating</option>
+                        <option value="socioeconomic">Sort by Quality Index</option>
+                        <option value="culture">Sort by Cultural Level</option>
+                        <option value="parks">Sort by Parks & Nature</option>
+                        <option value="avgPrice">Sort by Rent Price</option>
+                        <option value="listings">Sort by Active Listings</option>
                     </select>
                 </div>
             </div>
@@ -179,7 +179,7 @@ const NeighborhoodsExplorePage = () => {
             <div className={styles.neighborhoodsList}>
                 {error && (
                     <div className={styles.errorMessage}>
-                        <p>Unable to load live data. Showing sample neighborhoods:</p>
+                        <p>Unable to load neighborhoods data: {error}</p>
                     </div>
                 )}
                 
@@ -197,21 +197,151 @@ const NeighborhoodsExplorePage = () => {
                                     <span className={styles.cityName}>{neighborhood.city}</span>
                                 </div>
                                 <div className={styles.priceContainer}>
-                                    <span className={styles.price}>₪{neighborhood.avg_rental_price?.toLocaleString()}</span>
-                                    <span className={styles.priceLabel}>avg. rent</span>
+                                    <span className={styles.price}>
+                                        ₪{(neighborhood.current_avg_rental_price || neighborhood.historical_avg_rental_price || 0).toLocaleString()}
+                                    </span>
+                                    <span className={styles.priceLabel}>
+                                        {neighborhood.current_avg_rental_price ? 'current avg.' : 'historical avg.'}
+                                    </span>
                                 </div>
                             </div>
 
                             <p className={styles.description}>{neighborhood.description}</p>
 
-                            <div className={styles.statsRow}>
-                                <div className={styles.stat}>
-                                    <Home size={16} />
-                                    <span>{neighborhood.total_listings} listings</span>
+                            {/* Comprehensive neighborhood features display */}
+                            <div className={styles.featuresContainer}>
+                                {/* Core Metrics Row */}
+                                <div className={styles.coreMetrics}>
+                                    <div className={styles.metric}>
+                                        <Activity size={16} />
+                                        <span>{neighborhood.current_active_listings || 0} active</span>
+                                    </div>
+                                    {neighborhood.school_rating && (
+                                        <div className={styles.metric}>
+                                            <GraduationCap size={16} />
+                                            <span>{neighborhood.school_rating}/10 schools</span>
+                                        </div>
+                                    )}
+                                    {neighborhood.social_economic_index && (
+                                        <div className={styles.metric}>
+                                            <Users size={16} />
+                                            <span>{neighborhood.social_economic_index}/10 quality</span>
+                                        </div>
+                                    )}
                                 </div>
-                                <div className={styles.stat}>
+
+                                {/* Rich Features Grid */}
+                                {neighborhood.features && (
+                                    <div className={styles.featuresGrid}>
+                                        <div className={styles.featureCategory}>
+                                            <h4 className={styles.categoryTitle}>Safety & Environment</h4>
+                                            <div className={styles.featureItems}>
+                                                {neighborhood.features.safety_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Shield size={14} />
+                                                        <span>Safety: {Math.round(neighborhood.features.safety_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                                {neighborhood.features.peaceful_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Volume2 size={14} />
+                                                        <span>Quiet: {Math.round(neighborhood.features.peaceful_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                                {neighborhood.features.maintenance_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Wrench size={14} />
+                                                        <span>Maintenance: {Math.round(neighborhood.features.maintenance_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.featureCategory}>
+                                            <h4 className={styles.categoryTitle}>Amenities & Lifestyle</h4>
+                                            <div className={styles.featureItems}>
+                                                {neighborhood.features.parks_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <TreePine size={14} />
+                                                        <span>Parks: {Math.round(neighborhood.features.parks_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                                {neighborhood.features.shopping_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <ShoppingBag size={14} />
+                                                        <span>Shopping: {Math.round(neighborhood.features.shopping_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                                {neighborhood.features.mobility_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Car size={14} />
+                                                        <span>Transport: {Math.round(neighborhood.features.mobility_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                                {neighborhood.features.nightlife_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Moon size={14} />
+                                                        <span>Nightlife: {Math.round(neighborhood.features.nightlife_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+
+                                        <div className={styles.featureCategory}>
+                                            <h4 className={styles.categoryTitle}>Community & Culture</h4>
+                                            <div className={styles.featureItems}>
+                                                {neighborhood.features.communality_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Heart size={14} />
+                                                        <span>Community: {Math.round(neighborhood.features.communality_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                                {neighborhood.features.cultural_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Users size={14} />
+                                                        <span>Culture: {Math.round(neighborhood.features.cultural_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                                {neighborhood.features.kindergardens_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Baby size={14} />
+                                                        <span>Kindergartens: {Math.round(neighborhood.features.kindergardens_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                                {neighborhood.features.religiosity_level && (
+                                                    <div className={styles.featureItem}>
+                                                        <Church size={14} />
+                                                        <span>Religiosity: {Math.round(neighborhood.features.religiosity_level * 100)}%</span>
+                                                    </div>
+                                                )}
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Location & Distance */}
+                                {neighborhood.beach_distance_km && (
+                                    <div className={styles.locationInfo}>
+                                        <div className={styles.metric}>
+                                            <Waves size={16} />
+                                            <span>{neighborhood.beach_distance_km}km to beach</span>
+                                        </div>
+                                    </div>
+                                )}
+
+                                {/* Overall Popularity Score */}
+                                <div className={styles.popularityScore}>
                                     <TrendingUp size={16} />
-                                    <span>{Math.round(neighborhood.popularity_score * 100)}% popular</span>
+                                    <span>Overall Score: {Math.round(neighborhood.popularity_score * 100)}%</span>
+                                    {neighborhood.score_breakdown && (
+                                        <div className={styles.scoreBreakdown}>
+                                            <small>
+                                                Safety: {Math.round(neighborhood.score_breakdown.safety * 100)}% | 
+                                                Quality: {Math.round(neighborhood.score_breakdown.socio_economic * 100)}% | 
+                                                Schools: {Math.round(neighborhood.score_breakdown.school_quality * 100)}%
+                                            </small>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
@@ -242,7 +372,7 @@ const NeighborhoodsExplorePage = () => {
                     <img src={HeartOutlineIcon} alt="Favorites" />
                 </button>
                 <button className={`${styles.bottomBarButton} ${styles.active}`}>
-                    <MapPin size={24} />
+                    <MapPin size={24} alt="Neighborhoods" style={{ width: '28px', height: '28px', stroke: '#371b34', strokeWidth: '1.5' }} />
                 </button>
             </div>
         </div>

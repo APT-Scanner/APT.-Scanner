@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Edit3, Plus, CheckCircle, Circle, BarChart3 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -14,7 +14,7 @@ const QuestionnaireEditPage = () => {
     const [userResponses, setUserResponses] = useState({});
 
     // Fetch questionnaire data
-    const fetchQuestionnaireData = async () => {
+    const fetchQuestionnaireData = useCallback(async () => {
         if (!idToken) return;
 
         try {
@@ -41,11 +41,11 @@ const QuestionnaireEditPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [idToken]);
 
     useEffect(() => {
         fetchQuestionnaireData();
-    }, [idToken]);
+    }, [fetchQuestionnaireData]);
 
     const handleBack = () => navigate(-1);
 
@@ -68,11 +68,11 @@ const QuestionnaireEditPage = () => {
                     <button className={styles.backButton} onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>ניהול שאלון</h1>
+                    <h1>Manage Questionnaire</h1>
                 </div>
                 <div className={styles.loadingContainer}>
                     <RefreshCw size={48} className={styles.spinner} />
-                    <p>טוען נתונים...</p>
+                    <p>Loading data...</p>
                 </div>
             </div>
         );
@@ -85,13 +85,13 @@ const QuestionnaireEditPage = () => {
                     <button className={styles.backButton} onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>ניהול שאלון</h1>
+                    <h1>Manage Questionnaire</h1>
                 </div>
                 <div className={styles.errorContainer}>
                     <p className={styles.errorMessage}>{error}</p>
                     <button onClick={fetchQuestionnaireData} className={styles.retryButton}>
                         <RefreshCw size={16} />
-                        נסה שוב
+                        Try Again
                     </button>
                 </div>
             </div>
@@ -113,7 +113,7 @@ const QuestionnaireEditPage = () => {
                 <button className={styles.backButton} onClick={handleBack}>
                     <ArrowLeft size={24} />
                 </button>
-                <h1>ניהול שאלון</h1>
+                <h1>Manage Questionnaire</h1>
             </div>
 
             <div className={styles.mainContent}>
@@ -121,7 +121,7 @@ const QuestionnaireEditPage = () => {
                 <div className={styles.progressSection}>
                     <div className={styles.progressHeader}>
                         <BarChart3 size={28} className={styles.progressIcon} />
-                        <h2>סטטוס השאלון שלך</h2>
+                        <h2>Your Questionnaire Status</h2>
                     </div>
                     
                     <div className={styles.progressStats}>
@@ -132,7 +132,7 @@ const QuestionnaireEditPage = () => {
                             ></div>
                         </div>
                         <div className={styles.progressText}>
-                            {completionPercentage}% הושלם
+                            {completionPercentage}% Complete
                         </div>
                     </div>
 
@@ -141,7 +141,7 @@ const QuestionnaireEditPage = () => {
                             <CheckCircle size={24} className={styles.statIcon} />
                             <div className={styles.statInfo}>
                                 <span className={styles.statNumber}>{answeredCount}</span>
-                                <span className={styles.statLabel}>שאלות נענו</span>
+                                <span className={styles.statLabel}>Questions Answered</span>
                             </div>
                         </div>
                         
@@ -149,7 +149,7 @@ const QuestionnaireEditPage = () => {
                             <Circle size={24} className={styles.statIcon} />
                             <div className={styles.statInfo}>
                                 <span className={styles.statNumber}>{totalQuestions - answeredCount}</span>
-                                <span className={styles.statLabel}>שאלות נותרו</span>
+                                <span className={styles.statLabel}>Questions Remaining</span>
                             </div>
                         </div>
                     </div>
@@ -157,7 +157,7 @@ const QuestionnaireEditPage = () => {
 
                 {/* Action Buttons */}
                 <div className={styles.actionsSection}>
-                    <h2>מה תרצה לעשות?</h2>
+                    <h2>What would you like to do?</h2>
                     
                     <div className={styles.actionButtons}>
                         <button 
@@ -168,11 +168,11 @@ const QuestionnaireEditPage = () => {
                                 <Plus size={32} />
                             </div>
                             <div className={styles.buttonContent}>
-                                <h3>ענה על שאלות נוספות</h3>
-                                <p>המשך לענות על שאלות שטרם נענו או שדילגת עליהן</p>
+                                <h3>Answer Additional Questions</h3>
+                                <p>Continue answering questions you haven't completed yet or skipped</p>
                                 {totalQuestions - answeredCount > 0 && (
                                     <span className={styles.badge}>
-                                        {totalQuestions - answeredCount} שאלות נותרו
+                                        {totalQuestions - answeredCount} questions remaining
                                     </span>
                                 )}
                             </div>
@@ -186,11 +186,11 @@ const QuestionnaireEditPage = () => {
                                 <Edit3 size={32} />
                             </div>
                             <div className={styles.buttonContent}>
-                                <h3>ערוך תשובות קיימות</h3>
-                                <p>שנה או עדכן תשובות שכבר נתת בעבר</p>
+                                <h3>Edit Existing Answers</h3>
+                                <p>Change or update answers you've already provided</p>
                                 {answeredCount > 0 && (
                                     <span className={styles.badge}>
-                                        {answeredCount} תשובות זמינות לעריכה
+                                        {answeredCount} answers available for editing
                                     </span>
                                 )}
                             </div>
@@ -202,7 +202,7 @@ const QuestionnaireEditPage = () => {
                 {completionPercentage === 100 && (
                     <div className={styles.completionMessage}>
                         <CheckCircle size={24} className={styles.completionIcon} />
-                        <span>כל הכבוד! השלמת את כל השאלות בשאלון</span>
+                        <span>Congratulations! You've completed all questionnaire questions</span>
                     </div>
                 )}
             </div>

@@ -267,14 +267,14 @@ const ApartmentSwipePage = () => {
                             onClick={handleBackToRecommendations}
                         >
                             <Target size={20} />
-                            <span>Back to Recommendations</span>
+                            <span>Back to My Recommendations</span>
                         </button>
                         <button 
                             className={styles.menuItem}
                             onClick={handleQuestionnaireEdit}
                         >
                             <ClipboardList size={20} />
-                            <span>ניהול שאלון</span>
+                            <span>Edit My Questionnaire</span>
                         </button>
                         <button 
                             className={styles.menuItem}
@@ -380,7 +380,7 @@ const ApartmentSwipePage = () => {
                     <img src={HeartOutlineIcon} alt="Heart" />
                 </button>
                 <button className={styles.bottomBarButton} onClick={() => navigate('/neighborhoods')}>
-                    <MapPin size={24} />
+                    <MapPin size={24} alt="Neighborhoods" style={{ width: '28px', height: '28px', stroke: '#371b34', strokeWidth: '1.5' }} />
                 </button>
             </div>
         </div>

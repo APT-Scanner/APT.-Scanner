@@ -152,7 +152,7 @@ const FavoritesPage = () => {
                     className={styles.bottomBarButton}
                     onClick={() => navigate('/neighborhoods')}
                 >
-                    <MapPin size={24} />
+                    <MapPin size={24} alt="Neighborhoods" style={{ width: '28px', height: '28px', stroke: '#371b34', strokeWidth: '1.5' }} />
                 </button>
             </div>
         </div>

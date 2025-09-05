@@ -36,6 +36,7 @@ const QuestionnaireEditDetailedPage = () => {
             }
 
             const data = await response.json();
+            console.log(`Fetched questionnaire data: ${Object.keys(data.user_responses || {}).length} user responses`);
             setQuestionsData(data);
             setUserResponses(data.user_responses || {});
         } catch (err) {
@@ -66,6 +67,14 @@ const QuestionnaireEditDetailedPage = () => {
         try {
             setSaving(true);
 
+            // Include all existing answers plus the updated one to prevent data loss
+            const updatedAnswers = {
+                ...userResponses,
+                [questionId]: tempAnswer
+            };
+
+            console.log(`Saving answers for question ${questionId}. Total answers being sent: ${Object.keys(updatedAnswers).length}`);
+
             const response = await fetch(`${API_BASE}/api/v1/questionnaire/responses`, {
                 method: 'PUT',
                 headers: {
@@ -73,23 +82,30 @@ const QuestionnaireEditDetailedPage = () => {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    answers: {
-                        [questionId]: tempAnswer
-                    }
+                    answers: updatedAnswers
                 })
             });
 
             if (!response.ok) {
-                throw new Error('Failed to save answer');
+                const errorData = await response.json().catch(() => ({ detail: 'Failed to save answer' }));
+                throw new Error(errorData.detail || 'Failed to save answer');
             }
 
-            setUserResponses(prev => ({
-                ...prev,
-                [questionId]: tempAnswer
-            }));
+            const responseData = await response.json();
+            console.log(`Save successful for question ${questionId}:`, responseData);
 
+            // Update local state
+            setUserResponses(updatedAnswers);
+
+            // Clear editing state
             setEditingQuestion(null);
             setTempAnswer('');
+
+            // Optionally refresh data from server to ensure consistency
+            // This ensures we have the latest server state
+            setTimeout(() => {
+                fetchQuestionnaireData();
+            }, 500);
         } catch (err) {
             console.error('Error saving answer:', err);
             setError('Failed to save answer');
@@ -157,19 +173,19 @@ const QuestionnaireEditDetailedPage = () => {
                             value={tempAnswer}
                             onChange={(e) => setTempAnswer(e.target.value)}
                             className={styles.textInput}
-                            placeholder="הכנס את התשובה שלך..."
+                            placeholder="Enter your answer..."
                         />
                     )}
 
                     {question.type === 'slider' && (
                         <div className={styles.sliderContainer}>
-                            <span>טווח תקציב: {question.config?.min} - {question.config?.max} {question.config?.unit}</span>
+                            <span>Budget Range: {question.config?.min} - {question.config?.max} {question.config?.unit}</span>
                             <input
                                 type="text"
                                 value={tempAnswer}
                                 onChange={(e) => setTempAnswer(e.target.value)}
                                 className={styles.textInput}
-                                placeholder="הכנס טווח כ [מינימום, מקסימום]"
+                                placeholder="Enter range as [minimum, maximum]"
                             />
                         </div>
                     )}
@@ -181,14 +197,14 @@ const QuestionnaireEditDetailedPage = () => {
                             className={styles.saveButton}
                         >
                             <Check size={16} />
-                            {saving ? 'שומר...' : 'שמור'}
+                            {saving ? 'Saving...' : 'Save'}
                         </button>
                         <button 
                             onClick={cancelEditing}
                             className={styles.cancelButton}
                         >
                             <X size={16} />
-                            ביטול
+                            Cancel
                         </button>
                     </div>
                 </div>
@@ -209,7 +225,7 @@ const QuestionnaireEditDetailedPage = () => {
                             }
                         </span>
                     ) : (
-                        <span className={styles.noAnswer}>לא נענתה</span>
+                        <span className={styles.noAnswer}>Not answered</span>
                     )}
                 </div>
                 <button 
@@ -217,7 +233,7 @@ const QuestionnaireEditDetailedPage = () => {
                     className={styles.editButton}
                 >
                     <Edit size={16} />
-                    ערוך
+                    Edit
                 </button>
             </div>
         );
@@ -230,11 +246,11 @@ const QuestionnaireEditDetailedPage = () => {
                     <button className={styles.backButton} onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>ערוך תשובות</h1>
+                    <h1>Edit Answers</h1>
                 </div>
                 <div className={styles.loadingContainer}>
                     <RefreshCw size={48} className={styles.spinner} />
-                    <p>טוען תשובות...</p>
+                    <p>Loading answers...</p>
                 </div>
             </div>
         );
@@ -247,13 +263,13 @@ const QuestionnaireEditDetailedPage = () => {
                     <button className={styles.backButton} onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>ערוך תשובות</h1>
+                    <h1>Edit Answers</h1>
                 </div>
                 <div className={styles.errorContainer}>
                     <p className={styles.errorMessage}>{error}</p>
                     <button onClick={fetchQuestionnaireData} className={styles.retryButton}>
                         <RefreshCw size={16} />
-                        נסה שוב
+                        Try Again
                     </button>
                 </div>
             </div>
@@ -278,17 +294,17 @@ const QuestionnaireEditDetailedPage = () => {
                     <button className={styles.backButton} onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>ערוך תשובות</h1>
+                    <h1>Edit Answers</h1>
                 </div>
                 <div className={styles.emptyContainer}>
                     <Save size={48} className={styles.emptyIcon} />
-                    <h2>אין תשובות לעריכה</h2>
-                    <p>טרם ענית על שאלות כלשהן. התחל בלענות על השאלון כדי שתוכל לערוך תשובות.</p>
+                    <h2>No answers to edit</h2>
+                    <p>You haven't answered any questions yet. Start answering the questionnaire to be able to edit answers.</p>
                     <button 
                         onClick={() => navigate('/questionnaire')}
                         className={styles.startButton}
                     >
-                        התחל לענות על שאלות
+                        Start answering questions
                     </button>
                 </div>
             </div>
@@ -301,9 +317,9 @@ const QuestionnaireEditDetailedPage = () => {
                 <button className={styles.backButton} onClick={handleBack}>
                     <ArrowLeft size={24} />
                 </button>
-                <h1>ערוך תשובות</h1>
+                <h1>Edit Answers</h1>
                 <div className={styles.headerInfo}>
-                    {answeredQuestions.length} תשובות זמינות לעריכה
+                    {answeredQuestions.length} answers available for editing
                 </div>
             </div>
 
@@ -312,7 +328,7 @@ const QuestionnaireEditDetailedPage = () => {
                     <div key={questionId} className={styles.questionCard}>
                         <div className={styles.questionHeader}>
                             <span className={styles.category}>{question.category}</span>
-                            {question.required && <span className={styles.required}>חובה</span>}
+                            {question.required && <span className={styles.required}>Required</span>}
                         </div>
                         <h3 className={styles.questionText}>{question.text}</h3>
                         {renderQuestionAnswer(question)}

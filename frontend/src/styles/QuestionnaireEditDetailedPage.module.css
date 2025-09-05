@@ -4,7 +4,6 @@
   background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   padding: 0 20px 80px 20px;
   overflow-y: auto;
-  direction: rtl;
   font-family: system-ui, -apple-system, sans-serif;
 }
 
@@ -21,8 +20,6 @@
   background: rgba(255, 255, 255, 0.95);
   border: none;
   border-radius: 50%;
-  width: 48px;
-  height: 48px;
   display: flex;
   align-items: center;
   justify-content: center;
