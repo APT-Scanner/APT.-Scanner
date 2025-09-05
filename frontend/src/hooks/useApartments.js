@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuth } from './useAuth';
+import API_BASE from '../config/api.js';
 
 export const useApartments = (options = {}) => {
     const [apartments, setApartments] = useState([]);
@@ -64,8 +65,7 @@ export const useApartments = (options = {}) => {
             setError(null);
             try {
                 // Base URL
-                const baseUrl = import.meta.env.VITE_API_URL || window.location.origin;
-                const url = new URL(`/api/v1/listings/`, baseUrl);
+                const url = new URL(`/api/v1/listings/`, API_BASE);
                 
                 // Add filter_viewed query parameter
                 url.searchParams.append('filter_viewed', filterViewed);
