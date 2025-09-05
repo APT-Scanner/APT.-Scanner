@@ -1,4 +1,6 @@
 
+import API_BASE from '../config/api.js';
+
 /**
  * Fetch place suggestions from Google Maps Places API via secure backend proxy
  * @param {string} input - The input text to search for
@@ -17,7 +19,7 @@ export const fetchPlaceSuggestions = async (input) => {
             components: 'country:IL'
         });
 
-        const response = await fetch(`/api/v1/maps/places/autocomplete?${params}`);
+        const response = await fetch(`${API_BASE}/api/v1/maps/places/autocomplete?${params}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -48,7 +50,7 @@ export const fetchPlaceDetails = async (placeId) => {
             place_id: placeId
         });
 
-        const response = await fetch(`/api/v1/maps/places/details?${params}`);
+        const response = await fetch(`${API_BASE}/api/v1/maps/places/details?${params}`);
         
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -83,7 +85,7 @@ export const fetchDistanceMatrix = async (origins, destinations, mode = 'driving
             mode
         };
 
-        const response = await fetch(`/api/v1/maps/distance-matrix`, {
+        const response = await fetch(`${API_BASE}/api/v1/maps/distance-matrix`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'

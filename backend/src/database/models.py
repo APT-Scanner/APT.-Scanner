@@ -4,13 +4,27 @@ from sqlalchemy import (
     DECIMAL, TEXT, BIGINT, TIMESTAMP, Table,
     DateTime  
 )
-from sqlalchemy.orm import relationship, Mapped, mapped_column
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from sqlalchemy.dialects.postgresql import JSONB, ARRAY
 from datetime import datetime
 from decimal import Decimal
 from typing import Optional, List, Dict, Any
 from enum import Enum as PyEnum
+# Backward compatibility for SQLAlchemy < 2.0 where mapped_column/Mapped do not exist
+try:
+    from sqlalchemy.orm import Mapped, mapped_column  # type: ignore
+except Exception:  # pragma: no cover - runtime compatibility shim
+    from typing import Any
+    
+    class _MappedCompat:
+        """Compatibility shim for Mapped type annotations in older SQLAlchemy"""
+        def __getitem__(self, item):
+            return Any
+    
+    Mapped = _MappedCompat()  # type: ignore
+    def mapped_column(*args, **kwargs):  # type: ignore
+        return Column(*args, **kwargs)
 from .postgresql_db import Base 
 
 
@@ -50,8 +64,8 @@ class Neighborhood(Base):
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # One-to-One relationships to related data tables
-    metrics: Mapped[Optional["NeighborhoodMetrics"]] = relationship(back_populates="neighborhood", uselist=False)
-    meta_data: Mapped[Optional["NeighborhoodMetadata"]] = relationship(back_populates="neighborhood", uselist=False)
+    metrics: Mapped[Optional["NeighborhoodMetrics"]] = relationship("NeighborhoodMetrics", back_populates="neighborhood", uselist=False)
+    meta_data: Mapped[Optional["NeighborhoodMetadata"]] = relationship("NeighborhoodMetadata", back_populates="neighborhood", uselist=False)
 
     def __repr__(self):
         return f"<Neighborhood(id={self.id}, name='{self.hebrew_name}')>"
@@ -73,7 +87,7 @@ class NeighborhoodMetrics(Base):
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # One-to-One relationship back to Neighborhood
-    neighborhood: Mapped["Neighborhood"] = relationship(back_populates="metrics")
+    neighborhood: Mapped["Neighborhood"] = relationship("Neighborhood", back_populates="metrics")
 
     def __repr__(self):
         return f"<NeighborhoodMetrics(id={self.neighborhood_id})>"
@@ -93,7 +107,7 @@ class NeighborhoodMetadata(Base):
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now())
 
     # One-to-One relationship back to Neighborhood
-    neighborhood: Mapped["Neighborhood"] = relationship(back_populates="meta_data")
+    neighborhood: Mapped["Neighborhood"] = relationship("Neighborhood", back_populates="meta_data")
 
     def __repr__(self):
         return f"<NeighborhoodMetadata(id={self.neighborhood_id})>"
@@ -139,11 +153,11 @@ class Listing(Base):
     updated_at: Mapped[datetime] = mapped_column(TIMESTAMP(timezone=True), server_default=func.now(), onupdate=func.now()) 
 
     # One-to-Many relationship to Images
-    images: Mapped[List["Image"]] = relationship(back_populates="listing", cascade="all, delete-orphan")
+    images: Mapped[List["Image"]] = relationship("Image", back_populates="listing", cascade="all, delete-orphan")
 
     # Many-to-Many relationship to Attributes
     attributes: Mapped[List["Attribute"]] = relationship(
-        secondary=listing_attributes_association, back_populates="listings"
+        "Attribute", secondary=listing_attributes_association, back_populates="listings"
     )
 
     # One-to-One relationship to ListingMetadata
@@ -196,7 +210,7 @@ class Image(Base):
     image_url: Mapped[str] = mapped_column(TEXT, nullable=False)
 
     # Many-to-One relationship back to Listing
-    listing: Mapped["Listing"] = relationship(back_populates="images")
+    listing: Mapped["Listing"] = relationship("Listing", back_populates="images")
 
     def __repr__(self):
         return f"<Image(id={self.image_id}, listing_id={self.listing_id})>"
@@ -230,7 +244,7 @@ class User(Base):
     firebase_uid: Mapped[str] = mapped_column(String, unique=True, index=True, nullable=False)
     email: Mapped[Optional[str]] = mapped_column(String, unique=True, index=True, nullable=True)
     # Relationship to preferences
-    preferences: Mapped[Optional["UserPreferences"]] = relationship(back_populates="owner")
+    preferences: Mapped[Optional["UserPreferences"]] = relationship("UserPreferences", back_populates="owner")
 
 class UserPreferences(Base):
     __tablename__ = "user_preferences"
@@ -262,7 +276,7 @@ class UserPreferences(Base):
     schools_importance: Mapped[Optional[ImportanceScale]] = mapped_column(SQLEnum(ImportanceScale), nullable=True)
 
     # Relationship back to User
-    owner: Mapped["User"] = relationship(back_populates="preferences")
+    owner: Mapped["User"] = relationship("User", back_populates="preferences")
 
 
 class Favorite(Base):
@@ -392,7 +406,7 @@ class Attribute(Base):
     
     # Relationships
     listings: Mapped[List["Listing"]] = relationship(
-        secondary=listing_attributes_association, back_populates="attributes"
+        "Listing", secondary=listing_attributes_association, back_populates="attributes"
     )
 
     def __repr__(self):

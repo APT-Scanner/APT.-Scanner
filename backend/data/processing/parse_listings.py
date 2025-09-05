@@ -6,8 +6,8 @@ import sys
 backend_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 sys.path.append(backend_dir)
 
-from data.scrapers.yad2_scraper import Yad2Scraper
-from src.utils.attributes_mapping import ATTRIBUTE_EN_TO_HE_MAPPING, map_hebrew_to_english_attributes
+from backend.data.scrapers.yad2_scraper import Yad2Scraper
+from backend.src.utils.attributes_mapping import ATTRIBUTE_EN_TO_HE_MAPPING, map_hebrew_to_english_attributes
 
 # --- Configuration & Helper Data ---
 
@@ -169,19 +169,48 @@ def parse_listings(raw_data):
     }
 
 
-def enrich_listings(listings_data):
+def enrich_listings(listings_data, scraper_instance=None):
     """
     Enrich the listings data with the attributes from the yad2 api
     """
-    scraper = Yad2Scraper()
-    for listing in listings_data:
-        result = scraper.get_attributes(listing['yad2_url_token'])
-        listing['description'] = result['description']
-        active_features = result['active_features']
-        
-        # Map Hebrew features to English attributes
-        english_attributes = map_hebrew_to_english_attributes(active_features)
-        listing['attributes'].extend(english_attributes)
+    try:
+        # Use provided scraper instance or create new one
+        if scraper_instance is None:
+            scraper = Yad2Scraper()
+        else:
+            scraper = scraper_instance
+            
+        for listing in listings_data:
+            try:
+                result = scraper.get_attributes(listing['yad2_url_token'])
+                
+                # Safely extract description (provide default if missing)
+                listing['description'] = result.get('description', '')
+                
+                # Safely extract active features (provide default if missing)
+                active_features = result.get('active_features', [])
+                
+                # Map Hebrew features to English attributes
+                english_attributes = map_hebrew_to_english_attributes(active_features)
+                
+                # Ensure attributes list exists before extending
+                if 'attributes' not in listing:
+                    listing['attributes'] = []
+                listing['attributes'].extend(english_attributes)
+                
+            except Exception as e:
+                print(f"Warning: Failed to enrich listing {listing.get('yad2_url_token', 'unknown')}: {e}")
+                # Set default values if enrichment fails
+                if 'description' not in listing:
+                    listing['description'] = ''
+                if 'attributes' not in listing:
+                    listing['attributes'] = []
+                # Continue with other listings even if one fails
+                continue
+                
+    except Exception as e:
+        print(f"Warning: Enrichment failed, continuing without enrichment: {e}")
+        # Return listings without enrichment rather than failing completely
         
     return listings_data
 

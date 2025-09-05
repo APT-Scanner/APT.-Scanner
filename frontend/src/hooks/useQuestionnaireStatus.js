@@ -1,6 +1,7 @@
 // frontend/src/hooks/useQuestionnaireStatus.js
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import API_BASE from '../config/api.js';
 
 /**
  * Custom hook to check if the user has completed the questionnaire
@@ -25,7 +26,7 @@ export const useQuestionnaireStatus = (shouldCheck = true) => {
       setLoading(true);
       setError(null);
       
-      const response = await fetch(`/api/v1/questionnaire/status`, {
+      const response = await fetch(`${API_BASE}/api/v1/questionnaire/status`, {
         method: 'GET',
         headers: {
           'Authorization': `Bearer ${targetToken}`,

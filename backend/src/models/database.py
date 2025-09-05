@@ -2,7 +2,7 @@
 import os
 from dotenv import load_dotenv
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
-from sqlalchemy.orm import DeclarativeBase
+from sqlalchemy.orm import declarative_base
 from typing import AsyncGenerator
 import ssl
 
@@ -32,8 +32,7 @@ async_session_local = async_sessionmaker(
     expire_on_commit=False
 )
 
-class Base(DeclarativeBase):
-    pass
+Base = declarative_base()
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
     async with async_session_local() as session:

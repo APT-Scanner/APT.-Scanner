@@ -1,4 +1,6 @@
 
+import API_BASE from '../config/api.js';
+
 export const createUserInDatabase = async (user) => {
     try {
         console.log('🔑 Getting Firebase ID token...');
@@ -6,7 +8,7 @@ export const createUserInDatabase = async (user) => {
         console.log('✅ Firebase ID token obtained, length:', idToken.length);
         console.log('🚀 Creating user in database...');
         
-        const response = await fetch(`/api/v1/users/me`, {
+        const response = await fetch(`${API_BASE}/api/v1/users/me`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${idToken}`,
@@ -35,7 +37,7 @@ export const getUserFromDatabase = async (user) => {
     try {
         console.log('🔍 Getting existing user from database...');
         const idToken = await user.getIdToken();
-        const response = await fetch(`/api/v1/users/me`, {
+        const response = await fetch(`${API_BASE}/api/v1/users/me`, {
             method: 'GET',
             headers: {
                 'Authorization': `Bearer ${idToken}`,

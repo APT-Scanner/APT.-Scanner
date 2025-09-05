@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
 import { useAuth } from './useAuth';
+import API_BASE from '../config/api.js';
 
 export const useRecommendations = (options = {}) => {
     const [recommendations, setRecommendations] = useState([]);
@@ -23,7 +24,7 @@ export const useRecommendations = (options = {}) => {
         setError(null);
         
         try {
-            const url = `/api/v1/recommendations/neighborhoods?top_k=${topK}`;
+            const url = `${API_BASE}/api/v1/recommendations/neighborhoods?top_k=${topK}`;
             
             const response = await fetch(url, {
                 method: 'GET',
@@ -87,7 +88,7 @@ export const useRecommendations = (options = {}) => {
         }
 
         try {
-            const response = await fetch(`/api/v1/recommendations/refresh`, {
+            const response = await fetch(`${API_BASE}/api/v1/recommendations/refresh`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,

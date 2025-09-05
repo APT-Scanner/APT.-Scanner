@@ -1,0 +1,50 @@
+# Core dependencies for the ETL pipeline
+requests>=2.31.0
+beautifulsoup4>=4.12.0
+lxml>=4.9.3
+
+# Database dependencies
+psycopg2-binary>=2.9.7
+SQLAlchemy<2.0
+alembic>=1.12.0
+
+# Additional utilities
+python-dotenv>=1.0.0
+pandas>=2.1.0
+numpy>=1.24.0
+
+# JSON and data processing
+jsonschema>=4.19.0
+
+# HTTP client improvements
+urllib3>=2.0.4
+certifi>=2023.7.22
+
+# Optional: For enhanced logging and monitoring
+structlog>=23.1.0
+
+# Optional: For data validation
+pydantic>=2.0.0
+
+# Optional: For async operations
+aiohttp>=3.8.5
+
+# Development dependencies (optional, uncomment if needed for development)
+# pytest>=7.4.0
+# black>=23.7.0
+# flake8>=6.0.0
+# mypy>=1.5.0
+
+# Performance optimizations
+ujson>=5.8.0
+
+# Caching (if using Redis for caching in your application)
+redis>=5.0.0
+
+# For better datetime handling
+python-dateutil>=2.8.2
+
+# Optional: For enhanced error reporting in production
+sentry-sdk>=1.32.0
+
+

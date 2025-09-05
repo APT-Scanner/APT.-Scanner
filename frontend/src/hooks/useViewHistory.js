@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useAuth } from './useAuth';
+import API_BASE from '../config/api.js';
 
 const LOCAL_VIEW_HISTORY_KEY = 'apt_scanner_view_history';
 
@@ -43,7 +44,7 @@ export const useViewHistory = () => {
 
         const fetchViewHistory = async () => {
             try {
-                const response = await fetch(`/api/v1/listings/views`, {
+                const response = await fetch(`${API_BASE}/api/v1/listings/views`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,
@@ -111,7 +112,7 @@ export const useViewHistory = () => {
         // Record view on the server if authenticated
         if (idToken) {
             try {
-                await fetch(`/api/v1/listings/views`, {
+                await fetch(`${API_BASE}/api/v1/listings/views`, {
                     method: 'POST',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,
@@ -155,7 +156,7 @@ export const useViewHistory = () => {
         // Clear server history if authenticated
         if (idToken) {
             try {
-                await fetch(`/api/v1/listings/views`, {
+                await fetch(`${API_BASE}/api/v1/listings/views`, {
                     method: 'DELETE',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,

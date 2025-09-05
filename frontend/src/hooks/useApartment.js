@@ -1,5 +1,6 @@
 import {useState, useEffect} from 'react';
 import { useAuth } from './useAuth';
+import API_BASE from '../config/api.js';
 
 export const useApartment = (listing_id) => {
     const [apartment, setApartment] = useState(null);
@@ -23,7 +24,7 @@ export const useApartment = (listing_id) => {
             setLoading(true);
             setError(null);
             try {
-                const response = await fetch(`/api/v1/listings/${listing_id}`, {
+                const response = await fetch(`${API_BASE}/api/v1/listings/${listing_id}`, {
                     method: 'GET',
                     headers: {
                         'Authorization': `Bearer ${idToken}`,

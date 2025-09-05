@@ -5,6 +5,7 @@ import { useRecommendations } from '../hooks/useRecommendations';
 import { useAuth } from '../hooks/useAuth';
 import { useFilters } from '../hooks/useFilters';
 import styles from '../styles/RecommendationsPage.module.css';
+import API_BASE from '../config/api.js';
 
 const RecommendationsPage = () => {
     const navigate = useNavigate();
@@ -59,7 +60,7 @@ const RecommendationsPage = () => {
     const handleNeighborhoodClick = async (neighborhood) => {
         try {
             // Call API to update user filters with selected neighborhood
-            const response = await fetch(`/api/v1/recommendations/neighborhoods/${neighborhood.id}/select`, {
+            const response = await fetch(`${API_BASE}/api/v1/recommendations/neighborhoods/${neighborhood.id}/select`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,

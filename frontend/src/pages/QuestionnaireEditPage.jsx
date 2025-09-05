@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Edit3, Plus, CheckCircle, Circle, BarChart3 } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import styles from '../styles/QuestionnaireEditPage.module.css';
+import API_BASE from '../config/api.js';
 
 const QuestionnaireEditPage = () => {
     const navigate = useNavigate();
@@ -20,7 +21,7 @@ const QuestionnaireEditPage = () => {
             setLoading(true);
             setError(null);
 
-            const response = await fetch(`/api/v1/questionnaire/responses`, {
+            const response = await fetch(`${API_BASE}/api/v1/questionnaire/responses`, {
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
                     'Content-Type': 'application/json'

@@ -1,7 +1,9 @@
 
+import API_BASE from '../config/api.js';
+
 export const fetchCities = async () => {
     try {
-        const response = await fetch(`/api/v1/filters/cities`);
+        const response = await fetch(`${API_BASE}/api/v1/filters/cities`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
@@ -15,7 +17,7 @@ export const fetchCities = async () => {
 
 export const fetchNeighborhoods = async (city) => {
     try {
-        const response = await fetch(`/api/v1/filters/neighborhoods?city=${encodeURIComponent(city)}`);
+        const response = await fetch(`${API_BASE}/api/v1/filters/neighborhoods?city=${encodeURIComponent(city)}`);
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
         }
