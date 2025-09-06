@@ -20,6 +20,7 @@ const QuestionnairePage = () => {
     currentQuestion, 
     answers,
     loading, 
+    isTransitioning,
     error, 
     isComplete, 
     isSubmitted,
@@ -101,11 +102,13 @@ const QuestionnairePage = () => {
       console.log(`Question change detected:`, {
         from: previousQuestionRef.current?.id,
         to: currentQuestion.id,
-        type: currentQuestion.type
+        type: currentQuestion.type,
+        loading,
+        isTransitioning
       });
       previousQuestionRef.current = currentQuestion;
     }
-  }, [currentQuestion?.id]);
+  }, [currentQuestion?.id, loading, isTransitioning]);
   
   // Handle suggestion selection
   const handleSuggestionSelect = useCallback((suggestion, index = null, isTextInput = false) => {
@@ -526,7 +529,7 @@ const QuestionnairePage = () => {
     );
   }
   
-  if (loading) {
+  if (loading || isTransitioning) {
     return (
       <LoadingSpinner />
     );

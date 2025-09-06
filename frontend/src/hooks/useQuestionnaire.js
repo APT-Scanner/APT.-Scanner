@@ -23,6 +23,7 @@ export const useQuestionnaire = () => {
   const [currentQuestion, setCurrentQuestion] = useState(null);
   const [answers, setAnswers] = useState({});
   const [loading, setLoading] = useState(true);
+  const [isTransitioning, setIsTransitioning] = useState(false);
   const [error, setError] = useState(null);
   const [isComplete, setIsComplete] = useState(false);
   const [isSubmitted, setIsSubmitted] = useState(false);
@@ -291,6 +292,7 @@ export const useQuestionnaire = () => {
   const fetchNextQuestion = useCallback(async (newAnswers = {}) => {
     if (!idToken || !user?.uid) return;
     
+    setIsTransitioning(true);
     setLoading(true);
     setError(null);
     
@@ -411,7 +413,11 @@ export const useQuestionnaire = () => {
       console.error('Error fetching next question:', err);
       setError(err.message || 'Failed to get the next question.');
     } finally {
-      setLoading(false);
+      // Use setTimeout to ensure UI updates properly after state changes
+      setTimeout(() => {
+        setLoading(false);
+        setIsTransitioning(false);
+      }, 50); // Small delay to prevent race condition
     }
   }, [idToken, user, answers, isOffline, answeredQuestions, saveToLocalStorage]);
 
@@ -579,6 +585,7 @@ export const useQuestionnaire = () => {
     currentQuestion,
     answers,
     loading,
+    isTransitioning,
     error,
     isComplete,
     isSubmitted,
