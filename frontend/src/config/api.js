@@ -17,7 +17,7 @@ const getAPIBase = () => {
   }
   
   // Fallback to the configured API endpoint for separate deployments
-  return "https://apt-scanner.us-east-1.elasticbeanstalk.com";
+  return "https://aptscanner.duckdns.org";
 };
 
 const API_BASE = getAPIBase();

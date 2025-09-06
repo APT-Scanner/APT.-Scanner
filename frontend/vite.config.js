@@ -42,9 +42,9 @@ export default defineConfig({
     port: 5173,      // Default Vite port
     proxy: {
       '/api/v1': {
-        target: 'http://apt-scanner.us-east-1.elasticbeanstalk.com',
+        target: 'https://aptscanner.duckdns.org',
         changeOrigin: true,
-        secure: false,
+        secure: true,
         rewrite: (path) => path.replace(/^\/api\/v1/, '/api/v1'),
       }
     },
