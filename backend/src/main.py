@@ -1,9 +1,12 @@
 from fastapi import FastAPI, HTTPException, status
 from fastapi.middleware.cors import CORSMiddleware
-from fastapi.responses import JSONResponse
+from fastapi.responses import JSONResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from contextlib import asynccontextmanager
 import uvicorn
 import logging
+import os
+from pathlib import Path
 from src.api.router import api_router
 from src.config.settings import settings
 from src.database.mongo_db import connect_to_mongo, close_mongo_connection
@@ -99,13 +102,42 @@ async def generic_exception_handler(request, exc):
 # Include routers
 app.include_router(api_router, prefix="/api")
 
-# Health check endpoint
-@app.get("/", status_code=status.HTTP_200_OK, tags=["Health Check"])
-def health_check():
-    """
-    Endpoint for Elastic Beanstalk health checks.
-    """
-    return {"status": "ok", "message": "APT. Scanner API is healthy"}
+# Serve static files (React frontend)
+static_dir = Path(__file__).parent.parent.parent / "frontend" / "dist"
+if static_dir.exists():
+    app.mount("/static", StaticFiles(directory=str(static_dir / "assets")), name="static")
+    
+    # Serve React app for all non-API routes
+    @app.get("/{full_path:path}")
+    async def serve_spa(full_path: str):
+        """
+        Serve React SPA for all routes except API routes.
+        This handles client-side routing by always returning index.html.
+        """
+        # Don't serve SPA for API routes
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+        
+        # Serve static files directly
+        file_path = static_dir / full_path
+        if file_path.is_file():
+            return FileResponse(str(file_path))
+        
+        # For all other routes, serve index.html (SPA routing)
+        index_file = static_dir / "index.html"
+        if index_file.exists():
+            return FileResponse(str(index_file))
+        
+        # Fallback for development/health check
+        return {"status": "ok", "message": "APT. Scanner API is healthy"}
+else:
+    # Health check endpoint (fallback when no frontend build exists)
+    @app.get("/", status_code=status.HTTP_200_OK, tags=["Health Check"])
+    def health_check():
+        """
+        Endpoint for Elastic Beanstalk health checks.
+        """
+        return {"status": "ok", "message": "APT. Scanner API is healthy"}
 
 if __name__ == "__main__":
     uvicorn.run(
