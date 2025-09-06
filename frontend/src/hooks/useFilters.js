@@ -43,10 +43,10 @@ export const useFilters = () => {
     const saveVersionRef = useRef(0);
     
     /**
-     * Tracks whether user has modified filters after initial load
-     * Prevents late load responses from overriding user changes
+     * Tracks when user last modified filters to prevent immediate override
+     * Uses timestamp to allow loads after a reasonable delay
      */
-    const dirtyRef = useRef(false);
+    const lastUserChangeRef = useRef(0);
     
     /**
      * Debounce timer for backend saves
@@ -104,9 +104,10 @@ export const useFilters = () => {
                     return;
                 }
 
-                // Don't override user changes with late-arriving load response
-                if (dirtyRef.current) {
-                    console.log('🚫 Ignoring load response - user has made changes (dirty state)');
+                // Don't override recent user changes with late-arriving load response (within 2 seconds)
+                const timeSinceLastChange = Date.now() - lastUserChangeRef.current;
+                if (lastUserChangeRef.current > 0 && timeSinceLastChange < 2000) {
+                    console.log('🚫 Ignoring load response - recent user changes detected');
                     return;
                 }
 
@@ -136,8 +137,9 @@ export const useFilters = () => {
                 queryParamsCacheRef.current = null; // Invalidate cache
                 console.log(`✓ Loaded filters from backend (token ${currentToken}):`, frontendFilters);
             } else {
-                // Fallback to localStorage - but only if user hasn't made changes
-                if (!dirtyRef.current) {
+                // Fallback to localStorage - but only if user hasn't made recent changes
+                const timeSinceLastChange = Date.now() - lastUserChangeRef.current;
+                if (lastUserChangeRef.current === 0 || timeSinceLastChange >= 2000) {
                     const storageKey = `apartmentFilters-${userId}`;
                     const saved = localStorage.getItem(storageKey);
                     if (saved) {
@@ -158,8 +160,9 @@ export const useFilters = () => {
             
             setError('Failed to load filters');
             
-            // Fallback to localStorage - but only if user hasn't made changes
-            if (!dirtyRef.current) {
+            // Fallback to localStorage - but only if user hasn't made recent changes
+            const timeSinceLastChange = Date.now() - lastUserChangeRef.current;
+            if (lastUserChangeRef.current === 0 || timeSinceLastChange >= 2000) {
                 const storageKey = `apartmentFilters-${userId}`;
                 const saved = localStorage.getItem(storageKey);
                 if (saved) {
@@ -181,6 +184,18 @@ export const useFilters = () => {
             // Only update loading state for the latest request
             if (currentToken === loadRequestTokenRef.current) {
                 setLoading(false);
+                
+                // Ensure we always have valid filters, even if everything failed
+                setFilters(prev => {
+                    // If we still have default/empty filters and no localStorage fallback worked,
+                    // make sure we have working defaults
+                    if (prev === defaultFilters || Object.keys(prev).length === 0) {
+                        console.log('🔄 Ensuring valid default filters are set');
+                        queryParamsCacheRef.current = null;
+                        return { ...defaultFilters };
+                    }
+                    return prev;
+                });
             }
         }
     }, [userId, idToken]);
@@ -249,8 +264,8 @@ export const useFilters = () => {
     const saveFilters = useCallback(async (filtersToSave) => {
         if (!userId || !idToken) return;
 
-        // Mark filters as dirty (user has made changes)
-        dirtyRef.current = true;
+        // Record timestamp of user change
+        lastUserChangeRef.current = Date.now();
         
         // Increment save version for race condition protection
         const saveVersion = ++saveVersionRef.current;
@@ -285,11 +300,14 @@ export const useFilters = () => {
     useEffect(() => {
         if (userId && idToken) {
             setLoading(true);
-            dirtyRef.current = false; // Reset dirty state for new loads
+            lastUserChangeRef.current = 0; // Reset change timestamp for new user
+            queryParamsCacheRef.current = null; // Clear cache for fresh load
             loadFilters();
         } else if (!userId) {
             setLoading(false);
-            dirtyRef.current = false; // Reset dirty state when no user
+            lastUserChangeRef.current = 0; // Reset change timestamp when no user
+            setFilters(defaultFilters); // Reset to defaults when no user
+            queryParamsCacheRef.current = null;
         }
     }, [userId, idToken, loadFilters]);
 
@@ -337,9 +355,9 @@ export const useFilters = () => {
             debounceTimerRef.current = null;
         }
         
-        // Reset state and mark as dirty
+        // Reset state and record user action timestamp
         setFilters(defaultFilters);
-        dirtyRef.current = true;
+        lastUserChangeRef.current = Date.now();
         
         // Clear storage
         if (userId) {

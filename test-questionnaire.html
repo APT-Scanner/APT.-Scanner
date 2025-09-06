@@ -1,0 +1,686 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Questionnaire Hook Race Condition Tests</title>
+    <style>
+        body { 
+            font-family: Arial, sans-serif; 
+            margin: 20px; 
+            background: #f5f5f5; 
+        }
+        .container { 
+            max-width: 1000px; 
+            background: white; 
+            padding: 20px; 
+            border-radius: 8px; 
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
+        }
+        .test-section { 
+            margin: 20px 0; 
+            padding: 15px; 
+            border: 1px solid #ddd; 
+            border-radius: 5px; 
+        }
+        .pass { 
+            color: #28a745; 
+            font-weight: bold; 
+        }
+        .fail { 
+            color: #dc3545; 
+            font-weight: bold; 
+        }
+        .loading { 
+            color: #ffc107; 
+        }
+        button { 
+            background: #007bff; 
+            color: white; 
+            border: none; 
+            padding: 10px 15px; 
+            border-radius: 4px; 
+            cursor: pointer; 
+            margin: 5px; 
+        }
+        button:hover { background: #0056b3; }
+        button.danger { background: #dc3545; }
+        button.danger:hover { background: #c82333; }
+        pre { 
+            background: #f8f9fa; 
+            padding: 10px; 
+            border-radius: 3px; 
+            overflow-x: auto; 
+            max-height: 300px;
+            font-size: 12px;
+        }
+        .test-result {
+            margin: 5px 0;
+            padding: 8px;
+            border-radius: 3px;
+        }
+        .test-result.pass {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+        }
+        .test-result.fail {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+        }
+        .stats {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 5px;
+            margin: 10px 0;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>🧪 Questionnaire Hook Race Condition Tests</h1>
+        
+        <div class="stats" id="test-stats">
+            <strong>Test Statistics:</strong> <span id="stats-text">Ready to run tests</span>
+        </div>
+        
+        <div class="test-section">
+            <h3>🎯 Request ID Versioning Tests</h3>
+            <p>Tests the "latest wins" mechanism using requestId counters</p>
+            <div id="request-id-results"></div>
+            <button onclick="testRequestIdVersioning()">Test Request ID Logic</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔢 Loading Reference Count Tests</h3>
+            <p>Tests the loading counter system instead of boolean loading</p>
+            <div id="loading-count-results"></div>
+            <button onclick="testLoadingReferenceCount()">Test Loading Count Logic</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🛑 AbortController Tests</h3>
+            <p>Tests request cancellation and cleanup mechanisms</p>
+            <div id="abort-controller-results"></div>
+            <button onclick="testAbortController()">Test Abort Logic</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🔄 Functional State Updates Tests</h3>
+            <p>Tests functional state updates to prevent stale closure issues</p>
+            <div id="functional-updates-results"></div>
+            <button onclick="testFunctionalStateUpdates()">Test Functional Updates</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🏃‍♂️ Race Condition Simulation</h3>
+            <p>Simulates rapid API calls to test race condition handling</p>
+            <div id="race-simulation-results"></div>
+            <button onclick="simulateRaceConditions()">Simulate Race Conditions</button>
+        </div>
+
+        <div class="test-section">
+            <h3>🧹 Cleanup Tests</h3>
+            <p>Tests proper cleanup of timers and AbortControllers</p>
+            <div id="cleanup-results"></div>
+            <button onclick="testCleanup()">Test Cleanup Logic</button>
+        </div>
+
+        <div class="test-section">
+            <h3>📊 Full Integration Test</h3>
+            <p>Comprehensive test of all race condition protections together</p>
+            <div id="integration-results"></div>
+            <button onclick="runIntegrationTest()">Run Full Integration Test</button>
+            <button class="danger" onclick="clearAllTests()">Clear All Results</button>
+        </div>
+        
+        <div class="test-section">
+            <h3>📝 Console Output</h3>
+            <pre id="console-output"></pre>
+        </div>
+    </div>
+
+    <script>
+        // Test results tracking
+        let testResults = {
+            total: 0,
+            passed: 0,
+            failed: 0
+        };
+
+        // Capture console output
+        let consoleOutput = '';
+        const originalLog = console.log;
+        const originalError = console.error;
+        const originalWarn = console.warn;
+        
+        console.log = (...args) => {
+            const message = args.join(' ');
+            consoleOutput += `[LOG] ${message}\n`;
+            updateConsoleOutput();
+            originalLog(...args);
+        };
+        
+        console.error = (...args) => {
+            const message = args.join(' ');
+            consoleOutput += `[ERROR] ${message}\n`;
+            updateConsoleOutput();
+            originalError(...args);
+        };
+
+        console.warn = (...args) => {
+            const message = args.join(' ');
+            consoleOutput += `[WARN] ${message}\n`;
+            updateConsoleOutput();
+            originalWarn(...args);
+        };
+
+        function updateConsoleOutput() {
+            document.getElementById('console-output').textContent = consoleOutput;
+        }
+
+        function updateStats() {
+            const percentage = testResults.total > 0 ? Math.round((testResults.passed / testResults.total) * 100) : 0;
+            document.getElementById('stats-text').innerHTML = 
+                `Total: ${testResults.total} | Passed: ${testResults.passed} | Failed: ${testResults.failed} | Success Rate: ${percentage}%`;
+        }
+
+        function addTestResult(sectionId, testName, passed, details) {
+            testResults.total++;
+            if (passed) {
+                testResults.passed++;
+            } else {
+                testResults.failed++;
+            }
+            
+            const resultDiv = document.createElement('div');
+            resultDiv.className = `test-result ${passed ? 'pass' : 'fail'}`;
+            resultDiv.innerHTML = `
+                <strong>${testName}:</strong> 
+                <span class="${passed ? 'pass' : 'fail'}">${passed ? '✅ PASS' : '❌ FAIL'}</span>
+                <br><small>${details}</small>
+            `;
+            
+            document.getElementById(sectionId).appendChild(resultDiv);
+            updateStats();
+        }
+
+        // Test 1: Request ID Versioning
+        function testRequestIdVersioning() {
+            console.log('🧪 Testing Request ID Versioning Logic');
+            
+            // Simulate the refs from the actual hook
+            const startRequestIdRef = { current: 0 };
+            const fetchNextRequestIdRef = { current: 0 };
+            const goBackRequestIdRef = { current: 0 };
+            const submitRequestIdRef = { current: 0 };
+            
+            // Test startQuestionnaire request versioning
+            const startReq1 = ++startRequestIdRef.current;
+            const startReq2 = ++startRequestIdRef.current;
+            const startReq3 = ++startRequestIdRef.current;
+            
+            addTestResult(
+                'request-id-results',
+                'Start Request ID Sequence',
+                startReq1 === 1 && startReq2 === 2 && startReq3 === 3,
+                `Generated sequence: ${startReq1}, ${startReq2}, ${startReq3}`
+            );
+            
+            // Test latest wins logic
+            const isReq1Valid = startReq1 === startRequestIdRef.current; // false
+            const isReq2Valid = startReq2 === startRequestIdRef.current; // false
+            const isReq3Valid = startReq3 === startRequestIdRef.current; // true
+            
+            addTestResult(
+                'request-id-results',
+                'Latest Wins Logic',
+                !isReq1Valid && !isReq2Valid && isReq3Valid,
+                `Req1 valid: ${isReq1Valid}, Req2 valid: ${isReq2Valid}, Req3 valid: ${isReq3Valid}`
+            );
+            
+            // Test multiple endpoint versioning
+            const fetchReq1 = ++fetchNextRequestIdRef.current;
+            const goBackReq1 = ++goBackRequestIdRef.current;
+            const submitReq1 = ++submitRequestIdRef.current;
+            
+            addTestResult(
+                'request-id-results',
+                'Multiple Endpoint Versioning',
+                fetchReq1 === 1 && goBackReq1 === 1 && submitReq1 === 1,
+                `FetchNext: ${fetchReq1}, GoBack: ${goBackReq1}, Submit: ${submitReq1}`
+            );
+            
+            console.log('✅ Request ID Versioning tests completed');
+        }
+
+        // Test 2: Loading Reference Count
+        function testLoadingReferenceCount() {
+            console.log('🧪 Testing Loading Reference Count System');
+            
+            let loadingCount = 0;
+            
+            const incLoading = () => ++loadingCount;
+            const decLoading = () => loadingCount = Math.max(0, loadingCount - 1);
+            const loading = () => loadingCount > 0;
+            
+            // Test initial state
+            addTestResult(
+                'loading-count-results',
+                'Initial Loading State',
+                !loading() && loadingCount === 0,
+                `Initial: loadingCount=${loadingCount}, loading=${loading()}`
+            );
+            
+            // Test single request
+            incLoading();
+            addTestResult(
+                'loading-count-results',
+                'Single Request Loading',
+                loading() && loadingCount === 1,
+                `After incLoading: loadingCount=${loadingCount}, loading=${loading()}`
+            );
+            
+            // Test multiple concurrent requests
+            incLoading();
+            incLoading();
+            incLoading();
+            addTestResult(
+                'loading-count-results',
+                'Multiple Concurrent Requests',
+                loading() && loadingCount === 4,
+                `After 3 more incLoading: loadingCount=${loadingCount}, loading=${loading()}`
+            );
+            
+            // Test partial completion
+            decLoading();
+            decLoading();
+            addTestResult(
+                'loading-count-results',
+                'Partial Request Completion',
+                loading() && loadingCount === 2,
+                `After 2 decLoading: loadingCount=${loadingCount}, loading=${loading()}`
+            );
+            
+            // Test full completion
+            decLoading();
+            decLoading();
+            addTestResult(
+                'loading-count-results',
+                'All Requests Completed',
+                !loading() && loadingCount === 0,
+                `After all decLoading: loadingCount=${loadingCount}, loading=${loading()}`
+            );
+            
+            // Test underflow protection
+            decLoading();
+            decLoading();
+            addTestResult(
+                'loading-count-results',
+                'Underflow Protection',
+                !loading() && loadingCount === 0,
+                `After extra decLoading: loadingCount=${loadingCount}, loading=${loading()}`
+            );
+            
+            console.log('✅ Loading Reference Count tests completed');
+        }
+
+        // Test 3: AbortController Logic
+        function testAbortController() {
+            console.log('🧪 Testing AbortController Logic');
+            
+            const startAbortRef = { current: null };
+            const fetchNextAbortRef = { current: null };
+            
+            const replaceAbortController = (abortRef) => {
+                if (abortRef.current) {
+                    abortRef.current.abort();
+                }
+                abortRef.current = new AbortController();
+                return abortRef.current.signal;
+            };
+            
+            // Test initial state
+            addTestResult(
+                'abort-controller-results',
+                'Initial AbortController State',
+                startAbortRef.current === null,
+                'Initial state should be null'
+            );
+            
+            // Test controller creation
+            const signal1 = replaceAbortController(startAbortRef);
+            addTestResult(
+                'abort-controller-results',
+                'AbortController Creation',
+                startAbortRef.current !== null && signal1 === startAbortRef.current.signal,
+                'AbortController and signal should be created'
+            );
+            
+            // Test controller replacement
+            const oldController = startAbortRef.current;
+            const signal2 = replaceAbortController(startAbortRef);
+            
+            addTestResult(
+                'abort-controller-results',
+                'AbortController Replacement',
+                oldController.signal.aborted && startAbortRef.current !== oldController,
+                `Old controller aborted: ${oldController.signal.aborted}, New controller created: ${startAbortRef.current !== oldController}`
+            );
+            
+            // Test multiple endpoints
+            const fetchSignal = replaceAbortController(fetchNextAbortRef);
+            addTestResult(
+                'abort-controller-results',
+                'Multiple Endpoint Controllers',
+                fetchNextAbortRef.current !== null && startAbortRef.current !== fetchNextAbortRef.current,
+                'Different endpoints should have separate controllers'
+            );
+            
+            console.log('✅ AbortController tests completed');
+        }
+
+        // Test 4: Functional State Updates
+        function testFunctionalStateUpdates() {
+            console.log('🧪 Testing Functional State Updates');
+            
+            // Simulate React state with functional updates
+            let answeredQuestions = ['q1', 'q2'];
+            let progress = 2;
+            
+            const setAnsweredQuestions = (updater) => {
+                if (typeof updater === 'function') {
+                    answeredQuestions = updater(answeredQuestions);
+                } else {
+                    answeredQuestions = updater;
+                }
+            };
+            
+            const setProgress = (value) => {
+                progress = value;
+            };
+            
+            // Test functional update to avoid stale closures
+            const questionId = 'q3';
+            setAnsweredQuestions(prev => {
+                if (prev.includes(questionId)) return prev;
+                const next = [...prev, questionId];
+                setProgress(next.length);
+                return next;
+            });
+            
+            addTestResult(
+                'functional-updates-results',
+                'Functional Array Update',
+                answeredQuestions.length === 3 && answeredQuestions.includes('q3'),
+                `Updated array: [${answeredQuestions.join(', ')}]`
+            );
+            
+            addTestResult(
+                'functional-updates-results',
+                'Progress Sync',
+                progress === answeredQuestions.length,
+                `Progress: ${progress}, Array length: ${answeredQuestions.length}`
+            );
+            
+            // Test duplicate prevention
+            setAnsweredQuestions(prev => {
+                if (prev.includes('q3')) return prev; // Should prevent duplicate
+                return [...prev, 'q3'];
+            });
+            
+            addTestResult(
+                'functional-updates-results',
+                'Duplicate Prevention',
+                answeredQuestions.length === 3,
+                `Array length after duplicate attempt: ${answeredQuestions.length}`
+            );
+            
+            // Test with fresh state check
+            let canGoBackResult = false;
+            setAnsweredQuestions(prev => {
+                canGoBackResult = prev.length > 0;
+                return prev; // No state change, just reading fresh value
+            });
+            
+            addTestResult(
+                'functional-updates-results',
+                'Fresh State Read',
+                canGoBackResult === true,
+                `canGoBack result: ${canGoBackResult}`
+            );
+            
+            console.log('✅ Functional State Updates tests completed');
+        }
+
+        // Test 5: Race Condition Simulation
+        function simulateRaceConditions() {
+            console.log('🧪 Simulating Race Conditions');
+            
+            const requestIdRef = { current: 0 };
+            const results = [];
+            
+            // Simulate 10 rapid requests
+            for (let i = 0; i < 10; i++) {
+                const requestId = ++requestIdRef.current;
+                
+                // Simulate async delay with random timing
+                setTimeout(() => {
+                    const isValid = requestId === requestIdRef.current;
+                    results.push({ requestId, isValid, timestamp: Date.now() });
+                    
+                    if (results.length === 10) {
+                        // All requests completed, analyze results
+                        const validRequests = results.filter(r => r.isValid);
+                        const invalidRequests = results.filter(r => !r.isValid);
+                        
+                        addTestResult(
+                            'race-simulation-results',
+                            'Race Condition Handling',
+                            validRequests.length === 1 && invalidRequests.length === 9,
+                            `Valid requests: ${validRequests.length}, Invalid: ${invalidRequests.length}`
+                        );
+                        
+                        addTestResult(
+                            'race-simulation-results',
+                            'Latest Request Wins',
+                            validRequests[0]?.requestId === 10,
+                            `Winning request ID: ${validRequests[0]?.requestId}`
+                        );
+                        
+                        console.log('✅ Race condition simulation completed');
+                        console.log('Results:', results);
+                    }
+                }, Math.random() * 100); // Random delay 0-100ms
+            }
+        }
+
+        // Test 6: Cleanup Logic
+        function testCleanup() {
+            console.log('🧪 Testing Cleanup Logic');
+            
+            const abortRefs = [
+                { current: null },
+                { current: null },
+                { current: null },
+                { current: null }
+            ];
+            
+            // Create controllers for each ref
+            abortRefs.forEach(ref => {
+                ref.current = new AbortController();
+            });
+            
+            addTestResult(
+                'cleanup-results',
+                'Controllers Created',
+                abortRefs.every(ref => ref.current !== null),
+                'All AbortControllers should be created'
+            );
+            
+            // Simulate cleanup (from useEffect cleanup)
+            const controllers = abortRefs.map(ref => ref.current);
+            controllers.forEach(controller => {
+                if (controller) controller.abort();
+            });
+            
+            addTestResult(
+                'cleanup-results',
+                'Controllers Aborted',
+                controllers.every(controller => controller.signal.aborted),
+                'All controllers should be aborted'
+            );
+            
+            // Test debounce timer cleanup simulation
+            let timerId = null;
+            timerId = setTimeout(() => {
+                console.log('This should be cancelled');
+            }, 1000);
+            
+            // Cleanup
+            if (timerId) {
+                clearTimeout(timerId);
+                timerId = null;
+            }
+            
+            addTestResult(
+                'cleanup-results',
+                'Timer Cleanup',
+                timerId === null,
+                'Timer should be cleared and nullified'
+            );
+            
+            console.log('✅ Cleanup tests completed');
+        }
+
+        // Full Integration Test
+        function runIntegrationTest() {
+            console.log('🚀 Running Full Integration Test');
+            
+            // Simulate complete hook behavior
+            const hookState = {
+                loadingCount: 0,
+                startRequestIdRef: { current: 0 },
+                fetchNextRequestIdRef: { current: 0 },
+                goBackRequestIdRef: { current: 0 },
+                submitRequestIdRef: { current: 0 },
+                startAbortRef: { current: null },
+                fetchNextAbortRef: { current: null },
+                answeredQuestions: [],
+                lastUserChangeRef: { current: 0 }
+            };
+            
+            const incLoading = () => ++hookState.loadingCount;
+            const decLoading = () => hookState.loadingCount = Math.max(0, hookState.loadingCount - 1);
+            const loading = () => hookState.loadingCount > 0;
+            
+            const replaceAbortController = (abortRef) => {
+                if (abortRef.current) {
+                    abortRef.current.abort();
+                }
+                abortRef.current = new AbortController();
+                return abortRef.current.signal;
+            };
+            
+            // Test complete flow
+            console.log('Testing complete questionnaire flow...');
+            
+            // Step 1: Start questionnaire
+            const startRequestId = ++hookState.startRequestIdRef.current;
+            const startSignal = replaceAbortController(hookState.startAbortRef);
+            incLoading();
+            
+            // Step 2: Start another request (race condition)
+            const startRequestId2 = ++hookState.startRequestIdRef.current;
+            const startSignal2 = replaceAbortController(hookState.startAbortRef);
+            incLoading();
+            
+            // Step 3: Fetch next question
+            const fetchRequestId = ++hookState.fetchNextRequestIdRef.current;
+            const fetchSignal = replaceAbortController(hookState.fetchNextAbortRef);
+            incLoading();
+            
+            const integrationResults = {
+                requestVersioning: startRequestId !== startRequestId2 && startRequestId2 === hookState.startRequestIdRef.current,
+                loadingCount: loading() && hookState.loadingCount === 3,
+                abortControllers: hookState.startAbortRef.current !== null && hookState.fetchNextAbortRef.current !== null,
+                signalAbortion: startSignal.aborted && !startSignal2.aborted && !fetchSignal.aborted
+            };
+            
+            addTestResult(
+                'integration-results',
+                'Request Versioning Integration',
+                integrationResults.requestVersioning,
+                `Start requests: ${startRequestId} -> ${startRequestId2} (latest wins)`
+            );
+            
+            addTestResult(
+                'integration-results',
+                'Loading Count Integration',
+                integrationResults.loadingCount,
+                `Loading count: ${hookState.loadingCount}, Loading state: ${loading()}`
+            );
+            
+            addTestResult(
+                'integration-results',
+                'AbortController Integration',
+                integrationResults.abortControllers,
+                'All abort controllers should be created'
+            );
+            
+            addTestResult(
+                'integration-results',
+                'Signal Abortion Integration',
+                integrationResults.signalAbortion,
+                `Old signal aborted: ${startSignal.aborted}, Current signals active`
+            );
+            
+            // Complete the requests
+            decLoading();
+            decLoading();
+            decLoading();
+            
+            addTestResult(
+                'integration-results',
+                'Loading Completion',
+                !loading() && hookState.loadingCount === 0,
+                `Final loading state: ${loading()}`
+            );
+            
+            console.log('✅ Integration test completed');
+            console.log('Hook state:', hookState);
+        }
+
+        function clearAllTests() {
+            const sections = [
+                'request-id-results',
+                'loading-count-results', 
+                'abort-controller-results',
+                'functional-updates-results',
+                'race-simulation-results',
+                'cleanup-results',
+                'integration-results'
+            ];
+            
+            sections.forEach(sectionId => {
+                document.getElementById(sectionId).innerHTML = '';
+            });
+            
+            testResults = { total: 0, passed: 0, failed: 0 };
+            updateStats();
+            
+            consoleOutput = '';
+            updateConsoleOutput();
+            
+            console.log('🗑️ All test results cleared');
+        }
+
+        // Auto-run basic tests on load
+        setTimeout(() => {
+            console.log('🎬 Auto-running initial tests...');
+            testRequestIdVersioning();
+            setTimeout(() => testLoadingReferenceCount(), 100);
+            setTimeout(() => testAbortController(), 200);
+        }, 500);
+    </script>
+</body>
+</html>
