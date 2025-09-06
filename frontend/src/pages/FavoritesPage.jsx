@@ -50,13 +50,7 @@ const FavoritesPage = () => {
     return (
         <div className={styles.pageWrapper}>
             <div className={styles.header}>
-                <button className={styles.iconButton}>
-                    <Menu size={24} color="#000"/>
-                </button>
                 <h1>Favorites</h1>
-                <button className={styles.iconButton}>
-                    <Filter size={24} color="#000"/>
-                </button>
             </div>
             
             <div className={styles.savedCount}>
