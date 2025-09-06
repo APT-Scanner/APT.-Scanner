@@ -151,6 +151,7 @@ const NeighborhoodsExplorePage = () => {
                         onChange={(e) => setSelectedCity(e.target.value)}
                         className={styles.cityFilter}
                         aria-label="Select city"
+                        color="black"
                     >
                         <option value="">All Cities</option>
                         {uniqueCities.map(city => (
@@ -163,6 +164,7 @@ const NeighborhoodsExplorePage = () => {
                         onChange={(e) => setSortBy(e.target.value)}
                         className={styles.sortFilter}
                         aria-label="Select sort order"
+                        color="black"
                     >
                         <option value="name">Sort by Name</option>
                         <option value="popularity">Sort by Overall Score</option>
