@@ -189,6 +189,19 @@ class QuestionnaireService:
                 db_state['current_question_id'] = None
             set_cache(cache_key, db_state)
             return db_state
+        
+        # Check if user has a completed questionnaire but no active state
+        completed_questionnaire = await self.get_completed_questionnaire(user_id)
+        if completed_questionnaire:
+            logger.info(f"User {user_id} has completed questionnaire, creating state with answered questions")
+            initial_state = self._create_initial_state()
+            # Populate answered questions from completed questionnaire
+            initial_state['answers'] = completed_questionnaire.get('answers', {})
+            initial_state['answered_questions'] = list(completed_questionnaire.get('answers', {}).keys())
+            initial_state['version'] = completed_questionnaire.get('questionnaire_version', self.current_version)
+            await self._update_user_state_in_db(user_id, initial_state)
+            set_cache(cache_key, initial_state)
+            return initial_state
             
         initial_state = self._create_initial_state()
         await self._update_user_state_in_db(user_id, initial_state)

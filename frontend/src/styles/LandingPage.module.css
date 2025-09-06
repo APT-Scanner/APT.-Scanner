@@ -161,3 +161,34 @@
 .loginLink:hover {
   text-decoration: underline;
 }
+
+.errorMessage {
+  color: #ff4444;
+  font-family: 'Roboto', sans-serif;
+  font-size: 14px;
+  margin: 10px 0;
+  padding: 8px 12px;
+  background: rgba(255, 68, 68, 0.1);
+  border-radius: 4px;
+  border: 1px solid rgba(255, 68, 68, 0.3);
+}
+
+.loadingIcon {
+  animation: spin 1s linear infinite;
+  flex-shrink: 0;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.socialLoginButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.createAccountButton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

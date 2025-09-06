@@ -214,7 +214,7 @@ const QuestionnairePage = () => {
         } else if (typeof existingAnswer === 'string' && existingAnswer.startsWith('[')) {
           try {
             setSelectedOptions(JSON.parse(existingAnswer));
-          } catch (e) {
+          } catch {
             setSelectedOptions([existingAnswer]);
           }
         } else {
@@ -299,7 +299,7 @@ const QuestionnairePage = () => {
     });
   };
 
-  const handleListInputChange = (index, event) => {
+  const _handleListInputChange = (index, event) => {
     const newListValues = [...listInputValues];
     newListValues[index] = event.target.value;
     setListInputValues(newListValues);
@@ -308,13 +308,13 @@ const QuestionnairePage = () => {
     handlePlaceInput(event.target.value, index, false);
   };
 
-  const handleAddListInput = () => {
+  const _handleAddListInput = () => {
     if (listInputValues.length < 5) {
       setListInputValues([...listInputValues, '']);
     }
   };
 
-  const handleRemoveListInput = (index) => {
+  const _handleRemoveListInput = (index) => {
     const newListValues = [...listInputValues];
     newListValues.splice(index, 1);
     setListInputValues(newListValues);
@@ -440,7 +440,7 @@ const QuestionnairePage = () => {
         }
         currentAnswer = JSON.stringify([priceMin, priceMax]);
         break;
-      case 'list-input':
+      case 'list-input': {
         const filteredListInputs = listInputValues.map(item => item.trim()).filter(item => item !== '');
         if (filteredListInputs.length === 0) {
           setSubmissionError("Please add at least one item to the list or skip.");
@@ -448,10 +448,11 @@ const QuestionnairePage = () => {
         }
         currentAnswer = JSON.stringify(filteredListInputs);
         break;
+      }
       case 'text':
         currentAnswer = textInputValue;
         break;
-      case 'poi-list':
+      case 'poi-list': {
         const validPois = poiList.filter(poi => poi.place_id && poi.description.trim());
         if (validPois.length === 0) {
           setSubmissionError("Please add at least one location with a valid place selection.");
@@ -459,6 +460,7 @@ const QuestionnairePage = () => {
         }
         currentAnswer = JSON.stringify(validPois);
         break;
+      }
       default:
         console.warn("Unsupported question type for goToNextQuestion:", currentQuestion.type);
         return;
@@ -524,7 +526,7 @@ const QuestionnairePage = () => {
     );
   }
   
-  if (loading || (totalQuestions === 0 && !currentQuestion) ) {
+  if (loading) {
     return (
       <LoadingSpinner />
     );
