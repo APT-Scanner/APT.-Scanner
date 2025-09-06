@@ -6,6 +6,7 @@ import { FaCheckCircle, FaRegCircle, FaEye, FaEyeSlash } from "react-icons/fa";
 import { IoMdArrowBack } from "react-icons/io";
 import { auth } from "../config/firebase";
 import validator from "email-validator";
+import API_BASE from "../config/api.js";
 
 
 const validatePassword = (password) => {
@@ -81,7 +82,7 @@ const RegisterPage = () => {
       if (user) {
         const idToken = await user.getIdToken();
         try {
-          const userUrl = `/api/v1/users/me`;
+          const userUrl = `${API_BASE}/api/v1/users/me`;
           const response = await fetch(userUrl, {
             method: "POST",
             headers: {
