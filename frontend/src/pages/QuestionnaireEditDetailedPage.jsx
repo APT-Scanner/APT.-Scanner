@@ -4,6 +4,7 @@ import { ArrowLeft, RefreshCw, Edit, Check, X, Save } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
 import styles from '../styles/QuestionnaireEditDetailedPage.module.css';
 import API_BASE from '../config/api.js';
+import LoadingSpinner from '../components/LoadingSpinner.jsx';
 
 const QuestionnaireEditDetailedPage = () => {
     const navigate = useNavigate();
@@ -317,20 +318,7 @@ const QuestionnaireEditDetailedPage = () => {
     };
 
     if (loading) {
-        return (
-            <div className={styles.pageContainer}>
-                <div className={styles.header}>
-                    <button className={styles.backButton} onClick={handleBack}>
-                        <ArrowLeft size={24} />
-                    </button>
-                    <h1>Edit Answers</h1>
-                </div>
-                <div className={styles.loadingContainer}>
-                    <RefreshCw size={48} className={styles.spinner} />
-                    <p>Loading answers...</p>
-                </div>
-            </div>
-        );
+        return <LoadingSpinner />;
     }
 
     if (error) {
@@ -340,7 +328,6 @@ const QuestionnaireEditDetailedPage = () => {
                     <button className={styles.backButton} onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>Edit Answers</h1>
                 </div>
                 <div className={styles.errorContainer}>
                     <p className={styles.errorMessage}>{error}</p>
@@ -371,7 +358,6 @@ const QuestionnaireEditDetailedPage = () => {
                     <button className={styles.backButton} onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>Edit Answers</h1>
                 </div>
                 <div className={styles.emptyContainer}>
                     <Save size={48} className={styles.emptyIcon} />
@@ -394,10 +380,6 @@ const QuestionnaireEditDetailedPage = () => {
                 <button className={styles.backButton} onClick={handleBack}>
                     <ArrowLeft size={24} />
                 </button>
-                <h1>Edit Answers</h1>
-                <div className={styles.headerInfo}>
-                    {answeredQuestions.length} answers available for editing
-                </div>
             </div>
 
             <div className={styles.questionsContainer}>
@@ -405,7 +387,6 @@ const QuestionnaireEditDetailedPage = () => {
                     <div key={questionId} className={styles.questionCard}>
                         <div className={styles.questionHeader}>
                             <span className={styles.category}>{question.category}</span>
-                            {question.required && <span className={styles.required}>Required</span>}
                         </div>
                         <h3 className={styles.questionText}>{question.text}</h3>
                         {renderQuestionAnswer(question)}

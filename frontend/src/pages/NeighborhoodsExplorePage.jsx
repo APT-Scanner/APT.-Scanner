@@ -10,6 +10,7 @@ import { useAuth } from '../hooks/useAuth';
 import API_BASE from '../config/api.js';
 import HomeIcon from '../assets/home_not_pressed.svg';
 import HeartOutlineIcon from '../assets/heart_not_pressed.svg';
+import LoadingSpinner from '../components/LoadingSpinner.jsx';
 
 const NeighborhoodsExplorePage = () => {
     const navigate = useNavigate();
@@ -111,15 +112,7 @@ const NeighborhoodsExplorePage = () => {
     const uniqueCities = [...new Set(neighborhoods.map(n => n.city))];
 
     if (loading) {
-        return (
-            <div className={styles.pageContainer}>
-                <div className={styles.loadingContainer}>
-                    <Loader2 size={48} className={styles.spinner} />
-                    <h2>Loading Neighborhoods</h2>
-                    <p>Discovering the best places to live...</p>
-                </div>
-            </div>
-        );
+        return <LoadingSpinner />;
     }
 
     return (
@@ -129,7 +122,6 @@ const NeighborhoodsExplorePage = () => {
                 <button className={styles.backButton} onClick={() => navigate(-1)}>
                     <ArrowLeft size={24} />
                 </button>
-                <h1 className={styles.title}>Explore Neighborhoods</h1>
             </div>
 
             {/* Search and Filter Bar */}
@@ -212,26 +204,6 @@ const NeighborhoodsExplorePage = () => {
 
                             {/* Comprehensive neighborhood features display */}
                             <div className={styles.featuresContainer}>
-                                {/* Core Metrics Row */}
-                                <div className={styles.coreMetrics}>
-                                    <div className={styles.metric}>
-                                        <Activity size={16} />
-                                        <span>{neighborhood.current_active_listings || 0} active</span>
-                                    </div>
-                                    {neighborhood.school_rating && (
-                                        <div className={styles.metric}>
-                                            <GraduationCap size={16} />
-                                            <span>{neighborhood.school_rating}/10 schools</span>
-                                        </div>
-                                    )}
-                                    {neighborhood.social_economic_index && (
-                                        <div className={styles.metric}>
-                                            <Users size={16} />
-                                            <span>{neighborhood.social_economic_index}/10 quality</span>
-                                        </div>
-                                    )}
-                                </div>
-
                                 {/* Rich Features Grid */}
                                 {neighborhood.features && (
                                     <div className={styles.featuresGrid}>

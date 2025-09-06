@@ -4,6 +4,7 @@ import { ArrowLeft, RefreshCw, Edit3, Plus, CheckCircle, Circle, BarChart3 } fro
 import { useAuth } from '../hooks/useAuth';
 import styles from '../styles/QuestionnaireEditPage.module.css';
 import API_BASE from '../config/api.js';
+import LoadingSpinner from '../components/LoadingSpinner.jsx';
 
 const QuestionnaireEditPage = () => {
     const navigate = useNavigate();
@@ -104,20 +105,7 @@ const QuestionnaireEditPage = () => {
 
 
     if (loading) {
-        return (
-            <div className={styles.pageContainer}>
-                <div className={styles.header}>
-                    <button className={styles.backButton} onClick={handleBack}>
-                        <ArrowLeft size={24} />
-                    </button>
-                    <h1>Manage Questionnaire</h1>
-                </div>
-                <div className={styles.loadingContainer}>
-                    <RefreshCw size={48} className={styles.spinner} />
-                    <p>Loading data...</p>
-                </div>
-            </div>
-        );
+        return <LoadingSpinner />;
     }
 
     if (error) {
@@ -226,7 +214,6 @@ const QuestionnaireEditPage = () => {
                                 <Edit3 size={32} />
                             </div>
                             <div className={styles.buttonContent}>
-                                <h3>Edit Existing Answers</h3>
                                 <p>Change or update answers you've already provided</p>
                                 {answeredCount > 0 && (
                                     <span className={styles.badge}>
