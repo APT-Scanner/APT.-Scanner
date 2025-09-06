@@ -199,8 +199,8 @@ class QuestionnaireService:
             initial_state['answers'] = completed_questionnaire.get('answers', {})
             initial_state['answered_questions'] = list(completed_questionnaire.get('answers', {}).keys())
             initial_state['version'] = completed_questionnaire.get('questionnaire_version', self.current_version)
-            await self._update_user_state_in_db(user_id, initial_state)
-            set_cache(cache_key, initial_state)
+            # Don't save to DB or cache yet - let the caller handle that
+            # This prevents race conditions with the continuing_additional flag
             return initial_state
             
         initial_state = self._create_initial_state()
@@ -256,6 +256,10 @@ class QuestionnaireService:
         self._add_follow_up_questions_to_queue(state)
 
         await self.update_user_state(user_id, state)
+        
+        # If user has completed questionnaire and answered additional questions, update it
+        if new_answers:
+            await self._update_completed_questionnaire_if_exists(user_id, state)
         
         next_question_data = await self._get_next_question_from_queue(state, user_id)
         if next_question_data:
@@ -707,6 +711,32 @@ class QuestionnaireService:
         if self.mongo_db is None:
             return None
         return await self.mongo_db.completed_questionnaires.find_one({"user_id": user_id})
+    
+    async def _update_completed_questionnaire_if_exists(self, user_id: str, state: Dict[str, Any]) -> bool:
+        """Update completed questionnaire with new answers if it exists."""
+        if self.mongo_db is None:
+            return False
+            
+        try:
+            completed_doc = await self.get_completed_questionnaire(user_id)
+            if completed_doc:
+                # Update with new answers and question count
+                await self.mongo_db.completed_questionnaires.update_one(
+                    {"user_id": user_id},
+                    {
+                        "$set": {
+                            "answers": state['answers'],
+                            "question_count": len(state['answered_questions']),
+                            "updated_at": datetime.now(timezone.utc)
+                        }
+                    }
+                )
+                logger.info(f"Updated completed questionnaire for user {user_id} with {len(state['answered_questions'])} total answers")
+                return True
+            return False
+        except Exception as e:
+            logger.error(f"Error updating completed questionnaire: {e}")
+            return False
 
     async def go_back_to_previous_question(self, user_id: str) -> Dict[str, Any]:
         """
@@ -831,7 +861,7 @@ class QuestionnaireService:
         "id": "final_completion_prompt",
         "text": "Congratulations! You've completed all the questions. Your preferences have been saved and we're ready to find the perfect apartments for you.",
         "type": "single-choice",
-        "options": ["View matched apartments", "Start apartment swipe"],
+        "options": ["View recommendations", "Start apartment swipe"],
         "category": "System",
         "display_type": "continuation_page"
     }

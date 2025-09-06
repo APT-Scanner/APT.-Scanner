@@ -95,12 +95,14 @@ const LandingPage = () => {
             <div className={styles.backgroundCircle}></div>
             <div className = {styles.card}>
                 <div className = {styles.cardContent}>
-                    <img src = {logo} alt = "APT.Scanner logo" className ={styles.logo}></img>
-                    <h2 className = {styles.slogen}>
-                        Find your perfect match,
-                        <br />
-                        The apartment thats fits you.
-                    </h2>
+                  <div className = {styles.cardHeader}>
+                      <img src = {logo} alt = "APT.Scanner logo" className ={styles.logo}></img>
+                      <h2 className = {styles.slogen}>
+                          Find your perfect match,
+                          <br />
+                          The apartment thats fits you.
+                      </h2>
+                    </div>
                     <img src = {house} alt = "house illustration" className ={styles.illustration}></img>
                     <button 
                         className = {styles.createAccountButton} 
