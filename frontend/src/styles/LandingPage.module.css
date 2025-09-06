@@ -50,7 +50,7 @@
 .backgroundCircle {
   position: absolute;
   width: clamp(500px, 100vw, 2000px);
-  height: clamp(200px, 44vh, 2000px);
+  height: clamp(200px, 46vh, 2000px);
   background-color: #d9f4f3;
   border-radius: 50%; 
   top: 40%;     
