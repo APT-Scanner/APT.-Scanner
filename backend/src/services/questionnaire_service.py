@@ -818,7 +818,7 @@ class QuestionnaireService:
         "id": "final_completion_prompt",
         "text": "Congratulations! You've completed all the questions. Your preferences have been saved and we're ready to find the perfect apartments for you.",
         "type": "single-choice",
-        "options": ["View matched apartments", "Go to dashboard"],
+        "options": ["View matched apartments", "Start apartment swipe"],
         "category": "System",
         "display_type": "continuation_page"
     }
@@ -913,6 +913,14 @@ class QuestionnaireService:
         """
         user_state = await self.get_user_state(user_id)
         
+        # Check if user is continuing with additional questions
+        is_continuing_additional = user_state.get('continuing_additional', False)
+        if is_continuing_additional:
+            # Clear the flag after checking it
+            user_state['continuing_additional'] = False
+            await self.update_user_state(user_id, user_state)
+            logger.info(f"User {user_id} continuing with additional questions, skipping continuation prompts")
+        
         show_final = self.should_show_final_prompt(user_state)
         if show_final:
             progress = await self.calculate_questionnaire_progress(user_state)
@@ -926,7 +934,8 @@ class QuestionnaireService:
                 "show_continuation_prompt": False
             }
         
-        show_prompt = self.should_show_continuation_prompt(user_state)
+        # Skip continuation prompt if user is continuing with additional questions
+        show_prompt = self.should_show_continuation_prompt(user_state) and not is_continuing_additional
         if show_prompt and not show_final:
             progress = await self.calculate_questionnaire_progress(user_state)
             current_stage_total, current_stage_answered = await self.get_current_stage_counts(user_state)
@@ -1119,7 +1128,7 @@ class QuestionnaireService:
 
     async def reset_current_question(self, user_id: str) -> bool:
         """
-        Reset the current_question_id to ensure fresh start when answering more questions.
+        Reset the current_question_id and queue to ensure fresh start when answering more questions.
         This is useful when a user wants to continue answering unanswered questions
         without being stuck on a previously shown but unanswered question.
         """
@@ -1129,11 +1138,17 @@ class QuestionnaireService:
             # Clear the current question pointer
             user_state['current_question_id'] = None
             
+            # Clear the question queue to force repopulation with unanswered questions
+            user_state['queue'] = deque()
+            
+            # Add a flag to indicate user wants to continue with additional questions
+            user_state['continuing_additional'] = True
+            
             # Save the updated state
             success = await self.update_user_state(user_id, user_state)
             
             if success:
-                logger.info(f"Reset current_question_id for user {user_id}")
+                logger.info(f"Reset current_question_id and queue for additional questions for user {user_id}")
             else:
                 logger.error(f"Failed to reset current_question_id for user {user_id}")
                 

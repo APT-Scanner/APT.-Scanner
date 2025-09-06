@@ -488,8 +488,8 @@ const QuestionnairePage = () => {
         // First option (View matched apartments)
         navigate('/recommendations');
       } else {
-        // Second option (Go to dashboard)
-        navigate('/dashboard');
+        // Second option (Go to apartment swipe)
+        navigate('/apartment-swipe');
       }
       return;
     }
