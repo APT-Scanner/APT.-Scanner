@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import styles from "../styles/LandingPage.module.css";
 import logo from "../assets/Logo.svg";
@@ -8,11 +8,9 @@ import { auth } from "../config/firebase";
 import { useQuestionnaireStatus } from "../hooks/useQuestionnaireStatus";
 import { createUserInDatabase } from "../services/userService";
 import { getUserFromDatabase } from "../services/userService";
-import { LoadingSpinner } from "../components/LoadingSpinner";
 import { Loader } from "lucide-react";
 
 const LandingPage = () => {
-
     const navigate = useNavigate();
     const [error, setError] = useState("");
     const [isLoading, setIsLoading] = useState(false);

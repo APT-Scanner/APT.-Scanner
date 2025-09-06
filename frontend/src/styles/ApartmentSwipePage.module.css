@@ -514,4 +514,10 @@
 }
 
 
-
+@media (max-width: 768px) {
+  .buttonsContainer {
+    bottom: calc(18vh - 10px);
+    gap: calc(50% - 25vw);
+    z-index: 0;
+  }
+}
