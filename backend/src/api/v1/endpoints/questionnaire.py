@@ -282,6 +282,31 @@ async def update_user_questionnaire_responses(
         logger.error(f"Error updating user questionnaire responses: {e}", exc_info=True)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
+@router.post("/reset-current-question",
+            summary="Reset current question pointer for fresh start")
+async def reset_current_question(
+    current_user: UserModel = Depends(get_current_user),
+    questionnaire_service: QuestionnaireService = Depends(get_questionnaire_service)
+):
+    """Reset the current_question_id to enable fresh start when answering more questions."""
+    try:
+        user_id = current_user.firebase_uid
+        if not user_id:
+            raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="User ID not found")
+        
+        success = await questionnaire_service.reset_current_question(user_id)
+        
+        if not success:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Failed to reset current question")
+        
+        return {"message": "Current question reset successfully", "success": True}
+        
+    except HTTPException:
+        raise
+    except Exception as e:
+        logger.error(f"Error resetting current question: {e}", exc_info=True)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
 @router.get("/basic-questions-count",
             summary="Get the number of basic questions",
             response_model=int)

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ArrowLeft, RefreshCw, Edit, Check, X, Save } from 'lucide-react';
 import { useAuth } from '../hooks/useAuth';
@@ -17,7 +17,7 @@ const QuestionnaireEditDetailedPage = () => {
     const [saving, setSaving] = useState(false);
 
     // Fetch questionnaire data
-    const fetchQuestionnaireData = async () => {
+    const fetchQuestionnaireData = useCallback(async () => {
         if (!idToken) return;
 
         try {
@@ -45,11 +45,11 @@ const QuestionnaireEditDetailedPage = () => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [idToken]);
 
     useEffect(() => {
         fetchQuestionnaireData();
-    }, [idToken]);
+    }, [fetchQuestionnaireData]);
 
     const handleBack = () => navigate(-1);
 
@@ -112,6 +112,88 @@ const QuestionnaireEditDetailedPage = () => {
         } finally {
             setSaving(false);
         }
+    };
+
+    // Helper function to format POI (Points of Interest) answers
+    const formatPOIAnswer = (answer) => {
+        try {
+            // Handle null/undefined/empty cases
+            if (!answer || answer === '' || answer === 'null' || answer === 'undefined') {
+                return 'No locations selected';
+            }
+            
+            let pois = answer;
+            
+            // Parse if it's a JSON string
+            if (typeof answer === 'string' && (answer.startsWith('[') || answer.startsWith('{'))) {
+                try {
+                    pois = JSON.parse(answer);
+                } catch {
+                    console.warn('Failed to parse POI JSON string:', answer);
+                    return answer; // Return original if parsing fails
+                }
+            }
+            
+            // If it's an array of POI objects, extract location names
+            if (Array.isArray(pois)) {
+                if (pois.length === 0) {
+                    return 'No locations selected';
+                }
+                
+                const locationNames = pois.map((poi, index) => {
+                    if (typeof poi === 'object' && poi !== null) {
+                        // Extract location name from various possible fields
+                        const locationName = poi.description || poi.name || poi.formatted_address || poi.place_id;
+                        if (locationName) {
+                            return locationName;
+                        }
+                        return `Location ${index + 1}`;
+                    }
+                    return poi || `Location ${index + 1}`;
+                }).filter(name => name); // Remove any empty names
+                
+                return locationNames.length > 0 ? locationNames.join(', ') : 'No valid locations';
+            }
+            
+            // If it's a single POI object
+            if (typeof pois === 'object' && pois !== null) {
+                const locationName = pois.description || pois.name || pois.formatted_address || pois.place_id;
+                return locationName || 'Unknown Location';
+            }
+            
+            // If it's a plain string that's not JSON, return as-is
+            if (typeof pois === 'string') {
+                return pois;
+            }
+            
+            return answer || 'No location data';
+        } catch (error) {
+            console.error('Error formatting POI answer:', error, 'Original answer:', answer);
+            return typeof answer === 'string' ? answer : 'Error displaying locations';
+        }
+    };
+
+    // Helper function to format answer display
+    const formatAnswerDisplay = (questionId, answer) => {
+        // Special handling for points of interest question
+        if (questionId === 'points_of_interest') {
+            return formatPOIAnswer(answer);
+        }
+        
+        // Handle arrays and JSON strings for other questions
+        if (typeof answer === 'string' && answer.startsWith('[')) {
+            try {
+                return JSON.parse(answer).join(', ');
+            } catch {
+                return answer;
+            }
+        }
+        
+        if (Array.isArray(answer)) {
+            return answer.join(', ');
+        }
+        
+        return answer;
     };
 
     const renderQuestionAnswer = (question) => {
@@ -217,12 +299,7 @@ const QuestionnaireEditDetailedPage = () => {
                 <div className={styles.answerDisplay}>
                     {currentAnswer ? (
                         <span className={styles.answer}>
-                            {typeof currentAnswer === 'string' && currentAnswer.startsWith('[') 
-                                ? JSON.parse(currentAnswer).join(', ')
-                                : Array.isArray(currentAnswer) 
-                                    ? currentAnswer.join(', ')
-                                    : currentAnswer
-                            }
+                            {formatAnswerDisplay(questionId, currentAnswer)}
                         </span>
                     ) : (
                         <span className={styles.noAnswer}>Not answered</span>

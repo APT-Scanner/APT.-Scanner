@@ -162,6 +162,45 @@ export const useQuestionnaire = () => {
       
       if (DEBUG) console.log("Questionnaire started, data:", data);
       
+      // If we don't have any answers cached (e.g., after reset), sync with backend
+      if (Object.keys(answers).length === 0) {
+        try {
+          if (DEBUG) console.log("No cached answers found, syncing with backend...");
+          
+          const responsesResponse = await fetch(`${API_BASE}/api/v1/questionnaire/responses`, {
+            headers: {
+              'Authorization': `Bearer ${idToken}`,
+              'Content-Type': 'application/json'
+            }
+          });
+          
+          if (responsesResponse.ok) {
+            const responsesData = await responsesResponse.json();
+            const backendAnswers = responsesData.user_responses || {};
+            const backendAnsweredQuestions = Object.keys(backendAnswers);
+            
+            if (Object.keys(backendAnswers).length > 0) {
+              if (DEBUG) console.log(`Synced ${Object.keys(backendAnswers).length} answers from backend:`, backendAnswers);
+              
+              // Update frontend state with backend data
+              setAnswers(backendAnswers);
+              setAnsweredQuestions(backendAnsweredQuestions);
+              
+              // Cache the synced data
+              saveToLocalStorage('answers', backendAnswers);
+              saveToLocalStorage('answered-questions', backendAnsweredQuestions);
+            } else {
+              if (DEBUG) console.log("No existing answers found in backend");
+            }
+          } else {
+            if (DEBUG) console.warn("Failed to sync answers from backend:", responsesResponse.status);
+          }
+        } catch (syncError) {
+          console.warn("Error syncing answers from backend:", syncError);
+          // Continue with normal flow even if sync fails
+        }
+      }
+      
       // Check if we need to show a continuation prompt
       if (data.show_continuation_prompt) {
         if (DEBUG) console.log("Backend requested showing continuation prompt on start");
@@ -193,7 +232,7 @@ export const useQuestionnaire = () => {
     } finally {
       setLoading(false);
     }
-  }, [idToken, authLoading, isOffline, removeFromLocalStorage, saveToLocalStorage]);
+  }, [idToken, authLoading, isOffline, removeFromLocalStorage, saveToLocalStorage, answers]);
   
   /**
    * Initialize the questionnaire on component mount or when user changes
@@ -218,6 +257,33 @@ export const useQuestionnaire = () => {
 
     return response.json();
   }, [idToken]);
+
+  /**
+   * Reset questionnaire state for fresh start
+   */
+  const resetQuestionnaireState = useCallback(() => {
+    if (!user?.uid) return;
+    
+    try {
+      // Clear localStorage cache
+      removeFromLocalStorage('answers');
+      removeFromLocalStorage('answered-questions');
+      removeFromLocalStorage('continuation-shown');
+      
+      // Reset local state
+      setAnswers({});
+      setAnsweredQuestions([]);
+      setProgress(0);
+      setCurrentQuestion(null);
+      setIsComplete(false);
+      setIsSubmitted(false);
+      continuationPromptShown.current = false;
+      
+      if (DEBUG) console.log('Reset questionnaire state for fresh start');
+    } catch (error) {
+      console.error('Error resetting questionnaire state:', error);
+    }
+  }, [user, removeFromLocalStorage]);
 
   /**
    * Fetch the next question with the current answers
@@ -526,6 +592,7 @@ export const useQuestionnaire = () => {
     startQuestionnaire,
     getNumberOfBasicQuestions,
     goToPreviousQuestion,
-    canGoBack
+    canGoBack,
+    resetQuestionnaireState
   };
 }; 

@@ -1117,6 +1117,32 @@ class QuestionnaireService:
             "show_continuation_prompt": show_prompt
         }
 
+    async def reset_current_question(self, user_id: str) -> bool:
+        """
+        Reset the current_question_id to ensure fresh start when answering more questions.
+        This is useful when a user wants to continue answering unanswered questions
+        without being stuck on a previously shown but unanswered question.
+        """
+        try:
+            user_state = await self.get_user_state(user_id)
+            
+            # Clear the current question pointer
+            user_state['current_question_id'] = None
+            
+            # Save the updated state
+            success = await self.update_user_state(user_id, user_state)
+            
+            if success:
+                logger.info(f"Reset current_question_id for user {user_id}")
+            else:
+                logger.error(f"Failed to reset current_question_id for user {user_id}")
+                
+            return success
+            
+        except Exception as e:
+            logger.error(f"Error resetting current question for user {user_id}: {e}", exc_info=True)
+            return False
+
     async def _create_or_update_user_filters(self, user_id: str, user_responses: Dict[str, Any]) -> bool:
         """
         Create or update user filters based on questionnaire responses.

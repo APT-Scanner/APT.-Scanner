@@ -7,7 +7,7 @@ import API_BASE from '../config/api.js';
 
 const QuestionnaireEditPage = () => {
     const navigate = useNavigate();
-    const { idToken } = useAuth();
+    const { idToken, user } = useAuth();
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [questionsData, setQuestionsData] = useState(null);
@@ -49,7 +49,49 @@ const QuestionnaireEditPage = () => {
 
     const handleBack = () => navigate(-1);
 
-    const handleAnswerMore = () => {
+    const handleAnswerMore = async () => {
+        try {
+            // Clear any cached questionnaire state to ensure fresh start
+            if (user?.uid) {
+                const userPrefix = `user-${user.uid}-`;
+                
+                // Clear localStorage cache for questionnaire using the same keys as useQuestionnaire hook
+                try {
+                    localStorage.removeItem(`${userPrefix}questionnaire-answers`);
+                    localStorage.removeItem(`${userPrefix}questionnaire-answered-questions`);
+                    localStorage.removeItem(`${userPrefix}questionnaire-continuation-shown`);
+                    
+                    console.log('Cleared questionnaire cache for fresh start');
+                } catch (error) {
+                    console.warn('Error clearing questionnaire cache:', error);
+                }
+            }
+            
+            // Reset the current question pointer on the backend
+            if (idToken) {
+                try {
+                    const response = await fetch(`${API_BASE}/api/v1/questionnaire/reset-current-question`, {
+                        method: 'POST',
+                        headers: {
+                            'Authorization': `Bearer ${idToken}`,
+                            'Content-Type': 'application/json'
+                        }
+                    });
+                    
+                    if (response.ok) {
+                        console.log('Reset current question pointer on backend');
+                    } else {
+                        console.warn('Failed to reset current question pointer:', response.status);
+                    }
+                } catch (error) {
+                    console.warn('Error resetting current question pointer:', error);
+                }
+            }
+            
+        } catch (error) {
+            console.warn('Error in handleAnswerMore setup:', error);
+        }
+        
         // Navigate to regular questionnaire to answer remaining questions
         navigate('/questionnaire');
     };
@@ -85,7 +127,6 @@ const QuestionnaireEditPage = () => {
                     <button className={styles.backButton} onClick={handleBack}>
                         <ArrowLeft size={24} />
                     </button>
-                    <h1>Manage Questionnaire</h1>
                 </div>
                 <div className={styles.errorContainer}>
                     <p className={styles.errorMessage}>{error}</p>
@@ -113,7 +154,6 @@ const QuestionnaireEditPage = () => {
                 <button className={styles.backButton} onClick={handleBack}>
                     <ArrowLeft size={24} />
                 </button>
-                <h1>Manage Questionnaire</h1>
             </div>
 
             <div className={styles.mainContent}>
