@@ -93,6 +93,7 @@
   background-color: white;
   font-size: 14px;
   cursor: pointer;
+  color: black;
 }
 
 .cityFilter:focus,
@@ -178,7 +179,7 @@
 .price {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #e67e22;
+  color: #aeaff7;
   margin-bottom: 2px;
 }
 

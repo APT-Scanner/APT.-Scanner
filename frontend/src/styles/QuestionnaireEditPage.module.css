@@ -18,7 +18,6 @@
 }
 
 .backButton {
-  background: rgba(255, 255, 255, 0.95);
   border: none;
   border-radius: 50%;
   display: flex;
@@ -31,7 +30,6 @@
 }
 
 .backButton:hover {
-  background: rgba(255, 255, 255, 1);
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 0, 0, 0.15);
 }
@@ -94,7 +92,7 @@
 
 .progressFill {
   height: 100%;
-  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  background: #a0e3e2;
   border-radius: 6px;
   transition: width 0.6s ease;
 }
@@ -200,11 +198,11 @@
 }
 
 .actionButton:first-child .buttonIcon {
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  background: #559adf;
 }
 
 .actionButton:last-child .buttonIcon {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #aeaff7;
 }
 
 .buttonIcon {
@@ -246,7 +244,7 @@
 }
 
 .badge {
-  background: linear-gradient(135deg, #667eea, #764ba2);
+  background: #aeaff7;
   color: white;
   padding: 6px 12px;
   border-radius: 20px;
@@ -256,7 +254,7 @@
 }
 
 .actionButton:first-child .badge {
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  background: #559adf;
 }
 
 /* Completion Message */
@@ -266,7 +264,7 @@
   justify-content: center;
   gap: 12px;
   padding: 20px;
-  background: linear-gradient(135deg, #27ae60, #2ecc71);
+  background: #559adf;
   color: white;
   border-radius: 12px;
   font-weight: 600;
