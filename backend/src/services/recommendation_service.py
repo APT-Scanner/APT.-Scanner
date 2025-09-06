@@ -210,11 +210,16 @@ class NeighborhoodRecommendationService:
             if preference_vector is None:
                 # Fallback: Get user's questionnaire responses and calculate vector
                 user_responses = await self.questionnaire_service.get_user_responses(db, user_id)
-                if not user_responses:
-                    logger.warning(f"No questionnaire responses found for user {user_id}")
-                    return []
                 
-                # Convert responses to preference vector
+                # Filter out system responses to check if user has meaningful answers
+                meaningful_responses = {k: v for k, v in (user_responses or {}).items() 
+                                      if not k.startswith('system_')} if user_responses else {}
+                
+                if not meaningful_responses:
+                    logger.info(f"No meaningful questionnaire responses found for user {user_id}, using default neutral preferences")
+                    user_responses = {}  # Use empty dict for default neutral preferences
+                
+                # Convert responses to preference vector (will use defaults if responses are empty)
                 preference_vector = self._create_preference_vector(user_responses)
                 logger.info(f"Calculated preference vector from responses for user {user_id}: {preference_vector}")
             else:

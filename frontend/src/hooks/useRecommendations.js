@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useAuth } from './useAuth';
 import API_BASE from '../config/api.js';
 
@@ -6,7 +6,7 @@ export const useRecommendations = (options = {}) => {
     const [recommendations, setRecommendations] = useState([]);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
-    const [retryCount, setRetryCount] = useState(0);
+    const retryCountRef = useRef(0);
     const { idToken, authLoading } = useAuth();
     
     const { 
@@ -26,11 +26,15 @@ export const useRecommendations = (options = {}) => {
         
         // Reset retry count for new fetch attempts
         if (resetRetry) {
-            setRetryCount(0);
+            retryCountRef.current = 0;
         }
         
         try {
             const url = `${API_BASE}/api/v1/recommendations/neighborhoods?top_k=${topK}`;
+            
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
             
             const response = await fetch(url, {
                 method: 'GET',
@@ -38,7 +42,10 @@ export const useRecommendations = (options = {}) => {
                     'Authorization': `Bearer ${idToken}`,
                     'Content-Type': 'application/json',
                 },
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ 
@@ -52,20 +59,20 @@ export const useRecommendations = (options = {}) => {
             
             if (data.requires_questionnaire) {
                 // If this is the first attempt and questionnaire completion might be processing, retry once
-                if (retryCount === 0) {
+                if (retryCountRef.current === 0) {
                     console.log('Questionnaire completion may be processing, retrying in 2 seconds...');
-                    setRetryCount(1);
+                    retryCountRef.current = 1;
                     setTimeout(() => {
                         fetchRecommendations();
                     }, 2000);
                     return;
                 } else {
-                    setError('Please complete the questionnaire first');
+                    setError('Please complete the questionnaire first to get recommendations');
                     setRecommendations([]);
                 }
             } else {
                 // Reset retry count on successful response
-                setRetryCount(0);
+                retryCountRef.current = 0;
                 
                 // Transform API data to frontend format
                 const transformedRecommendations = data.recommendations?.map(rec => ({
@@ -93,12 +100,16 @@ export const useRecommendations = (options = {}) => {
             }
         } catch (err) {
             console.error("Failed to fetch recommendations:", err);
-            setError(err.message || 'Failed to load recommendations.');
+            if (err.name === 'AbortError') {
+                setError('Request timed out. Please try again.');
+            } else {
+                setError(err.message || 'Failed to load recommendations.');
+            }
             setRecommendations([]);
         } finally {
             setLoading(false);
         }
-    }, [idToken, topK, retryCount]);
+    }, [idToken, topK]);
 
     const refreshRecommendations = async () => {
         if (!idToken) {
@@ -107,13 +118,20 @@ export const useRecommendations = (options = {}) => {
         }
 
         try {
+            // Add timeout to prevent hanging requests
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 15000); // 15 second timeout
+            
             const response = await fetch(`${API_BASE}/api/v1/recommendations/refresh`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${idToken}`,
                     'Content-Type': 'application/json',
                 },
+                signal: controller.signal
             });
+            
+            clearTimeout(timeoutId);
 
             if (!response.ok) {
                 const errorData = await response.json().catch(() => ({ 
@@ -126,7 +144,11 @@ export const useRecommendations = (options = {}) => {
             await fetchRecommendations(true);
         } catch (err) {
             console.error("Failed to refresh recommendations:", err);
-            setError(err.message || 'Failed to refresh recommendations.');
+            if (err.name === 'AbortError') {
+                setError('Refresh request timed out. Please try again.');
+            } else {
+                setError(err.message || 'Failed to refresh recommendations.');
+            }
         }
     };
 
