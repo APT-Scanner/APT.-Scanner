@@ -1,5 +1,6 @@
 import React from 'react';
 import styles from '../styles/ContinuationPrompt.module.css';
+import { LoadingSpinner } from './LoadingSpinner';
 
 /**
  * Component for displaying a special prompt page
@@ -12,15 +13,22 @@ import styles from '../styles/ContinuationPrompt.module.css';
  * @param {Array} options - Array of button text options (usually 2 options)
  * @param {Function} onAnswer - Callback for when an option is selected
  * @param {boolean} isCompletion - Whether this is a completion prompt (for styling)
+ * @param {boolean} isLoading - Whether the component is in a loading state
  */
-const ContinuationPrompt = ({ text, options, onAnswer, isCompletion = false }) => {
+const ContinuationPrompt = ({ text, options, onAnswer, isCompletion = false, isLoading = false }) => {
   // Handle option click with consistent "yes"/"no" values
   const handleOptionClick = (option, index) => {
+    if (isLoading) return; // Prevent clicks while loading
+    
     // First option (index 0) is always "yes", second is always "no"
     const value = index === 0 ? "yes" : "no";
     console.log(`Selected ${option} with value ${value}`);
     onAnswer(value);
   };
+  
+  if (isLoading) {
+    return <LoadingSpinner />;
+  }
   
   return (
     <div className={styles.container}>
@@ -40,6 +48,7 @@ const ContinuationPrompt = ({ text, options, onAnswer, isCompletion = false }) =
                     : (index === 0 ? styles.continueButton : styles.submitButton)
                 }
                 onClick={() => handleOptionClick(option, index)}
+                disabled={isLoading}
               >
                 {option}
               </button>

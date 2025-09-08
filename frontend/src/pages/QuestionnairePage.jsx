@@ -189,7 +189,19 @@ const QuestionnairePage = () => {
 
   useEffect(() => {
     if (isSubmitted) {
-      navigate('/recommendations');
+      // Check if user made a specific choice during completion
+      const completionChoice = localStorage.getItem('completion-choice');
+      if (completionChoice) {
+        localStorage.removeItem('completion-choice');
+        if (completionChoice === 'apartment-swipe') {
+          navigate('/apartment-swipe');
+        } else {
+          navigate('/recommendations');
+        }
+      } else {
+        // Default navigation for regular submissions
+        navigate('/recommendations');
+      }
     }
   }, [isSubmitted, navigate]);
 
@@ -486,15 +498,21 @@ const QuestionnairePage = () => {
     // Check if this is a completion prompt or a continuation prompt
     if (currentQuestion.id === "final_completion_prompt") {
       setSubmissionLoading(true);
-      await submitQuestionnaire();
-      setSubmissionLoading(false);
-      // Handle the completion prompt options
-      if (answer === "yes") {
-        // First option (View matched apartments)
-        navigate('/recommendations');
-      } else {
-        // Second option (Go to apartment swipe)
-        navigate('/apartment-swipe');
+      try {
+        await submitQuestionnaire();
+        // Store the user's choice for navigation after submission
+        if (answer === "yes") {
+          // First option (View matched apartments) - will navigate via useEffect
+          localStorage.setItem('completion-choice', 'recommendations');
+        } else {
+          // Second option (Go to apartment swipe)
+          localStorage.setItem('completion-choice', 'apartment-swipe');
+        }
+      } catch (error) {
+        console.error('Error submitting questionnaire:', error);
+        setSubmissionError('Failed to submit questionnaire. Please try again.');
+      } finally {
+        setSubmissionLoading(false);
       }
       return;
     }
@@ -507,9 +525,15 @@ const QuestionnairePage = () => {
       selectedOptionText = "Submit my responses now";
       answerQuestion(currentQuestion.id, selectedOptionText);
       setSubmissionLoading(true);
-      await submitQuestionnaire();
-      setSubmissionLoading(false);
-      // Navigation will be handled by useEffect when isSubmitted becomes true
+      try {
+        await submitQuestionnaire();
+        // Navigation will be handled by useEffect when isSubmitted becomes true
+      } catch (error) {
+        console.error('Error submitting questionnaire:', error);
+        setSubmissionError('Failed to submit questionnaire. Please try again.');
+      } finally {
+        setSubmissionLoading(false);
+      }
     }
   };
   
@@ -545,6 +569,7 @@ const QuestionnairePage = () => {
         options={currentQuestion.options}
         onAnswer={handleContinuationPrompt}
         isCompletion={isCompletion}
+        isLoading={submissionLoading}
       />
     );
   }
