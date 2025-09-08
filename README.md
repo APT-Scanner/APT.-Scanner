@@ -1,6 +1,10 @@
 # APT. Scanner
 
-An AI-driven platform that helps users find the best-matched neighborhoods and apartments based on personalized questionnaires. APT. Scanner integrates machine learning, real estate data, and dynamic recommendations to provide a comprehensive solution for property seekers in Tel Aviv.
+You open the listings, see a hundred options... and still have no idea where to begin.
+Searching for an apartment can feel overwhelming.
+We’re here to change that!
+
+APT. Scanner is An AI-driven platform that helps users find the best-matched neighborhoods and apartments based on personalized questionnaires. APT. Scanner integrates machine learning, real estate data, and dynamic recommendations to provide a comprehensive solution for property seekers in Tel Aviv.
 
 **🌐 Live Application**: [https://aptscanner.vercel.app/](https://aptscanner.vercel.app/)
 
